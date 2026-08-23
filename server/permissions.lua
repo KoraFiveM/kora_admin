@@ -15,5 +15,6 @@ local RANKS = Config.permissions.ranks
 ---@return boolean
 function Admin.checkLevel(src, required)
     local level = exports.qbcore:getPermission(src)
-    return (RANKS[level] or RANKS.user) >= (RANKS[required] or RANKS.user)
+    local allowed = (RANKS[level] or RANKS.user) >= (RANKS[required] or RANKS.user)
+    return allowed
 end

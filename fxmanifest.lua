@@ -9,6 +9,7 @@ description 'Command-driven admin menu -- every action is a command, the NUI jus
 
 dependency 'qblib'
 dependency 'qbcore'
+dependency 'qbsql'
 
 -- qblib strictly before qbcore/qbsql: both extend the QB table qblib's own
 -- init.lua creates. qbcore's mirror is what gives us QB.shared.get/.all for

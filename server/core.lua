@@ -13,5 +13,6 @@ Admin = Admin or {}
 -- returns for a self target.
 RegisterNetEvent('qbadmin:server:requestLevel', function()
     local src = source
-    TriggerClientEvent('qbadmin:client:level', src, exports.qbcore:getPermission(src))
+    local level = exports.qbcore:getPermission(src)
+    TriggerClientEvent('qbadmin:client:level', src, level)
 end)

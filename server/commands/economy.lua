@@ -59,8 +59,14 @@ QB.commands.add('giveitem', 'Give a player an item', { { name = 'id' }, { name =
 
         local item = args[2]
         local amount = tonumber(args[3]) or 1
-        local info = args[4] and json.decode(args[4]) or nil
         if not item then return Admin.respond(source, false, 'item name required') end
+        local info
+        if args[4] then
+            local decoded, decodeErr = pcall(json.decode, args[4])
+            if not decoded then return Admin.respond(source, false, ('invalid item metadata JSON: %s'):format(tostring(decodeErr))) end
+            info = decodeErr
+            if type(info) ~= 'table' then return Admin.respond(source, false, 'item metadata must decode to an object') end
+        end
 
         local ok, actionErr = exports.qbcore:addItem(targetSrc, item, amount, nil, info, 'admin:giveitem')
         if not ok then return Admin.respond(source, false, actionErr or 'could not give item') end

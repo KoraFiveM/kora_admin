@@ -43,7 +43,11 @@ QB.commands.add('warnings', "Show a player's warning history", { { name = 'id' }
 
     local lines = {}
     for _, row in ipairs(rows) do
-        local details = row.details and json.decode(row.details) or {}
+        local details = {}
+        if row.details then
+            local ok, decoded = pcall(json.decode, row.details)
+            if ok and type(decoded) == 'table' then details = decoded end
+        end
         lines[#lines + 1] = ('%s - %s: %s'):format(tostring(row.created_at), row.actor_name, details.reason or '?')
     end
     Admin.chat(source, table.concat(lines, '\n'))
@@ -80,13 +84,14 @@ QB.commands.add('ban', 'Ban a player, online or offline', { { name = 'target' },
             end
         end
 
-        QB.sql.insert(
+        local banId, insertErr = QB.sql.insert(
             'INSERT INTO `bans` (`name`,`license`,`discord`,`ip`,`reason`,`expire`,`bannedby`) VALUES (?,?,?,?,?,?,?)',
             { name, identifiers.license, identifiers.discord, identifiers.ip, reason, expire, GetPlayerName(source) or 'console' }
         )
+        if not banId then return Admin.respond(source, false, insertErr or 'could not persist ban') end
 
         Admin.log(source, 'ban', { citizenid = citizenid, license = identifiers.license, name = name },
-            { reason = reason, expire = expire, possibleAlts = possibleAlts })
+            { banId = banId, reason = reason, expire = expire, possibleAlts = possibleAlts })
 
         for _, onlineSrc in ipairs(exports.qbcore:getPlayers()) do
             local onlineData = exports.qbcore:getPlayer(onlineSrc)

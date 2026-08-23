@@ -47,3 +47,14 @@ Config.vehicle = {
 Config.audit = {
     pageSize = 15, -- rows per page for /adminlog and the NUI audit log viewer
 }
+
+Config.keybind = {
+    -- Opens the admin menu. The bound command only forwards to the SERVER's
+    -- /admin (see client/menu.lua) -- binding a key grants nothing on its own,
+    -- since /admin still runs its own 'mod' permission check server-side.
+    -- Players rebind this freely in Settings > Key Bindings > FiveM; the value
+    -- here is only the default. Empty string = registered but unbound.
+    command = 'adminmenu',
+    label = 'Open the admin menu (qbadmin)',
+    defaultKey = 'F7', -- HOME/F6 are qblib-playground's palette, TAB is qbinventory
+}
