@@ -24,6 +24,8 @@ Config.teleport = {
     fadeTime = 500,        -- ms for the screen fade out/in around a teleport
     collisionTimeout = 2000, -- ms to wait on RequestCollisionAtCoord before teleporting anyway
     tpbackHistory = 1,      -- how many previous positions /tpback can undo (1 = last position only)
+    groundSnapHeight = 200.0, -- how far above a ground-snapped destination (e.g. /tpm) to land before probing for ground
+    groundSnapAttempts = 10,  -- GetGroundZFor_3dCoord retries once collision has loaded around the ground-snap landing spot
 }
 
 Config.noclip = {

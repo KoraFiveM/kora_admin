@@ -63,6 +63,14 @@ separate offline-capable resolver (`Admin.resolveOfflineTarget`) since a ban
 must be able to target a player who is not currently online, and banning
 yourself by accident is not a case worth making convenient.
 
+`/tpm` ground-snaps: a waypoint's z is a map-projected value, not real world
+elevation, and the actual terrain isn't streamed in around a destination
+until collision is requested there -- so `Admin.teleportTo(coords, true)`
+lands `Config.teleport.groundSnapHeight` units above the target first, waits
+for collision to load, then probes for and settles onto the real ground.
+`/tpcoords`/`/goto`/`/bring`/`/tpback` don't ground-snap -- their z already
+comes from a live entity or an admin-supplied literal.
+
 ## Menu usage
 
 `/admin` opens the root category menu, filtered to what your tier can reach
