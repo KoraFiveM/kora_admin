@@ -53,6 +53,11 @@ setduty/permission. Commands that operate purely on the caller (noclip,
 coords, aduty, health, armor, fix, dv, tpm/tpcoords/tpback) take no id
 argument at all -- there's nothing to resolve.
 
+`/health [percentage]` and the corresponding admin-menu field use `0-100%`,
+not GTA's native health number. Internally, 0% maps to the 100-health death
+floor and 100% maps to the current ped's maximum (normally 200 for freemode
+male peds and 175 for freemode female peds).
+
 `/ban` and `/unban` deliberately do **not** support `me` -- they use a
 separate offline-capable resolver (`Admin.resolveOfflineTarget`) since a ban
 must be able to target a player who is not currently online, and banning

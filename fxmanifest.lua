@@ -33,6 +33,7 @@ server_scripts {
     'server/target.lua',
     'server/response.lua',
     'server/audit.lua',
+    'server/menu_data.lua',
     'server/migrate.lua',
     'server/ban_enforcement.lua',
     'server/commands/player.lua',

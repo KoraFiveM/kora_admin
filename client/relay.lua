@@ -51,6 +51,41 @@ RegisterNetEvent('qbadmin:client:deleteVehicle', function()
     DeleteEntity(veh)
 end)
 
+-- This relay is sent only by the permission-checked server commands.  It
+-- intentionally owns the resulting network entity locally: that is reliable
+-- across FXServer artifacts and lets the recipient enter it immediately.
+RegisterNetEvent('qbadmin:client:spawnVehicle', function(model, warp)
+    if type(model) ~= 'string' then return end
+
+    local hash = joaat(model)
+    if hash == 0 or not IsModelInCdimage(hash) or not IsModelAVehicle(hash) then return end
+
+    RequestModel(hash)
+    local deadline = GetGameTimer() + 5000
+    while not HasModelLoaded(hash) and GetGameTimer() < deadline do Wait(0) end
+    if not HasModelLoaded(hash) then
+        QB.notify.send({ type = 'error', message = ('Could not load %s'):format(model) })
+        return
+    end
+
+    local ped = PlayerPedId()
+    local coords = GetOffsetFromEntityInWorldCoords(ped, 0.0, Config.vehicle.spawnOffset, 0.0)
+    local vehicle = CreateVehicle(hash, coords.x, coords.y, coords.z, GetEntityHeading(ped), true, true)
+    SetModelAsNoLongerNeeded(hash)
+    if vehicle == 0 or not DoesEntityExist(vehicle) then
+        QB.notify.send({ type = 'error', message = ('Could not spawn %s'):format(model) })
+        return
+    end
+
+    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    SetNetworkIdCanMigrate(netId, true)
+    SetVehicleHasBeenOwnedByPlayer(vehicle, true)
+    SetVehicleNeedsToBeHotwired(vehicle, false)
+    SetVehicleFuelLevel(vehicle, 100.0)
+    SetVehicleDirtLevel(vehicle, 0.0)
+    if warp then TaskWarpPedIntoVehicle(ped, vehicle, -1) end
+end)
+
 RegisterNetEvent('qbadmin:client:enterVehicle', function(netId, seat)
     CreateThread(function()
         local attempts = 0
@@ -68,9 +103,18 @@ RegisterNetEvent('qbadmin:client:coords', function()
     QB.nui.copyToClipboard(('%.2f, %.2f, %.2f'):format(coords.x, coords.y, coords.z))
 end)
 
+-- GTA health uses 100 as the death floor rather than as a 50% midpoint.
+-- Convert the admin command's human-friendly percentage onto the current
+-- ped's actual native range: freemode male peds normally top out at 200,
+-- while freemode female peds normally top out at 175.
+local HEALTH_FLOOR = 100
+
 RegisterNetEvent('qbadmin:client:setHealth', function(value)
     local ped = PlayerPedId()
-    SetEntityHealth(ped, value or GetEntityMaxHealth(ped))
+    local percentage = math.max(0, math.min(100, tonumber(value) or 100))
+    local maxHealth = math.max(HEALTH_FLOOR + 1, GetEntityMaxHealth(ped))
+    local health = HEALTH_FLOOR + (maxHealth - HEALTH_FLOOR) * (percentage / 100)
+    SetEntityHealth(ped, math.floor(health))
 end)
 
 RegisterNetEvent('qbadmin:client:setArmor', function(value)

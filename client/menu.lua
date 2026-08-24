@@ -110,6 +110,75 @@ local function withConfirm(message, fn)
     end
 end
 
+local function showPlayers()
+    local players, err = QB.callback.trigger('qbadmin:menuPlayers')
+    if not players then
+        QB.notify.send({ type = 'error', message = err or 'Could not load players' })
+        return
+    end
+
+    if #players == 0 then
+        QB.notify.send({ type = 'info', message = 'No players are online' })
+        return
+    end
+
+    local items = {}
+    for _, player in ipairs(players) do
+        items[#items + 1] = {
+            id = player.id,
+            label = ('#%s  %s'):format(player.id, player.name),
+            description = ('%s · %dms'):format(player.job, player.ping),
+        }
+    end
+    local result = QB.nui.openMenu(items, 'Online Players')
+    if result and not result.cancelled then runCommand('checkplayer', result.selectedId) end
+end
+
+local function showAuditLog(filters)
+    local rows, err = QB.callback.trigger('qbadmin:menuAuditLog', filters)
+    if not rows then
+        QB.notify.send({ type = 'error', message = err or 'Could not load audit log' })
+        return
+    end
+    if #rows == 0 then
+        QB.notify.send({ type = 'info', message = 'No matching audit entries' })
+        return
+    end
+
+    local items = {}
+    for index, row in ipairs(rows) do
+        items[#items + 1] = {
+            id = tostring(index),
+            label = ('%s · %s'):format(row.action or 'unknown', row.actor_name or 'unknown'),
+            description = ('%s → %s · %s'):format(row.target_name or '-', row.created_at or '-', row.details or ''),
+            disabled = true,
+        }
+    end
+    QB.nui.openMenu(items, 'Audit Log')
+end
+
+local function filterAuditLog()
+    local fields = {
+        { id = 'action', label = 'Action filter (optional)', type = 'text' },
+        { id = 'target', label = 'Target filter (optional)', type = 'text' },
+        { id = 'page', label = 'Page', type = 'number', default = 1, min = 1 },
+    }
+    local result = QB.nui.openInputDialog(fields, 'Filter Audit Log')
+    if result and not result.cancelled then showAuditLog(result.values) end
+end
+
+local function openClothing(mode)
+    if GetResourceState('qbclothing') ~= 'started' then
+        QB.notify.send({ type = 'error', message = 'qbclothing is not running' })
+        return
+    end
+    if mode == 'shop' then
+        TriggerEvent('qbclothing:client:openNearestShop')
+    else
+        TriggerEvent('qb-clothing:client:openOutfitMenu')
+    end
+end
+
 local function jobOptions()
     local out = {}
     for _, job in ipairs(QB.shared.all('jobs')) do out[#out + 1] = { value = job.name, label = job.label } end
@@ -152,8 +221,7 @@ local CATEGORIES = {
     {
         id = 'player', label = 'Player Management', level = 'mod',
         items = {
-            { id = 'players', label = 'List Players', level = 'mod',
-                run = withFields('players', { { id = 'search', label = 'Search (optional)', type = 'text' } }, 'List Players') },
+            { id = 'players', label = 'List Players', level = 'mod', run = showPlayers },
             { id = 'checkplayer', label = 'Check Player', level = 'mod', run = withPlayer('checkplayer') },
         },
     },
@@ -281,12 +349,8 @@ local CATEGORIES = {
     {
         id = 'audit', label = 'Audit Log', level = 'admin',
         items = {
-            { id = 'adminlog', label = 'View Log', level = 'admin',
-                run = withFields('adminlog', {
-                    { id = 'action', label = 'Action filter (optional)', type = 'text' },
-                    { id = 'target', label = 'Target filter (optional)', type = 'text' },
-                    { id = 'page', label = 'Page', type = 'number', default = 1, min = 1 },
-                }, 'Audit Log') },
+            { id = 'adminlog', label = 'View Recent Log', level = 'admin', run = showAuditLog },
+            { id = 'adminlogfilter', label = 'Filter Log', level = 'admin', run = filterAuditLog },
         },
     },
     {
@@ -307,10 +371,12 @@ local CATEGORIES = {
             { id = 'aduty', label = 'Toggle Admin Duty', level = 'mod', run = withFields('aduty') },
             { id = 'coords', label = 'Copy Coordinates', level = 'mod', run = withFields('coords') },
             { id = 'health', label = 'Set Health', level = 'mod',
-                run = withFields('health', { { id = 'value', label = 'Health (blank = full)', type = 'number', min = 0, max = 200 } }, 'Set Health') },
+                run = withFields('health', { { id = 'value', label = 'Health (0-100%, blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Health') },
             { id = 'armor', label = 'Set Armor', level = 'mod',
                 run = withFields('armor', { { id = 'value', label = 'Armor (blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Armor') },
             { id = 'permission', label = 'My Permission Level', level = 'mod', run = withFields('permission') },
+            { id = 'wardrobe', label = 'Open Wardrobe', level = 'mod', run = function() openClothing('wardrobe') end },
+            { id = 'clothingshop', label = 'Open Clothing Shop (nearby)', level = 'mod', run = function() openClothing('shop') end },
         },
     },
 }
