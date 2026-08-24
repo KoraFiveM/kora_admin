@@ -49,7 +49,7 @@ the literal word `me`, as "the player who ran this command"
 (`server/target.lua`, `Admin.resolveTarget`). `/heal`, `/heal me`, and
 `/heal 3` all work -- the first two heal the caller, the third heals server id
 3. This applies to heal/revive/kill/freeze/god/invisible/spectate/checkplayer/
-setduty/permission. Commands that operate purely on the caller (noclip,
+setduty/sethunger/setthirst/permission. Commands that operate purely on the caller (noclip,
 coords, aduty, health, armor, fix, dv, tpm/tpcoords/tpback) take no id
 argument at all -- there's nothing to resolve.
 
@@ -66,13 +66,22 @@ separate offline-capable resolver (`Admin.resolveOfflineTarget`) since a ban
 must be able to target a player who is not currently online, and banning
 yourself by accident is not a case worth making convenient.
 
-`/tpm` ground-snaps: a waypoint's z is a map-projected value, not real world
-elevation, and the actual terrain isn't streamed in around a destination
-until collision is requested there -- so `Admin.teleportTo(coords, true)`
-lands `Config.teleport.groundSnapHeight` units above the target first, waits
-for collision to load, then probes for and settles onto the real ground.
-`/tpcoords`/`/goto`/`/bring`/`/tpback` don't ground-snap -- their z already
-comes from a live entity or an admin-supplied literal.
+`Admin.teleportTo` matches txAdmin's own teleport algorithm exactly (its
+`resource/menu/client/cl_main_page.lua`/`cl_functions.lua`): every teleport,
+ground-snapped or not, first lands at a fixed safe altitude
+(`Config.teleport.waypointLaunchHeight`) and waits for
+`IsEntityWaitingForWorldCollision` to clear, so nothing ever clips into
+not-yet-streamed geometry at the destination, not even a literal
+admin-supplied one. `/tpm` additionally ground-snaps -- a waypoint's z is a
+map-projected value, not real world elevation -- by then repeatedly probing
+for ground beneath itself (`findGroundZ`, ported from txAdmin's own
+`FindZForCoords`: drills down through stacked surfaces, e.g. a bridge deck
+then the street under it, rather than stopping at the first hit), retrying
+up to `Config.teleport.groundZAttempts` times, `groundZRetryDelay` ms apart,
+in case collision is still streaming in. `/tpcoords`/`/goto`/`/bring`/
+`/tpback` don't ground-snap -- their z already comes from a live entity or an
+admin-supplied literal -- so they land at that z directly once the initial
+high-altitude collision wait clears.
 
 ## Menu usage
 

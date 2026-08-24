@@ -45,9 +45,10 @@ end, OPTS_ADMIN)
 
 -- argsRequired=false: minute defaults to 0 below; only hour is truly required.
 QB.commands.add('time', 'Set the server clock', { { name = 'hour' }, { name = 'minute' } }, false, function(source, args)
-    local hour = tonumber(args[1])
-    local minute = tonumber(args[2]) or 0
-    if not hour or hour < 0 or hour > 23 then return Admin.respond(source, false, 'hour must be 0-23') end
+    local hour = Admin.finiteNumber(args[1], 0, 23, true)
+    local minute = args[2] == nil and 0 or Admin.finiteNumber(args[2], 0, 59, true)
+    if hour == nil then return Admin.respond(source, false, 'hour must be a whole number from 0-23') end
+    if minute == nil then return Admin.respond(source, false, 'minute must be a whole number from 0-59') end
 
     currentTime = { hour = hour, minute = minute }
     TriggerClientEvent('qbadmin:client:setTime', -1, hour, minute)

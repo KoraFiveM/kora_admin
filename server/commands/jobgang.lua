@@ -44,8 +44,12 @@ QB.commands.add('setduty', 'Toggle on/off duty', { { name = 'id' }, { name = 'st
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
-    local state = args[2] == nil or args[2]:lower() ~= 'false'
-    exports.qbcore:setJobDuty(targetSrc, state)
+    local current = data.job and data.job.onduty == true
+    local state, stateErr = Admin.resolveToggle(args[2], current)
+    if state == nil then return Admin.respond(source, false, stateErr) end
+
+    local ok, actionErr = exports.qbcore:setJobDuty(targetSrc, state)
+    if not ok then return Admin.respond(source, false, actionErr or 'could not set duty state') end
     Admin.log(source, 'setduty', data, { state = state })
     Admin.respond(source, true, ('%s is now %s duty'):format(data.name, state and 'on' or 'off'))
 end, OPTS_MOD)

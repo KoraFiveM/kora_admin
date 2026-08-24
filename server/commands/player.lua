@@ -1,4 +1,6 @@
--- /admin, /players, /checkplayer
+-- /admin, /players, /checkplayer, /sethunger, /setthirst
+
+local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
 
 QB.commands.add('admin', 'Open the admin menu', nil, false, function(source)
     TriggerClientEvent('qbadmin:client:openMenu', source)
@@ -45,6 +47,10 @@ QB.commands.add('checkplayer', 'Show a player info panel', { { name = 'id', help
                 GetEntityHealth(GetPlayerPed(targetSrc)), data.metadata and data.metadata.armor or 0,
                 tostring(data.metadata and data.metadata.isdead), tostring(data.metadata and data.metadata.ishandcuffed)
             ),
+            ('hunger: %s  thirst: %s'):format(
+                tostring(data.metadata and data.metadata.hunger or 100),
+                tostring(data.metadata and data.metadata.thirst or 100)
+            ),
         }
 
         if Admin.checkLevel(source, 'admin') then
@@ -54,3 +60,26 @@ QB.commands.add('checkplayer', 'Show a player info panel', { { name = 'id', help
 
         Admin.chat(source, table.concat(lines, '\n'))
     end, { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'qbadmin' })
+
+local function addSetNeedCommand(commandName, metadataKey, label)
+    QB.commands.add(commandName, ('Set a player\'s %s'):format(label:lower()),
+        { { name = 'id' }, { name = 'value', help = '0-100' } }, true,
+        function(source, args)
+            local targetSrc, data, err = Admin.resolveTarget(source, args[1])
+            if not targetSrc then return Admin.respond(source, false, err) end
+
+            local value = Admin.finiteNumber(args[2], 0, 100)
+            if value == nil then
+                return Admin.respond(source, false, ('%s must be between 0 and 100'):format(label))
+            end
+
+            local ok, setErr = exports.qbcore:setMetaData(targetSrc, metadataKey, value)
+            if not ok then return Admin.respond(source, false, setErr or ('could not set %s'):format(label:lower())) end
+
+            Admin.log(source, commandName, data, { value = value })
+            Admin.respond(source, true, ('Set %s\'s %s to %s'):format(data.name, label:lower(), value))
+        end, OPTS_ADMIN)
+end
+
+addSetNeedCommand('sethunger', 'hunger', 'Hunger')
+addSetNeedCommand('setthirst', 'thirst', 'Thirst')

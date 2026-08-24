@@ -7,6 +7,7 @@ local OPTS_GOD = { permission = 'god', checkPermission = Admin.checkLevel, resou
 QB.commands.add('restartresource', 'Restart a resource', { { name = 'name' } }, true, function(source, args)
     local resourceName = args[1]
     if not resourceName or resourceName == '' then return Admin.respond(source, false, 'resource name required') end
+    if not resourceName:match('^[%w_-]+$') then return Admin.respond(source, false, 'invalid resource name') end
     if GetResourceState(resourceName) == 'missing' then return Admin.respond(source, false, 'no such resource') end
 
     Admin.log(source, 'restartresource', nil, { resource = resourceName })

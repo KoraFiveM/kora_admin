@@ -20,12 +20,20 @@ Config.ban = {
     durationWords = { perm = true, permanent = true },           -- words treated as a permanent ban (expire = NULL)
 }
 
+-- Matches txAdmin's own teleport algorithm (resource/menu/client/
+-- cl_main_page.lua's handleTpNormally + cl_functions.lua's FindZForCoords) --
+-- see client/teleport.lua for the full port. Defaults below are txAdmin's
+-- own (100.0 launch height, 5 ground attempts, 500ms apart) except
+-- collisionTimeout, which upstream doesn't have at all (its own wait loop
+-- has no timeout) -- kept here as a safety net so a destination that never
+-- resolves collision can't leave the screen faded out forever.
 Config.teleport = {
-    fadeTime = 500,        -- ms for the screen fade out/in around a teleport
-    collisionTimeout = 2000, -- ms to wait on RequestCollisionAtCoord before teleporting anyway
-    tpbackHistory = 1,      -- how many previous positions /tpback can undo (1 = last position only)
-    groundSnapHeight = 200.0, -- how far above a ground-snapped destination (e.g. /tpm) to land before probing for ground
-    groundSnapAttempts = 10,  -- GetGroundZFor_3dCoord retries once collision has loaded around the ground-snap landing spot
+    fadeTime = 500,             -- ms for the screen fade out/in around a teleport
+    collisionTimeout = 2000,    -- ms to wait on IsEntityWaitingForWorldCollision before teleporting anyway
+    tpbackHistory = 1,          -- how many previous positions /tpback can undo (1 = last position only)
+    waypointLaunchHeight = 100.0, -- fixed altitude every teleport lands at first, before collision has streamed in
+    groundZAttempts = 5,        -- findGroundZ (ground-snapped destinations only, e.g. /tpm) retries this many times
+    groundZRetryDelay = 500,    -- ms between groundZAttempts retries
 }
 
 Config.noclip = {

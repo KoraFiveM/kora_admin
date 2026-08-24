@@ -43,12 +43,18 @@ QB.commands.add('veh', 'Spawn a vehicle for a player', { { name = 'id' }, { name
 end, OPTS_ADMIN)
 
 QB.commands.add('dv', 'Delete the vehicle you are in', nil, false, function(source)
+    if GetVehiclePedIsIn(GetPlayerPed(source)) == 0 then
+        return Admin.respond(source, false, 'you are not in a vehicle')
+    end
     TriggerClientEvent('qbadmin:client:deleteVehicle', source)
     Admin.log(source, 'dv')
     Admin.respond(source, true, 'Deleted your current vehicle')
 end, OPTS_ADMIN)
 
 QB.commands.add('fix', 'Repair the vehicle you are in', nil, false, function(source)
+    if GetVehiclePedIsIn(GetPlayerPed(source)) == 0 then
+        return Admin.respond(source, false, 'you are not in a vehicle')
+    end
     TriggerClientEvent('qbadmin:client:fix', source)
     Admin.log(source, 'fix')
     Admin.respond(source, true, 'Repaired your current vehicle')

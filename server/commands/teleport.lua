@@ -39,7 +39,9 @@ end, OPTS_MOD)
 
 QB.commands.add('tpcoords', 'Teleport to literal coordinates', { { name = 'x' }, { name = 'y' }, { name = 'z' } }, true,
     function(source, args)
-        local x, y, z = tonumber(args[1]), tonumber(args[2]), tonumber(args[3])
+        local x = Admin.finiteNumber(args[1])
+        local y = Admin.finiteNumber(args[2])
+        local z = Admin.finiteNumber(args[3])
         if not (x and y and z) then return Admin.respond(source, false, 'x, y and z must all be numbers') end
         TriggerClientEvent('qbadmin:client:teleportTo', source, { x = x, y = y, z = z })
     end, OPTS_MOD)

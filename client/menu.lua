@@ -167,13 +167,15 @@ local function filterAuditLog()
     if result and not result.cancelled then showAuditLog(result.values) end
 end
 
-local function openClothing(mode)
+local function openClothing(mode, service)
     if GetResourceState('qbclothing') ~= 'started' then
         QB.notify.send({ type = 'error', message = 'qbclothing is not running' })
         return
     end
     if mode == 'shop' then
-        TriggerEvent('qbclothing:client:openNearestShop')
+        TriggerEvent('qbclothing:client:openNearestShop', service)
+    elseif mode == 'admin' then
+        TriggerEvent('qbclothing:client:openAdminSession')
     else
         TriggerEvent('qb-clothing:client:openOutfitMenu')
     end
@@ -189,6 +191,54 @@ local function gangOptions()
     local out = {}
     for _, gang in ipairs(QB.shared.all('gangs')) do out[#out + 1] = { value = gang.name, label = gang.label } end
     return out
+end
+
+---Grades for one job/gang, in ascending order -- value is the 1-based grade
+---number CoreInternal.player.buildJob/buildGang index `def.grades` with
+---directly (see qbcore/modules/player/shared.lua), not a 0-based offset.
+---@param kind 'jobs'|'gangs'
+---@param name string
+---@return table[]
+local function gradeOptions(kind, name)
+    local record = QB.shared.get(kind, name)
+    local out = {}
+    if record and record.grades then
+        for i, grade in ipairs(record.grades) do
+            out[#out + 1] = { value = tostring(i), label = ('%d - %s'):format(i, grade.name) }
+        end
+    end
+    return out
+end
+
+---Set a player's job or gang. Grade can't be a single reactive dropdown
+---alongside the job/gang picker (openInputDialog fields aren't reactive to
+---each other within one call -- see resolveFields above), so this asks in
+---two steps: pick the job/gang, then pick its grade from that job/gang's own
+---ordered list.
+---@param commandName string
+---@param kind 'jobs'|'gangs'
+---@param optionsFn fun():table[]
+---@param label string
+---@return fun()
+local function setJobOrGang(commandName, kind, optionsFn, label)
+    return function()
+        local target = pickPlayer('Set ' .. label)
+        if not target then return end
+
+        local nameResult = QB.nui.openInputDialog({
+            { id = 'name', label = label, type = 'select', options = optionsFn(), required = true },
+        }, 'Set ' .. label)
+        if not nameResult or nameResult.cancelled then return end
+        local name = nameResult.values.name
+
+        local grades = gradeOptions(kind, name)
+        local gradeResult = QB.nui.openInputDialog({
+            { id = 'grade', label = 'Grade', type = 'select', options = grades, default = grades[1] and grades[1].value, required = true },
+        }, 'Set ' .. label .. ' Grade')
+        if not gradeResult or gradeResult.cancelled then return end
+
+        runCommand(commandName, target, name, gradeResult.values.grade)
+    end
 end
 
 local function vehicleOptions()
@@ -223,6 +273,10 @@ local CATEGORIES = {
         items = {
             { id = 'players', label = 'List Players', level = 'mod', run = showPlayers },
             { id = 'checkplayer', label = 'Check Player', level = 'mod', run = withPlayer('checkplayer') },
+            { id = 'sethunger', label = 'Set Hunger', level = 'admin',
+                run = withPlayer('sethunger', { { id = 'value', label = 'Hunger', type = 'number', min = 0, max = 100, required = true } }, 'Set Hunger') },
+            { id = 'setthirst', label = 'Set Thirst', level = 'admin',
+                run = withPlayer('setthirst', { { id = 'value', label = 'Thirst', type = 'number', min = 0, max = 100, required = true } }, 'Set Thirst') },
         },
     },
     {
@@ -307,26 +361,34 @@ local CATEGORIES = {
     {
         id = 'jobgang', label = 'Job / Gang', level = 'mod',
         items = {
-            { id = 'setjob', label = 'Set Job', level = 'admin',
-                run = withPlayer('setjob', function() return {
-                    { id = 'job', label = 'Job', type = 'select', options = jobOptions(), required = true },
-                    { id = 'grade', label = 'Grade', type = 'number', default = 1, min = 1 },
-                } end, 'Set Job') },
-            { id = 'setgang', label = 'Set Gang', level = 'admin',
-                run = withPlayer('setgang', function() return {
-                    { id = 'gang', label = 'Gang', type = 'select', options = gangOptions(), required = true },
-                    { id = 'grade', label = 'Grade', type = 'number', default = 0, min = 0 },
-                } end, 'Set Gang') },
+            { id = 'setjob', label = 'Set Job', level = 'admin', run = setJobOrGang('setjob', 'jobs', jobOptions, 'Job') },
+            { id = 'setgang', label = 'Set Gang', level = 'admin', run = setJobOrGang('setgang', 'gangs', gangOptions, 'Gang') },
             { id = 'setduty', label = 'Toggle Duty', level = 'mod', run = withPlayer('setduty') },
         },
     },
     {
         id = 'vehicle', label = 'Vehicle', level = 'mod',
         items = {
+            -- 'combobox', not 'select': the shared vehicle list is a
+            -- searchable suggestion set, not the only valid answers -- the
+            -- server's own validModel() (server/commands/vehicle.lua)
+            -- already accepts any real spawn code via GetHashKey/
+            -- IsModelInCdimage/IsModelAVehicle, not just QB.shared's list, so
+            -- the field shouldn't be more restrictive than the command it
+            -- feeds. Typing an addon/DLC model not in Config.shared still
+            -- works exactly like typing it directly after `/car`.
             { id = 'car', label = 'Spawn Vehicle (self)', level = 'admin',
-                run = withFields('car', function() return { { id = 'model', label = 'Model', type = 'select', options = vehicleOptions(), required = true } } end, 'Spawn Vehicle') },
+                run = withFields('car', function() return { { id = 'model', label = 'Model', type = 'combobox', placeholder = 'Search or type a model...', options = vehicleOptions(), required = true,
+                -- Mirrors server/commands/vehicle.lua's validModel() alphanumeric/underscore
+                -- check -- catches an obviously-invalid model client-side; the server still
+                -- re-validates regardless (this is convenience only, see modules/nui/docs.md).
+                pattern = '^[A-Za-z0-9_]+$' } } end, 'Spawn Vehicle') },
             { id = 'veh', label = 'Spawn Vehicle for Player', level = 'admin',
-                run = withPlayer('veh', function() return { { id = 'model', label = 'Model', type = 'select', options = vehicleOptions(), required = true } } end, 'Spawn Vehicle') },
+                run = withPlayer('veh', function() return { { id = 'model', label = 'Model', type = 'combobox', placeholder = 'Search or type a model...', options = vehicleOptions(), required = true,
+                -- Mirrors server/commands/vehicle.lua's validModel() alphanumeric/underscore
+                -- check -- catches an obviously-invalid model client-side; the server still
+                -- re-validates regardless (this is convenience only, see modules/nui/docs.md).
+                pattern = '^[A-Za-z0-9_]+$' } } end, 'Spawn Vehicle') },
             { id = 'dv', label = 'Delete My Vehicle', level = 'admin', visible = function() return QB.cache.vehicle() ~= false end,
                 run = withConfirm('Delete the vehicle you are in?', withFields('dv')) },
             { id = 'fix', label = 'Repair My Vehicle', level = 'mod', run = withFields('fix') },
@@ -377,7 +439,10 @@ local CATEGORIES = {
                 run = withFields('armor', { { id = 'value', label = 'Armor (blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Armor') },
             { id = 'permission', label = 'My Permission Level', level = 'mod', run = withFields('permission') },
             { id = 'wardrobe', label = 'Open Wardrobe', level = 'mod', run = function() openClothing('wardrobe') end },
-            { id = 'clothingshop', label = 'Open Clothing Shop (nearby)', level = 'mod', run = function() openClothing('shop') end },
+            { id = 'clothingshop', label = 'Open Clothing Shop (nearby)', level = 'mod', run = function() openClothing('shop', 'clothing') end },
+            { id = 'barbershop', label = 'Open Barber Shop (nearby)', level = 'mod', run = function() openClothing('shop', 'barber') end },
+            { id = 'tattooshop', label = 'Open Tattoo Shop (nearby)', level = 'mod', run = function() openClothing('shop', 'tattoo') end },
+            { id = 'stylingall', label = 'Open Full Styling (Clothing + Barber + Tattoo)', level = 'admin', run = function() openClothing('admin') end },
         },
     },
 }

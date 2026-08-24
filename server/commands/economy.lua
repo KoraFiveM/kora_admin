@@ -25,8 +25,9 @@ local function moneyCommand(name, help, exportFn)
             if not targetSrc then return Admin.respond(source, false, err) end
 
             local account = args[2]
-            local amount = tonumber(args[3])
+            local amount = Admin.finiteNumber(args[3], 0)
             if not account or not amount then return Admin.respond(source, false, 'account and amount are required') end
+            if amount <= 0 then return Admin.respond(source, false, 'amount must be positive') end
 
             local reason = table.concat(args, ' ', 4)
             if reason == '' then reason = ('admin:%s'):format(name) end
@@ -58,8 +59,9 @@ QB.commands.add('giveitem', 'Give a player an item', { { name = 'id' }, { name =
         if not targetSrc then return Admin.respond(source, false, err) end
 
         local item = args[2]
-        local amount = tonumber(args[3]) or 1
+        local amount = args[3] == nil and 1 or Admin.finiteNumber(args[3], 1, nil, true)
         if not item then return Admin.respond(source, false, 'item name required') end
+        if not amount then return Admin.respond(source, false, 'amount must be a positive whole number') end
         local info
         if args[4] then
             local decoded, decodeErr = pcall(json.decode, args[4])
@@ -82,8 +84,9 @@ QB.commands.add('removeitem', 'Remove an item from a player', { { name = 'id' },
         if not targetSrc then return Admin.respond(source, false, err) end
 
         local item = args[2]
-        local amount = tonumber(args[3]) or 1
+        local amount = args[3] == nil and 1 or Admin.finiteNumber(args[3], 1, nil, true)
         if not item then return Admin.respond(source, false, 'item name required') end
+        if not amount then return Admin.respond(source, false, 'amount must be a positive whole number') end
 
         local ok, actionErr = exports.qbcore:removeItem(targetSrc, item, amount, nil, 'admin:removeitem')
         if not ok then return Admin.respond(source, false, actionErr or 'could not remove item') end

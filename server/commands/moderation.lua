@@ -132,7 +132,9 @@ QB.commands.add('freeze', 'Freeze/unfreeze a player', { { name = 'id' }, { name 
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
-    local state = args[2] == nil or args[2]:lower() ~= 'false'
+    local state, stateErr = Admin.resolveToggle(args[2], Admin.states.frozen[targetSrc] == true)
+    if state == nil then return Admin.respond(source, false, stateErr) end
+    Admin.states.frozen[targetSrc] = state
     TriggerClientEvent('qbadmin:client:freeze', targetSrc, state)
     Admin.log(source, 'freeze', data, { state = state })
     Admin.respond(source, true, ('%s %s'):format(state and 'Froze' or 'Unfroze', data.name))
@@ -174,7 +176,9 @@ QB.commands.add('god', 'Toggle god mode (invincibility)', { { name = 'id' }, { n
         return Admin.respond(source, false, 'admin level required to toggle god mode on another player')
     end
 
-    local state = args[2] == nil or args[2]:lower() ~= 'false'
+    local state, stateErr = Admin.resolveToggle(args[2], Admin.states.god[targetSrc] == true)
+    if state == nil then return Admin.respond(source, false, stateErr) end
+    Admin.states.god[targetSrc] = state
     TriggerClientEvent('qbadmin:client:god', targetSrc, state)
     Admin.log(source, 'god', data, { state = state })
     Admin.respond(source, true, ('God mode %s for %s'):format(state and 'enabled' or 'disabled', data.name))
@@ -187,7 +191,9 @@ QB.commands.add('invisible', 'Toggle invisibility', { { name = 'id' }, { name = 
         return Admin.respond(source, false, 'admin level required to toggle invisibility on another player')
     end
 
-    local state = args[2] == nil or args[2]:lower() ~= 'false'
+    local state, stateErr = Admin.resolveToggle(args[2], Admin.states.invisible[targetSrc] == true)
+    if state == nil then return Admin.respond(source, false, stateErr) end
+    Admin.states.invisible[targetSrc] = state
     TriggerClientEvent('qbadmin:client:invisible', targetSrc, state)
     Admin.log(source, 'invisible', data, { state = state })
     Admin.respond(source, true, ('Invisibility %s for %s'):format(state and 'enabled' or 'disabled', data.name))

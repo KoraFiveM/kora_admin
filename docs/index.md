@@ -224,7 +224,8 @@ accept an `[id]` argument that defaults to the caller, or the literal word
 `principalIdentifier` (must match qbcore's own `Config.identity.primaryIdentifier`,
 default `license`); `Config.ban.durationUnits`/`durationWords` (`30m`, `2h`,
 `7d`, `1w`, or `perm`); `Config.teleport` fade/collision timing and
-`groundSnapHeight` (used by `/tpm`); `Config.noclip.baseSpeed`/`fastMultiplier`;
+`waypointLaunchHeight`/`groundZAttempts`/`groundZRetryDelay` (the ground-snap
+algorithm used by `/tpm`, ported from txAdmin's own); `Config.noclip.baseSpeed`/`fastMultiplier`;
 `Config.world.weatherTypes` and `syncOnPlayerLoaded`; `Config.vehicle.spawnOffset`;
 `Config.audit.pageSize`; `Config.keybind` for the default `/admin` keybind
 (`F7`).

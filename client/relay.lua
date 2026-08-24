@@ -141,3 +141,15 @@ end)
 RegisterNetEvent('qbadmin:client:setTime', function(hour, minute)
     NetworkOverrideClockTime(hour, minute or 0, 0)
 end)
+
+-- These native effects outlive a resource restart.  Reset only qbadmin-owned
+-- overrides when this resource stops so an admin cannot be left frozen,
+-- invisible, or invincible after its authoritative state table is cleared.
+AddEventHandler('onClientResourceStop', function(resource)
+    if resource ~= GetCurrentResourceName() then return end
+    local ped = PlayerPedId()
+    if ped == 0 then return end
+    FreezeEntityPosition(ped, false)
+    SetEntityInvincible(ped, false)
+    SetEntityVisible(ped, true, false)
+end)
