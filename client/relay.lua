@@ -112,6 +112,18 @@ local HEALTH_FLOOR = 100
 RegisterNetEvent('qbadmin:client:setHealth', function(value)
     local ped = PlayerPedId()
     local percentage = math.max(0, math.min(100, tonumber(value) or 100))
+
+    -- SetEntityHealth alone does not clear GTA's internal death state -- a
+    -- dead ped stays stuck on the ragdoll/death screen even once its raw
+    -- health value reads above 0. Asking for non-zero health while dead has
+    -- to actually revive first, the same way /revive does, or the menu's
+    -- health field would silently do nothing useful.
+    if percentage > 0 and IsPedDeadOrDying(ped, true) then
+        local coords = GetEntityCoords(ped)
+        NetworkResurrectLocalPlayer(coords.x, coords.y, coords.z, GetEntityHeading(ped), true, false)
+        ClearPedTasksImmediately(ped)
+    end
+
     local maxHealth = math.max(HEALTH_FLOOR + 1, GetEntityMaxHealth(ped))
     local health = HEALTH_FLOOR + (maxHealth - HEALTH_FLOOR) * (percentage / 100)
     SetEntityHealth(ped, math.floor(health))

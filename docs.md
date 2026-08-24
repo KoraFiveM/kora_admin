@@ -56,7 +56,10 @@ argument at all -- there's nothing to resolve.
 `/health [percentage]` and the corresponding admin-menu field use `0-100%`,
 not GTA's native health number. Internally, 0% maps to the 100-health death
 floor and 100% maps to the current ped's maximum (normally 200 for freemode
-male peds and 175 for freemode female peds).
+male peds and 175 for freemode female peds). Setting a non-zero percentage
+while dead revives first (same as `/revive`) -- raw health alone doesn't
+clear GTA's internal death state, so the ped would otherwise stay stuck on
+the death screen with a healthy-looking value underneath it.
 
 `/ban` and `/unban` deliberately do **not** support `me` -- they use a
 separate offline-capable resolver (`Admin.resolveOfflineTarget`) since a ban
