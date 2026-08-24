@@ -16,9 +16,14 @@ function Admin.log(actorSrc, action, target, details)
         'INSERT INTO `admin_logs` (`action`,`actor_license`,`actor_name`,`target_citizenid`,`target_license`,`target_name`,`details`) '
         .. 'VALUES (?,?,?,?,?,?,?)',
         {
-            action, actorLicense, actorName,
-            target and target.citizenid, target and target.license, target and target.name,
-            details and json.encode(details) or nil,
+            -- A console action has no actor license, and most actions have no
+            -- target or details. Each of those is a real NULL column, not an
+            -- absent parameter -- binding nil would hole or truncate the array.
+            action, actorLicense or QB.sql.NULL, actorName,
+            (target and target.citizenid) or QB.sql.NULL,
+            (target and target.license) or QB.sql.NULL,
+            (target and target.name) or QB.sql.NULL,
+            details and json.encode(details) or QB.sql.NULL,
         }
     )
 end
