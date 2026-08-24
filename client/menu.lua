@@ -327,7 +327,8 @@ local CATEGORIES = {
                 run = withFields('car', function() return { { id = 'model', label = 'Model', type = 'select', options = vehicleOptions(), required = true } } end, 'Spawn Vehicle') },
             { id = 'veh', label = 'Spawn Vehicle for Player', level = 'admin',
                 run = withPlayer('veh', function() return { { id = 'model', label = 'Model', type = 'select', options = vehicleOptions(), required = true } } end, 'Spawn Vehicle') },
-            { id = 'dv', label = 'Delete My Vehicle', level = 'admin', run = withConfirm('Delete the vehicle you are in?', withFields('dv')) },
+            { id = 'dv', label = 'Delete My Vehicle', level = 'admin', visible = function() return QB.cache.vehicle() ~= false end,
+                run = withConfirm('Delete the vehicle you are in?', withFields('dv')) },
             { id = 'fix', label = 'Repair My Vehicle', level = 'mod', run = withFields('fix') },
         },
     },
@@ -384,7 +385,14 @@ local CATEGORIES = {
 local function openCategory(category)
     local items = {}
     for _, item in ipairs(category.items) do
-        items[#items + 1] = { id = item.id, label = item.label, disabled = not Admin.hasLevel(item.level) }
+        -- `visible`, unlike the level check below, hides the item entirely
+        -- rather than greying it out: it's for state that makes an item
+        -- nonsensical to even offer (e.g. deleting a vehicle you're not in),
+        -- not permission, which is always worth showing so a lower-level
+        -- admin can see what exists above them.
+        if not item.visible or item.visible() then
+            items[#items + 1] = { id = item.id, label = item.label, disabled = not Admin.hasLevel(item.level) }
+        end
     end
 
     local result = QB.nui.openMenu(items, category.label)

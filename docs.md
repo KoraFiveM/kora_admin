@@ -83,6 +83,13 @@ picker with a "Me (myself)" entry pinned first. Destructive actions (ban,
 kick, clear inventory, delete vehicle, restart resource) show a confirmation
 dialog before the command actually runs.
 
+A menu item can also set `visible` (a function, evaluated each time its
+category opens) to hide itself entirely when it wouldn't make sense to offer
+right now -- distinct from the permission-level gate, which greys an item out
+rather than hiding it, so a lower-level admin can still see what exists above
+their tier. "Delete My Vehicle" is the current example: it only appears while
+you're actually in a vehicle.
+
 ## Command reference
 
 See the category tables in the project's admin-menu design plan for the full
