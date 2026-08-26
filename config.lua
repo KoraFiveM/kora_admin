@@ -54,6 +54,12 @@ Config.vehicle = {
     spawnOffset = 3.0,
 }
 
+Config.entity = {
+    -- /entity spawns this far in front of the target. Entity spawns are
+    -- intentionally local, static qblib entities for safe admin testing.
+    spawnOffset = 2.0,
+}
+
 Config.audit = {
     pageSize = 15, -- rows per page for /adminlog and the NUI audit log viewer
 }

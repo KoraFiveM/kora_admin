@@ -244,7 +244,47 @@ end
 local function vehicleOptions()
     local out = {}
     for _, veh in ipairs(QB.shared.all('vehicles')) do out[#out + 1] = { value = veh.model, label = ('%s (%s)'):format(veh.name, veh.model) } end
+    table.sort(out, function(a, b) return a.label:lower() < b.label:lower() end)
     return out
+end
+
+-- Keep free-text spawning separate from the quick-pick catalogue. A combobox
+-- technically accepts typed text too, but putting this in an ordinary text
+-- field makes the "any valid GTA/addon spawn code" path obvious and avoids a
+-- long suggestion list obscuring the input. The server remains authoritative:
+-- server/commands/vehicle.lua checks the supplied model with GTA natives.
+local function vehicleModelField()
+    return {
+        id = 'model',
+        label = 'Spawn code',
+        type = 'text',
+        placeholder = 'e.g. outlaw',
+        required = true,
+        pattern = '^[A-Za-z0-9_]+$',
+    }
+end
+
+local function vehicleCatalogueField()
+    return {
+        id = 'model',
+        label = 'Vehicle',
+        type = 'combobox',
+        placeholder = 'Search the common vehicle catalogue...',
+        options = vehicleOptions(),
+        required = true,
+        pattern = '^[A-Za-z0-9_]+$',
+    }
+end
+
+local function entityModelField()
+    return {
+        id = 'model',
+        label = 'Ped or prop spawn code',
+        type = 'text',
+        placeholder = 'e.g. a_m_m_skater_01 or prop_barrel_02a',
+        required = true,
+        pattern = '^[A-Za-z0-9_]+$',
+    }
 end
 
 local function itemOptions()
@@ -313,9 +353,7 @@ local CATEGORIES = {
             { id = 'tpm', label = 'Teleport to Waypoint', level = 'mod', run = withFields('tpm') },
             { id = 'tpcoords', label = 'Teleport to Coords', level = 'mod',
                 run = withFields('tpcoords', {
-                    { id = 'x', label = 'X', type = 'number', required = true },
-                    { id = 'y', label = 'Y', type = 'number', required = true },
-                    { id = 'z', label = 'Z', type = 'number', required = true },
+                    { id = 'coordinates', label = 'Coordinates', type = 'text', placeholder = 'vec4(123.4, 456.7, 78.9, 90.0)', required = true },
                 }, 'Teleport to Coords') },
             { id = 'tpback', label = 'Teleport Back', level = 'mod', run = withFields('tpback') },
             { id = 'spectate', label = 'Spectate Player', level = 'mod', run = withPlayer('spectate') },
@@ -369,29 +407,28 @@ local CATEGORIES = {
     {
         id = 'vehicle', label = 'Vehicle', level = 'mod',
         items = {
-            -- 'combobox', not 'select': the shared vehicle list is a
-            -- searchable suggestion set, not the only valid answers -- the
-            -- server's own validModel() (server/commands/vehicle.lua)
-            -- already accepts any real spawn code via GetHashKey/
-            -- IsModelInCdimage/IsModelAVehicle, not just QB.shared's list, so
-            -- the field shouldn't be more restrictive than the command it
-            -- feeds. Typing an addon/DLC model not in Config.shared still
-            -- works exactly like typing it directly after `/car`.
-            { id = 'car', label = 'Spawn Vehicle (self)', level = 'admin',
-                run = withFields('car', function() return { { id = 'model', label = 'Model', type = 'combobox', placeholder = 'Search or type a model...', options = vehicleOptions(), required = true,
-                -- Mirrors server/commands/vehicle.lua's validModel() alphanumeric/underscore
-                -- check -- catches an obviously-invalid model client-side; the server still
-                -- re-validates regardless (this is convenience only, see modules/nui/docs.md).
-                pattern = '^[A-Za-z0-9_]+$' } } end, 'Spawn Vehicle') },
-            { id = 'veh', label = 'Spawn Vehicle for Player', level = 'admin',
-                run = withPlayer('veh', function() return { { id = 'model', label = 'Model', type = 'combobox', placeholder = 'Search or type a model...', options = vehicleOptions(), required = true,
-                -- Mirrors server/commands/vehicle.lua's validModel() alphanumeric/underscore
-                -- check -- catches an obviously-invalid model client-side; the server still
-                -- re-validates regardless (this is convenience only, see modules/nui/docs.md).
-                pattern = '^[A-Za-z0-9_]+$' } } end, 'Spawn Vehicle') },
+            { id = 'car', label = 'Spawn by Model (self)', level = 'admin',
+                run = withFields('car', function() return { vehicleModelField() } end, 'Spawn vehicle by model') },
+            { id = 'car_catalogue', label = 'Spawn from Catalogue (self)', level = 'admin',
+                run = withFields('car', function() return { vehicleCatalogueField() } end, 'Spawn vehicle from catalogue') },
+            { id = 'veh', label = 'Spawn by Model for Player', level = 'admin',
+                run = withPlayer('veh', function() return { vehicleModelField() } end, 'Spawn vehicle for player') },
+            { id = 'veh_catalogue', label = 'Spawn from Catalogue for Player', level = 'admin',
+                run = withPlayer('veh', function() return { vehicleCatalogueField() } end, 'Spawn vehicle for player') },
             { id = 'dv', label = 'Delete My Vehicle', level = 'admin', visible = function() return QB.cache.vehicle() ~= false end,
                 run = withConfirm('Delete the vehicle you are in?', withFields('dv')) },
             { id = 'fix', label = 'Repair My Vehicle', level = 'mod', run = withFields('fix') },
+        },
+    },
+    {
+        id = 'entities', label = 'Entities', level = 'admin',
+        items = {
+            { id = 'entity', label = 'Spawn Ped / Prop (self)', level = 'admin',
+                run = withFields('entity', function() return { entityModelField() } end, 'Spawn ped or prop') },
+            { id = 'entityfor', label = 'Spawn Ped / Prop for Player', level = 'admin',
+                run = withPlayer('entityfor', function() return { entityModelField() } end, 'Spawn ped or prop for player') },
+            { id = 'deleteLastEntity', label = 'Delete My Last Spawned Entity', level = 'admin',
+                run = withConfirm('Delete your last admin-spawned entity?', withFields('deleteentity')) },
         },
     },
     {

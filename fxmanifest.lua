@@ -42,6 +42,7 @@ server_scripts {
     'server/commands/economy.lua',
     'server/commands/jobgang.lua',
     'server/commands/vehicle.lua',
+    'server/commands/entities.lua',
     'server/commands/world.lua',
     'server/commands/privileged.lua',
     'server/commands/self.lua'

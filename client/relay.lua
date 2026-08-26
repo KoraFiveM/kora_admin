@@ -104,6 +104,53 @@ RegisterNetEvent('qbadmin:client:spawnVehicle', function(model, warp)
     if warp then TaskWarpPedIntoVehicle(ped, vehicle, -1) end
 end)
 
+-- qblib entities are local and resource-tracked by design, which makes them
+-- useful for admin/testing props and peds without turning this command into a
+-- networked-world cleanup problem. Keep the one most recently spawned by this
+-- client so the matching admin command can remove it explicitly.
+local lastAdminEntity
+
+RegisterNetEvent('qbadmin:client:spawnEntity', function(model)
+    if type(model) ~= 'string' then return end
+
+    local ped = PlayerPedId()
+    local coords = GetOffsetFromEntityInWorldCoords(ped, 0.0, Config.entity.spawnOffset, 0.0)
+    -- The entities module owns model hashing, streaming, type detection, and
+    -- creation. Vehicle commands are rejected server-side before this relay
+    -- so they keep qbadmin's existing networked vehicle path.
+    local entity, err = QB.entities.create(model, {
+        x = coords.x,
+        y = coords.y,
+        z = coords.z,
+        heading = GetEntityHeading(ped),
+    }, { preset = 'static' })
+
+    if not entity then
+        QB.notify.send({ type = 'error', message = ('Could not spawn %s: %s'):format(model, err or 'unknown error') })
+        return
+    end
+
+    lastAdminEntity = entity
+    QB.notify.send({ type = 'success', message = ('Spawned entity %s'):format(model) })
+end)
+
+RegisterNetEvent('qbadmin:client:deleteLastEntity', function()
+    if not lastAdminEntity then
+        QB.notify.send({ type = 'error', message = 'No admin-spawned entity to delete' })
+        return
+    end
+
+    local entity = lastAdminEntity
+    lastAdminEntity = nil
+    local removed, err = QB.entities.remove(entity)
+    if not removed then
+        QB.notify.send({ type = 'error', message = err or 'Could not delete the entity' })
+        return
+    end
+
+    QB.notify.send({ type = 'success', message = 'Deleted your last admin-spawned entity' })
+end)
+
 RegisterNetEvent('qbadmin:client:enterVehicle', function(netId, seat)
     CreateThread(function()
         local attempts = 0

@@ -74,7 +74,7 @@ local function findGroundZ(x, y)
     return z
 end
 
----@param coords table  -- { x, y, z }
+---@param coords table  -- { x, y, z, heading? }
 ---@param groundSnap boolean|nil  -- true when `coords.z` isn't trustworthy (e.g. a waypoint's map-projected z)
 function Admin.teleportTo(coords, groundSnap)
     local ped = PlayerPedId()
@@ -115,6 +115,7 @@ function Admin.teleportTo(coords, groundSnap)
 
     local vehicle = GetVehiclePedIsIn(ped, false)
     if vehicle > 0 then SetVehicleOnGroundProperly(vehicle) end
+    if coords.heading ~= nil then SetEntityHeading(vehicle > 0 and vehicle or ped, coords.heading) end
     freezeForTeleport(ped, false)
 
     -- Faces the direction the admin was already facing rather than whatever

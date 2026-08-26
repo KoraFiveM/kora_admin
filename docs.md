@@ -18,7 +18,7 @@ Three tiers above `user`, ranked `mod < admin < god`:
 | Tier | Covers |
 |---|---|
 | `mod` | Reversible, low-harm, first-responder tools: player info, spectate, freeze, heal/revive/kill, self god/invisible, warn, kick, vehicle repair, on-duty toggle, self teleport, server info, self utilities. |
-| `admin` | Persistent-state, economic, or identity-affecting actions, or projecting power onto another player's world: ban/unban, money, items, job/gang, vehicle spawn/delete, noclip, god/invisible **on another player**, announce, weather/time, audit log. |
+| `admin` | Persistent-state, economic, or identity-affecting actions, or projecting power onto another player's world: ban/unban, money, items, job/gang, vehicle/entity spawn/delete, noclip, god/invisible **on another player**, announce, weather/time, audit log. |
 | `god` | Server-wide or privilege-altering: grant/revoke permission level, resource restart. |
 
 Commands register through **qblib's** `QB.commands.add` directly, not
@@ -102,6 +102,11 @@ in case collision is still streaming in. `/tpcoords`/`/goto`/`/bring`/
 admin-supplied literal -- so they land at that z directly once the initial
 high-altitude collision wait clears.
 
+`/tpcoords` accepts either separate numbers (`/tpcoords 123.4 456.7 78.9`) or
+pasted FiveM coordinate literals: `vec3(...)`, `vector3(...)`, `vec4(...)`,
+and `vector4(...)`. A fourth vector component is applied as the destination
+heading.
+
 ## Menu usage
 
 `/admin` opens the root category menu, filtered to what your tier can reach
@@ -125,6 +130,18 @@ list (Player Management, Moderation, Teleport/Noclip/Spectate, Economy,
 Job/Gang, Vehicle, World/Server, Privileged, Self/Utility) -- every command
 also has its own in-game help text via `/help <command>` or the chat
 autocomplete suggestion.
+
+The Vehicle category has **Spawn by Model**, a direct text field for any valid
+GTA/addon spawn code (for example `outlaw`), and **Spawn from Catalogue**, a
+searchable common-vehicle quick-pick. The catalogue is convenience only; the
+server's native model validation decides whether an entered code can spawn.
+
+The Entities category spawns any valid **ped or prop** model, such as
+`a_m_m_skater_01` or `prop_barrel_02a`, for yourself or a selected player. It
+uses qblib's local, static entity API, so an entity is visible only to the
+client it was spawned for and is cleaned up on resource restart. **Delete My
+Last Spawned Entity** removes that client's most recent admin entity. Vehicle
+models deliberately stay on the Vehicle flow so they remain networked.
 
 ## Ban system
 
@@ -159,7 +176,7 @@ becomes a concern, add a scheduled `DELETE ... WHERE created_at < ...` and a
 
 See `config.lua` for every tunable: permission ranks and the ACE principal
 identifier kind, ban duration units, teleport fade/collision timing, noclip
-speed, weather types and join-sync behavior, vehicle spawn offset, and audit
+speed, weather types and join-sync behavior, vehicle/entity spawn offsets, and audit
 log page size.
 
 ## Known gaps (out of scope for v1)

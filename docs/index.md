@@ -88,13 +88,27 @@ end)
 /god me true            -- toggle your own god mode; targeting others needs admin
 ```
 
-### Set job/gang and spawn a vehicle
+### Set job/gang and spawn vehicles or entities
 ```
 /setjob 3 police 2    -- set player 3's job to police, grade 2
 /setgang 3 ballas 1
 /car zentorno          -- spawn a vehicle and get in
 /veh 3 zentorno         -- spawn a vehicle for player 3
+/entity a_m_m_skater_01 -- spawn a static local ped in front of you
+/entityfor 3 prop_barrel_02a -- spawn a static local prop for player 3
+/deleteentity           -- delete your last admin-spawned entity
 ```
+
+In the admin menu, **Vehicle → Spawn by Model** accepts a plain spawn code:
+enter `outlaw`, `zentorno`, or any valid streamed addon vehicle model.
+**Spawn from Catalogue** is a separate searchable quick-pick list of common
+vanilla vehicles; it is not an allow-list.
+
+**Entities → Spawn Ped / Prop** accepts any valid ped or prop model. These
+spawns are local to the recipient and static, which makes them safe for
+testing; use **Delete My Last Spawned Entity** to remove the recipient's most
+recent one. Vehicle models use the Vehicle commands so their spawn remains
+networked.
 
 ### Read the audit trail from another resource
 ```lua
@@ -147,6 +161,8 @@ accept an `[id]` argument that defaults to the caller, or the literal word
 /goto <id>          /bring <id>
 /tpm                 /tpback
 /tpcoords <x> <y> <z>
+/tpcoords vec3(<x>, <y>, <z>)
+/tpcoords vector4(<x>, <y>, <z>, <heading>)
 /spectate [id]       -- omit id to stop
 ```
 
@@ -188,6 +204,13 @@ accept an `[id]` argument that defaults to the caller, or the literal word
 /fix                     -- repair the vehicle you're in
 ```
 
+### Entities — `admin`
+```
+/entity <model>           -- spawn a static local ped or prop in front of you
+/entityfor <id> <model>   -- spawn one for a player
+/deleteentity             -- delete your last admin-spawned entity
+```
+
 ### World / server — `admin`
 ```
 /announce <message>
@@ -226,7 +249,8 @@ default `license`); `Config.ban.durationUnits`/`durationWords` (`30m`, `2h`,
 `7d`, `1w`, or `perm`); `Config.teleport` fade/collision timing and
 `waypointLaunchHeight`/`groundZAttempts`/`groundZRetryDelay` (the ground-snap
 algorithm used by `/tpm`, ported from txAdmin's own); `Config.noclip.baseSpeed`/`fastMultiplier`;
-`Config.world.weatherTypes` and `syncOnPlayerLoaded`; `Config.vehicle.spawnOffset`;
+`Config.world.weatherTypes` and `syncOnPlayerLoaded`; `Config.vehicle.spawnOffset` and
+`Config.entity.spawnOffset`;
 `Config.audit.pageSize`; `Config.keybind` for the default `/admin` keybind
 (`F7`).
 
