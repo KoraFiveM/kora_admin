@@ -487,44 +487,46 @@ local CATEGORIES = {
     },
 }
 
-local function openCategory(category)
-    local items = {}
-    for _, item in ipairs(category.items) do
-        -- `visible`, unlike the level check below, hides the item entirely
-        -- rather than greying it out: it's for state that makes an item
-        -- nonsensical to even offer (e.g. deleting a vehicle you're not in),
-        -- not permission, which is always worth showing so a lower-level
-        -- admin can see what exists above them.
-        if not item.visible or item.visible() then
-            items[#items + 1] = { id = item.id, label = item.label, disabled = not Admin.hasLevel(item.level) }
-        end
-    end
-
-    local result = QB.nui.openMenu(items, category.label)
-    if not result or result.cancelled then return end
-
-    for _, item in ipairs(category.items) do
-        if item.id == result.selectedId then
-            if Admin.hasLevel(item.level) then item.run() end
-            return
-        end
-    end
-end
-
 local function openRoot()
     local items = {}
     for _, category in ipairs(CATEGORIES) do
         if Admin.hasLevel(category.level) then
-            items[#items + 1] = { id = category.id, label = category.label }
+            local categoryItems = {}
+            for _, item in ipairs(category.items) do
+                -- `visible`, unlike the level check below, hides the item
+                -- entirely rather than greying it out: it is for state that
+                -- makes an item nonsensical to offer, not permission.
+                if not item.visible or item.visible() then
+                    categoryItems[#categoryItems + 1] = {
+                        id = item.id,
+                        label = item.label,
+                        disabled = not Admin.hasLevel(item.level),
+                    }
+                end
+            end
+
+            -- Keep categories in one NUI menu tree. This gives every category
+            -- screen the built-in Back action (and Escape-to-back behaviour)
+            -- instead of opening an unrelated second menu request.
+            items[#items + 1] = {
+                id = category.id,
+                label = category.label,
+                submenu = { title = category.label, items = categoryItems },
+            }
         end
     end
 
     local result = QB.nui.openMenu(items, 'Admin Menu')
     if not result or result.cancelled then return end
 
+    local categoryId, itemId = result.path and result.path[1], result.selectedId
     for _, category in ipairs(CATEGORIES) do
-        if category.id == result.selectedId then
-            openCategory(category)
+        if category.id == categoryId then
+            for _, item in ipairs(category.items) do
+                if item.id == itemId and Admin.hasLevel(item.level) and (not item.visible or item.visible()) then
+                    item.run()
+                end
+            end
             return
         end
     end
