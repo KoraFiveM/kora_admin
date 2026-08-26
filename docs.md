@@ -50,16 +50,35 @@ the literal word `me`, as "the player who ran this command"
 `/heal 3` all work -- the first two heal the caller, the third heals server id
 3. This applies to heal/revive/kill/freeze/god/invisible/spectate/checkplayer/
 setduty/sethunger/setthirst/permission. Commands that operate purely on the caller (noclip,
-coords, aduty, health, armor, fix, dv, tpm/tpcoords/tpback) take no id
+coords, aduty, health, armor, fix, dv, tpm/tpcoords/tpback, selfrevive) take no id
 argument at all -- there's nothing to resolve.
 
 `/health [percentage]` and the corresponding admin-menu field use `0-100%`,
 not GTA's native health number. Internally, 0% maps to the 100-health death
 floor and 100% maps to the current ped's maximum (normally 200 for freemode
 male peds and 175 for freemode female peds). Setting a non-zero percentage
-while dead revives first (same as `/revive`) -- raw health alone doesn't
-clear GTA's internal death state, so the ped would otherwise stay stuck on
-the death screen with a healthy-looking value underneath it.
+while dead revives first (same as `/revive`/`/selfrevive`) -- raw health
+alone doesn't clear GTA's internal death state, so the ped would otherwise
+stay stuck on the death screen with a healthy-looking value underneath it.
+
+**Revive clears whichever ambulance job is actually running, not just raw
+health.** `/revive`, `/selfrevive`, and Set Health's own dead-to-alive branch
+all funnel through the same client relay (`reviveLocalPed`,
+`client/relay.lua`), which fires both real `qb-ambulancejob`'s
+`hospital:client:Revive` and the qblib-native `qbambulance` rebuild's
+`qbambulance:client:revived` -- whichever resource isn't currently started
+simply has no handler for its own event name, so this is a harmless no-op for
+the inactive one. Without this, raw natives alone leave that job's own
+death-loop thread (the one forcing the death animation/disabled controls)
+running forever even after health reads full.
+
+`/selfrevive` (Self / Utility menu: "Revive Me", next to Set Health) is
+deliberately a **different command name** from the existing targeted
+`/revive` (Moderation menu) -- real `qb-ambulancejob` registers its own
+`/revive` too, and qblib's command registry has no collision detection
+(whichever resource registers the name last wins, silently). A dedicated
+name for the self-service case means it can never be shadowed regardless of
+which ambulance resource is active or what it names its own commands.
 
 `/ban` and `/unban` deliberately do **not** support `me` -- they use a
 separate offline-capable resolver (`Admin.resolveOfflineTarget`) since a ban

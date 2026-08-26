@@ -435,6 +435,9 @@ local CATEGORIES = {
             { id = 'coords', label = 'Copy Coordinates', level = 'mod', run = withFields('coords') },
             { id = 'health', label = 'Set Health', level = 'mod',
                 run = withFields('health', { { id = 'value', label = 'Health (0-100%, blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Health') },
+            -- Runs /selfrevive, not /revive -- see server/commands/self.lua
+            -- for why a distinct command name matters here.
+            { id = 'selfrevive', label = 'Revive Me', level = 'mod', run = withFields('selfrevive') },
             { id = 'armor', label = 'Set Armor', level = 'mod',
                 run = withFields('armor', { { id = 'value', label = 'Armor (blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Armor') },
             { id = 'permission', label = 'My Permission Level', level = 'mod', run = withFields('permission') },

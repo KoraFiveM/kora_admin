@@ -18,13 +18,31 @@ RegisterNetEvent('qbadmin:client:heal', function()
     SetEntityHealth(ped, GetEntityMaxHealth(ped))
 end)
 
-RegisterNetEvent('qbadmin:client:revive', function()
+-- Raw natives alone (NetworkResurrectLocalPlayer/SetEntityHealth) only clear
+-- GTA's own death state -- they say nothing to whichever ambulance job is
+-- actually running. Both real qb-ambulancejob and the qblib-native qbambulance
+-- rebuild track their OWN client-local "is this player dead/downed" flags
+-- (plain module locals in one, a QB.notify-driven state table in the other)
+-- that gate a persistent per-frame thread forcing the death animation/ragdoll/
+-- disabled controls -- if that thread's flag is never cleared, the player
+-- stays visibly stuck in the death loop even after their raw health reads
+-- full. Firing BOTH resources' own revive event covers whichever one is
+-- actually started: a RegisterNetEvent name with no registered handler is a
+-- harmless no-op, so this never needs to detect which job is active. Event
+-- names and required args confirmed against each resource's own source
+-- (qb-ambulancejob's client/main.lua takes none; qbambulance's client/death.lua
+-- takes a 0-100 health percentage).
+local function reviveLocalPed()
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
     NetworkResurrectLocalPlayer(coords.x, coords.y, coords.z, GetEntityHeading(ped), true, false)
     SetEntityHealth(ped, GetEntityMaxHealth(ped))
     ClearPedTasksImmediately(ped)
-end)
+    TriggerEvent('hospital:client:Revive')
+    TriggerEvent('qbambulance:client:revived', 100)
+end
+
+RegisterNetEvent('qbadmin:client:revive', reviveLocalPed)
 
 RegisterNetEvent('qbadmin:client:god', function(state)
     SetEntityInvincible(PlayerPedId(), state)
@@ -113,15 +131,15 @@ RegisterNetEvent('qbadmin:client:setHealth', function(value)
     local ped = PlayerPedId()
     local percentage = math.max(0, math.min(100, tonumber(value) or 100))
 
-    -- SetEntityHealth alone does not clear GTA's internal death state -- a
-    -- dead ped stays stuck on the ragdoll/death screen even once its raw
-    -- health value reads above 0. Asking for non-zero health while dead has
-    -- to actually revive first, the same way /revive does, or the menu's
-    -- health field would silently do nothing useful.
+    -- SetEntityHealth alone does not clear GTA's internal death state, NOR
+    -- whichever ambulance job's own death-loop tracking -- a dead ped stays
+    -- stuck on the ragdoll/death screen (or the job's own forced animation)
+    -- even once its raw health value reads above 0. Asking for non-zero
+    -- health while dead has to actually revive first, the same way /revive
+    -- does (reviveLocalPed, above), or the menu's health field would appear
+    -- to do nothing.
     if percentage > 0 and IsPedDeadOrDying(ped, true) then
-        local coords = GetEntityCoords(ped)
-        NetworkResurrectLocalPlayer(coords.x, coords.y, coords.z, GetEntityHeading(ped), true, false)
-        ClearPedTasksImmediately(ped)
+        reviveLocalPed()
     end
 
     local maxHealth = math.max(HEALTH_FLOOR + 1, GetEntityMaxHealth(ped))
