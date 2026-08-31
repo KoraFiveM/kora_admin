@@ -22,7 +22,7 @@ end
 ---@return string|nil
 local function pickPlayer(title)
     local items = { { id = 'me', label = 'Me (myself)' } }
-    local mySrc = GetPlayerServerId(PlayerId())
+    local mySrc = QB.cache.serverId()
     for _, playerId in ipairs(GetActivePlayers()) do
         local serverId = GetPlayerServerId(playerId)
         if serverId ~= mySrc then
