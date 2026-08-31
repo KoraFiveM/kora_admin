@@ -535,22 +535,3 @@ end
 RegisterNetEvent('qbadmin:client:openMenu', function()
     openRoot()
 end)
-
--- Keybind entry point. This deliberately does NOT call openRoot() directly: it
--- runs the same server-side /admin the player would type, so the 'mod'
--- permission check in server/commands/player.lua stays the single gate and the
--- server remains the thing that decides the menu may open. Calling openRoot()
--- here would let anyone with the key bound render the menu locally -- harmless
--- in itself (every leaf still runs a permission-checked command) but it would
--- put an admin-looking UI in front of players who have no admin rights at all.
---
--- Registered unconditionally rather than gated on Admin.hasLevel: the level
--- arrives asynchronously from the server (client/core.lua) and can change
--- mid-session, whereas RegisterKeyMapping only takes effect at resource start
--- -- so a level-gated registration would leave a freshly-promoted admin with a
--- dead key until they reconnected.
-RegisterCommand(Config.keybind.command, function()
-    ExecuteCommand('admin')
-end, false)
-
-RegisterKeyMapping(Config.keybind.command, Config.keybind.label, 'keyboard', Config.keybind.defaultKey)

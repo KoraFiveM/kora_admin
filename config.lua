@@ -65,12 +65,10 @@ Config.audit = {
 }
 
 Config.keybind = {
-    -- Opens the admin menu. The bound command only forwards to the SERVER's
-    -- /admin (see client/menu.lua) -- binding a key grants nothing on its own,
-    -- since /admin still runs its own 'mod' permission check server-side.
+    -- Attached directly to the server-owned /admin registration. Binding a
+    -- key grants nothing: qblib dispatches it through /admin's normal mod gate.
     -- Players rebind this freely in Settings > Key Bindings > FiveM; the value
     -- here is only the default. Empty string = registered but unbound.
-    command = 'adminmenu',
     label = 'Open the admin menu (qbadmin)',
     defaultKey = 'F7', -- HOME/F6 are qblib-playground's palette, TAB is qbinventory
 }

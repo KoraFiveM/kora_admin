@@ -4,7 +4,16 @@ local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, r
 
 QB.commands.add('admin', 'Open the admin menu', nil, false, function(source)
     TriggerClientEvent('qbadmin:client:openMenu', source)
-end, { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'qbadmin' })
+end, {
+    permission = 'mod',
+    checkPermission = Admin.checkLevel,
+    resource = 'qbadmin',
+    keybind = {
+        description = Config.keybind.label,
+        defaultMapper = 'keyboard',
+        defaultKey = Config.keybind.defaultKey,
+    },
+})
 
 QB.commands.add('players', 'List online players', { { name = 'search', help = 'optional name filter' } }, false,
     function(source, args)

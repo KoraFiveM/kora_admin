@@ -116,6 +116,11 @@ picker with a "Me (myself)" entry pinned first. Destructive actions (ban,
 kick, clear inventory, delete vehicle, restart resource) show a confirmation
 dialog before the command actually runs.
 
+`F7` is mapped directly on the server-owned `/admin` definition through
+`QB.commands` keymapping support. It therefore enters the exact same permission
+and error-handling path as typing `/admin`; there is no client forwarding
+command that can open the menu independently.
+
 A menu item can also set `visible` (a function, evaluated each time its
 category opens) to hide itself entirely when it wouldn't make sense to offer
 right now -- distinct from the permission-level gate, which greys an item out
