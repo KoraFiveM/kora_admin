@@ -1,0 +1,35 @@
+-- Client launchers for qbadmin's Developer submenu. The corresponding server
+-- commands authenticate every request before either event can be sent.
+
+local function notify(kind, message)
+    QB.notify.send({
+        title = 'Developer tools',
+        type = kind,
+        message = message,
+    })
+end
+
+local function runCreator(label, create)
+    CreateThread(function()
+        local ok, result = pcall(create)
+        if not ok then
+            notify('error', tostring(result))
+        elseif result then
+            notify('success', ('%s data copied'):format(label))
+        else
+            notify('info', ('%s cancelled or unavailable'):format(label))
+        end
+    end)
+end
+
+RegisterNetEvent('qbadmin:client:startPlacement', function(model)
+    runCreator('Entity placement', function()
+        return QB.placement.start(model)
+    end)
+end)
+
+RegisterNetEvent('qbadmin:client:startZoneCreator', function(zoneType)
+    runCreator(('%s zone'):format(zoneType), function()
+        return QB.zones.startCreator(zoneType)
+    end)
+end)

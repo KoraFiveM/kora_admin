@@ -287,6 +287,32 @@ local function entityModelField()
     }
 end
 
+local function placementModelField()
+    return {
+        id = 'model',
+        label = 'Model name or numeric hash',
+        type = 'text',
+        placeholder = 'e.g. prop_barrel_02a, blista, or a model hash',
+        required = true,
+        pattern = '^-?[A-Za-z0-9_]+$',
+    }
+end
+
+local function zoneTypeField()
+    return {
+        id = 'type',
+        label = 'Zone shape',
+        type = 'select',
+        default = 'box',
+        required = true,
+        options = {
+            { value = 'box', label = 'Box' },
+            { value = 'sphere', label = 'Sphere' },
+            { value = 'poly', label = 'Polygon' },
+        },
+    }
+end
+
 local function itemOptions()
     local out = {}
     for _, item in ipairs(QB.shared.all('items')) do out[#out + 1] = { value = item.name, label = item.label or item.name } end
@@ -303,10 +329,10 @@ local function levelOptions()
     return { { value = 'mod', label = 'mod' }, { value = 'admin', label = 'admin' }, { value = 'god', label = 'god' } }
 end
 
--- name/level/run -- level is this item's OWN gate (may exceed the category's
--- floor, e.g. god/invisible on another player, or the god-only items sitting
--- in an admin-floor category). Filtering here is cosmetic only: every command
--- re-checks server-side regardless of what this menu shows.
+-- label/level/run -- label and disabled may be functions evaluated whenever
+-- the menu opens. `level` is this item's OWN gate (and may exceed the
+-- category's floor). Filtering here is cosmetic only: every command re-checks
+-- server-side regardless of what this menu shows.
 local CATEGORIES = {
     {
         id = 'player', label = 'Player Management', level = 'mod',
@@ -432,6 +458,44 @@ local CATEGORIES = {
         },
     },
     {
+        id = 'developer', label = 'Developer', level = Config.developer.menuLevel,
+        items = {
+            {
+                id = 'devmode_self',
+                label = function() return Admin.isDevMode() and 'Disable My Dev Mode' or 'Enable My Dev Mode' end,
+                description = 'God mode, paused passive needs, and faster walking',
+                level = Config.developer.menuLevel,
+                run = function() runCommand('devmode', 'me', tostring(not Admin.isDevMode())) end,
+            },
+            {
+                id = 'devmode_player',
+                label = 'Set Player Dev Mode',
+                description = 'Enable or disable qbcore development mode for a player',
+                level = 'admin',
+                run = withPlayer('devmode', {
+                    { id = 'state', label = 'State', type = 'select', default = 'true', required = true,
+                        options = { { value = 'true', label = 'Enable' }, { value = 'false', label = 'Disable' } } },
+                }, 'Set Player Dev Mode'),
+            },
+            {
+                id = 'devplacement',
+                label = 'Place Entity / Model',
+                description = 'Position any valid ped, vehicle, or object and copy its transform',
+                level = Config.developer.menuLevel,
+                disabled = function() return Config.developer.requireDevMode and not Admin.isDevMode() end,
+                run = withFields('devplacement', function() return { placementModelField() } end, 'Entity Placement Creator'),
+            },
+            {
+                id = 'devzone',
+                label = 'Create Zone',
+                description = 'Open qblib’s box, sphere, or polygon creator',
+                level = Config.developer.menuLevel,
+                disabled = function() return Config.developer.requireDevMode and not Admin.isDevMode() end,
+                run = withFields('devzone', function() return { zoneTypeField() } end, 'Zone Creator'),
+            },
+        },
+    },
+    {
         id = 'world', label = 'World / Server', level = 'mod',
         items = {
             { id = 'announce', label = 'Announce', level = 'admin',
@@ -497,10 +561,13 @@ local function openRoot()
                 -- entirely rather than greying it out: it is for state that
                 -- makes an item nonsensical to offer, not permission.
                 if not item.visible or item.visible() then
+                    local label = type(item.label) == 'function' and item.label() or item.label
+                    local stateDisabled = type(item.disabled) == 'function' and item.disabled() or item.disabled == true
                     categoryItems[#categoryItems + 1] = {
                         id = item.id,
-                        label = item.label,
-                        disabled = not Admin.hasLevel(item.level),
+                        label = label,
+                        description = item.description,
+                        disabled = not Admin.hasLevel(item.level) or stateDisabled,
                     }
                 end
             end
@@ -523,7 +590,9 @@ local function openRoot()
     for _, category in ipairs(CATEGORIES) do
         if category.id == categoryId then
             for _, item in ipairs(category.items) do
-                if item.id == itemId and Admin.hasLevel(item.level) and (not item.visible or item.visible()) then
+                local stateDisabled = type(item.disabled) == 'function' and item.disabled() or item.disabled == true
+                if item.id == itemId and Admin.hasLevel(item.level) and not stateDisabled
+                    and (not item.visible or item.visible()) then
                     item.run()
                 end
             end
@@ -532,6 +601,7 @@ local function openRoot()
     end
 end
 
-RegisterNetEvent('qbadmin:client:openMenu', function()
+RegisterNetEvent('qbadmin:client:openMenu', function(level)
+    if type(level) == 'string' then Admin.level = level end
     openRoot()
 end)

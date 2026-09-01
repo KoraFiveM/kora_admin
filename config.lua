@@ -7,6 +7,19 @@ Config.permissions = {
     -- Ranked lowest to highest. 'user' is always rank 1 and can never run a
     -- gated command; qbadmin never grants anything at 'user'.
     ranks = { user = 1, mod = 2, admin = 3, god = 4 },
+    -- Optional Discord role names or IDs for each tier. Leave this empty for
+    -- ACE-only authorization. Matching any role listed for a tier grants that
+    -- tier; qblib then applies the normal rank cascade. Role IDs are safest
+    -- because Discord permits duplicate role names. This uses qblib's bot role
+    -- cache and fails closed when the bot/cache/player identifier is unavailable.
+    -- ACEs, including group.admin, are always checked first and remain active.
+    --
+    -- discordRoles = {
+    --     mod = { 'Moderator' },
+    --     admin = { '123456789012345678' },
+    --     god = { 'Owner' },
+    -- },
+    discordRoles = {},
     -- Must match qbcore's own Config.identity.primaryIdentifier (default
     -- 'license', not readable from this resource's VM). exports.qbcore's own
     -- addPermission reads qbcore's copy directly when GRANTING; qbadmin's
@@ -58,6 +71,16 @@ Config.entity = {
     -- /entity spawns this far in front of the target. Entity spawns are
     -- intentionally local, static qblib entities for safe admin testing.
     spawnOffset = 2.0,
+}
+
+Config.developer = {
+    -- Minimum qbadmin permission tier allowed to open the Developer submenu
+    -- and run its creator commands. The commands still re-check this on the
+    -- server; the client-side menu gate is only presentation.
+    menuLevel = 'admin',
+    -- When enabled, the caller must turn on qbcore's per-player development
+    -- mode before launching qblib's placement or zone creators.
+    requireDevMode = true,
 }
 
 Config.audit = {

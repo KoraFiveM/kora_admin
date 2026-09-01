@@ -45,6 +45,6 @@ QB.commands.add('permission', "Show a player's permission level", { { name = 'id
         return Admin.respond(source, false, "admin level required to check another player's permission")
     end
 
-    local level = exports.qbcore:getPermission(targetSrc)
+    local level = Admin.getLevel(targetSrc)
     Admin.respond(source, true, ('%s: %s'):format(data.name, level))
 end, OPTS_MOD)

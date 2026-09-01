@@ -52,11 +52,10 @@ end)
 
 -- Read-only self-info plumbing for the NUI's cosmetic menu filtering (see
 -- client/core.lua) -- not a privileged action, just lets a client know its
--- own already-server-known permission level without duplicating
--- Core.permissions logic client-side. Mirrors what /permission already
--- returns for a self target.
+-- own already-server-known permission level. This uses the same qblib-backed
+-- resolver as every command, including optional Discord roles.
 RegisterNetEvent('qbadmin:server:requestLevel', function()
     local src = source
-    local level = exports.qbcore:getPermission(src)
+    local level = Admin.getLevel(src)
     TriggerClientEvent('qbadmin:client:level', src, level)
 end)

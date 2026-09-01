@@ -17,21 +17,20 @@ Three tiers above `user`, ranked `mod < admin < god`:
 
 | Tier | Covers |
 |---|---|
-| `mod` | Reversible, low-harm, first-responder tools: player info, spectate, freeze, heal/revive/kill, self god/invisible, warn, kick, vehicle repair, on-duty toggle, self teleport, server info, self utilities. |
-| `admin` | Persistent-state, economic, or identity-affecting actions, or projecting power onto another player's world: ban/unban, money, items, job/gang, vehicle/entity spawn/delete, noclip, god/invisible **on another player**, announce, weather/time, audit log. |
+| `mod` | Reversible, low-harm, first-responder tools: player info, spectate, freeze, heal/revive/kill, self god/dev mode/invisible, warn, kick, vehicle repair, on-duty toggle, self teleport, server info, self utilities. |
+| `admin` | Persistent-state, economic, or identity-affecting actions, or projecting power onto another player's world: ban/unban, money, items, job/gang, vehicle/entity spawn/delete, noclip, god/dev mode/invisible **on another player**, announce, weather/time, audit log. |
 | `god` | Server-wide or privilege-altering: grant/revoke permission level, resource restart. |
 
-Commands register through **qblib's** `QB.commands.add` directly, not
-qbcore's `exports.qbcore:addCommand`. The reason: `exports.qbcore:addCommand`
-wires `checkPermission = Core.permissions.hasPermission`, which checks one
-exact ACE string and does **not** cascade -- a `god` ACE does not
-automatically satisfy a `mod` check unless the server operator manually
-chains `add_principal group.god group.admin` etc. in `server.cfg`. qbadmin
-instead supplies its own `checkPermission = Admin.checkLevel`
-(`server/permissions.lua`), which wraps `exports.qbcore:getPermission(src)`
--- already cascading, since it walks qbcore's own ordered level list and
-returns the single highest tier a player holds. Grant tiers with three ACE
-principals and nothing else is required:
+Commands register through **qblib's** `QB.commands.add` and all use
+`Admin.checkLevel` (`server/permissions.lua`). That is a thin adapter over the
+central `QB.permissions.hasLevel` gateway, so command execution, menu data,
+and the level sent to the client menu all resolve permissions identically.
+Rank checks cascade: a resolved `god` satisfies `admin` and `mod` without
+manual principal chaining.
+
+ACE authorization is always active. qblib checks `qbcore.<tier>` and
+`group.<tier>`; in particular, a `group.admin` ACE grants the admin tier even
+if Discord is disabled or unavailable. Examples:
 
 ```cfg
 add_ace identifier.license:XXXX qbcore.mod allow
@@ -42,16 +41,36 @@ add_principal identifier.license:YYYY group.admin
 add_principal identifier.license:ZZZZ group.god
 ```
 
+Discord roles are optional additive grants. Configure role names or, ideally,
+role IDs under `Config.permissions.discordRoles`:
+
+```lua
+discordRoles = {
+    mod = { 'Moderator' },
+    admin = { '123456789012345678' },
+    god = { 'Owner' },
+}
+```
+
+This uses qblib's Discord bot role cache, so `qblib_discord_bot_token` and
+`qblib_discord_guild_id` must be configured for role grants. Missing/stale
+role data fails closed for Discord only; ACE grants continue to work.
+
 ## The `me` convention
 
 Every command that takes a player-id argument treats a missing argument, or
 the literal word `me`, as "the player who ran this command"
 (`server/target.lua`, `Admin.resolveTarget`). `/heal`, `/heal me`, and
 `/heal 3` all work -- the first two heal the caller, the third heals server id
-3. This applies to heal/revive/kill/freeze/god/invisible/spectate/checkplayer/
+3. This applies to heal/revive/kill/freeze/god/devmode/invisible/spectate/checkplayer/
 setduty/sethunger/setthirst/permission. Commands that operate purely on the caller (noclip,
 coords, aduty, health, armor, fix, dv, tpm/tpcoords/tpback, selfrevive) take no id
 argument at all -- there's nothing to resolve.
+
+`/devmode [id=me] [true|false]` calls qbcore's per-player
+`setDevMode` export. It combines god mode, paused passive hunger/thirst, and
+fast walking; omitting the state toggles the current core-owned state. Mods may
+use it on themselves, while targeting another player requires `admin`.
 
 `/health [percentage]` and the corresponding admin-menu field use `0-100%`,
 not GTA's native health number. Internally, 0% maps to the 100-health death
@@ -121,18 +140,32 @@ dialog before the command actually runs.
 and error-handling path as typing `/admin`; there is no client forwarding
 command that can open the menu independently.
 
-A menu item can also set `visible` (a function, evaluated each time its
-category opens) to hide itself entirely when it wouldn't make sense to offer
-right now -- distinct from the permission-level gate, which greys an item out
-rather than hiding it, so a lower-level admin can still see what exists above
-their tier. "Delete My Vehicle" is the current example: it only appears while
-you're actually in a vehicle.
+A menu item can also set `visible` or `disabled` functions, evaluated each time
+its category opens. `visible` hides actions that make no sense in the current
+state (for example, Delete My Vehicle while on foot); `disabled` keeps an
+action visible but unavailable, as the creator shortcuts are until development
+mode is enabled. Both are presentation only and never replace server checks.
+
+### Developer submenu
+
+The **Developer** category is available at `Config.developer.menuLevel`
+(`admin` by default). It can enable/disable qbcore's per-player development
+mode, set that mode for another player, launch `QB.placement.start(model)`, and
+open the qblib box/sphere/poly zone creator. When
+`Config.developer.requireDevMode` is enabled, the two creator shortcuts remain
+disabled until the caller enables their own development mode.
+
+The menu executes the permission-checked `/devplacement` and `/devzone`
+commands. Their server handlers verify both the configured admin tier and the
+qbcore-owned development-mode state before relaying to the client. Both tools
+are data-capture utilities: placement deletes its preview, and zone creation
+returns/copies a definition without registering a live zone.
 
 ## Command reference
 
 See the category tables in the project's admin-menu design plan for the full
 list (Player Management, Moderation, Teleport/Noclip/Spectate, Economy,
-Job/Gang, Vehicle, World/Server, Privileged, Self/Utility) -- every command
+Job/Gang, Vehicle, Developer, World/Server, Privileged, Self/Utility) -- every command
 also has its own in-game help text via `/help <command>` or the chat
 autocomplete suggestion.
 
@@ -147,6 +180,11 @@ uses qblib's local, static entity API, so an entity is visible only to the
 client it was spawned for and is cleaned up on resource restart. **Delete My
 Last Spawned Entity** removes that client's most recent admin entity. Vehicle
 models deliberately stay on the Vehicle flow so they remain networked.
+
+The Developer category adds `/devplacement <model>` for qblib's temporary
+ped/vehicle/object placement creator and `/devzone <box|sphere|poly>` for its
+zone creator. The existing `/devmode [id=me] [true|false]` command delegates to
+qbcore's `setDevMode` export; its state is per-player and ephemeral.
 
 ## Ban system
 
@@ -181,8 +219,8 @@ becomes a concern, add a scheduled `DELETE ... WHERE created_at < ...` and a
 
 See `config.lua` for every tunable: permission ranks and the ACE principal
 identifier kind, ban duration units, teleport fade/collision timing, noclip
-speed, weather types and join-sync behavior, vehicle/entity spawn offsets, and audit
-log page size.
+speed, weather types and join-sync behavior, vehicle/entity spawn offsets,
+Developer-menu level/dev-mode requirement, and audit log page size.
 
 ## Known gaps (out of scope for v1)
 

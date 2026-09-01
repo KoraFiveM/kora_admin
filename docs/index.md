@@ -42,6 +42,21 @@ add_principal identifier.license:YYYY group.admin
 add_principal identifier.license:ZZZZ group.god
 ```
 
+All checks go through qblib's central permission gateway. ACEs are always
+active, including the `group.admin` ACE. Discord roles can optionally add a
+tier through `Config.permissions.discordRoles`:
+
+```lua
+discordRoles = {
+    mod = { 'Moderator' },
+    admin = { '123456789012345678' }, -- role IDs are preferred
+    god = { 'Owner' },
+}
+```
+
+Discord grants require qblib's Discord bot and guild convars. Missing or stale
+role data fails closed without affecting ACE authorization.
+
 ## Usage examples
 
 Almost every action below can be typed in chat by an admin, clicked in the
@@ -80,12 +95,13 @@ RegisterNetEvent('anticheat:flagged', function(targetSrc, reason)
 end)
 ```
 
-### Heal, revive, freeze, god mode
+### Heal, revive, freeze, god/development mode
 ```
 /heal me              -- or just /heal, or /heal 3 for another player
 /revive 3             -- revive a downed player (clears the death state)
 /freeze 3 true         -- freeze player 3 in place; /freeze 3 false to release
 /god me true            -- toggle your own god mode; targeting others needs admin
+/devmode me true        -- god mode + paused needs + fast walk; others need admin
 ```
 
 ### Set job/gang and spawn vehicles or entities
@@ -147,6 +163,7 @@ accept an `[id]` argument that defaults to the caller, or the literal word
 /heal <id>
 /revive <id>
 /god [id=me] [true|false]                 -- targeting another player needs admin
+/devmode [id=me] [true|false]             -- targeting another player needs admin
 /invisible [id=me] [true|false]           -- targeting another player needs admin
 ```
 
@@ -211,6 +228,17 @@ accept an `[id]` argument that defaults to the caller, or the literal word
 /deleteentity             -- delete your last admin-spawned entity
 ```
 
+### Developer — configurable, default `admin`
+```
+/devplacement <model>          -- place any valid ped, vehicle, or object; copy its transform
+/devzone <box|sphere|poly>     -- capture and copy a qblib zone definition
+```
+The Developer submenu also toggles your qbcore development mode or explicitly
+sets it for another player through `/devmode`. With the default
+`Config.developer.requireDevMode = true`, creator commands reject until the
+caller enables their own development mode. Neither creator persists its
+preview or registers a live zone.
+
 ### World / server — `admin`
 ```
 /announce <message>
@@ -243,14 +271,15 @@ accept an `[id]` argument that defaults to the caller, or the literal word
 
 ## Config highlights (`config.lua`)
 
-`Config.permissions.ranks` (`user < mod < admin < god`) and
+`Config.permissions.ranks` (`user < mod < admin < god`), optional
+`discordRoles`, and
 `principalIdentifier` (must match qbcore's own `Config.identity.primaryIdentifier`,
 default `license`); `Config.ban.durationUnits`/`durationWords` (`30m`, `2h`,
 `7d`, `1w`, or `perm`); `Config.teleport` fade/collision timing and
 `waypointLaunchHeight`/`groundZAttempts`/`groundZRetryDelay` (the ground-snap
 algorithm used by `/tpm`, ported from txAdmin's own); `Config.noclip.baseSpeed`/`fastMultiplier`;
 `Config.world.weatherTypes` and `syncOnPlayerLoaded`; `Config.vehicle.spawnOffset` and
-`Config.entity.spawnOffset`;
+`Config.entity.spawnOffset`; `Config.developer.menuLevel` and `requireDevMode`;
 `Config.audit.pageSize`; `Config.keybind` for the default `/admin` keybind
 (`F7`).
 

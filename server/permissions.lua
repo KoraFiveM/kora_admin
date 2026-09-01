@@ -1,20 +1,25 @@
--- Admin.checkLevel -- the one permission check every command's checkPermission
--- uses. exports.qbcore:getPermission already walks qbcore's ordered level list
--- and returns the single highest tier a player holds, so comparing ranks here
--- gives correct cascading (god satisfies a 'mod' check) with zero server.cfg
--- principal-chaining required -- unlike exports.qbcore:hasPermission, which
--- checks one exact ACE string and does not cascade on its own.
+-- Admin.checkLevel -- the one permission check every command and menu-data
+-- callback uses. qblib owns ACE + optional Discord resolution and ranked
+-- cascading, so the menu has no parallel permission implementation.
 --
 -- No src == 0 special-case is needed: QB.commands.add's own wrapper already
 -- exempts the server console from calling checkPermission at all.
 
-local RANKS = Config.permissions.ranks
+local LEVELS = { 'god', 'admin', 'mod', 'user' }
+local OPTIONS = {
+    prefix = 'qbcore',
+    discordRoles = Config.permissions.discordRoles,
+}
+
+---@param src integer
+---@return string
+function Admin.getLevel(src)
+    return QB.permissions.getLevel(src, LEVELS, OPTIONS)
+end
 
 ---@param src integer
 ---@param required string  -- 'mod'|'admin'|'god'
 ---@return boolean
 function Admin.checkLevel(src, required)
-    local level = exports.qbcore:getPermission(src)
-    local allowed = (RANKS[level] or RANKS.user) >= (RANKS[required] or RANKS.user)
-    return allowed
+    return QB.permissions.hasLevel(src, required, LEVELS, OPTIONS)
 end

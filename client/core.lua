@@ -16,6 +16,15 @@ function Admin.hasLevel(required)
     return (RANKS[Admin.level] or RANKS.user) >= (RANKS[required] or RANKS.user)
 end
 
+---Reads qbcore's server-controlled development mode mirrored on this client.
+---A failed export call is treated as disabled so the menu fails closed while
+---qbcore is starting or restarting.
+---@return boolean
+function Admin.isDevMode()
+    local ok, enabled = pcall(function() return exports.qbcore:isDevMode() end)
+    return ok and enabled == true
+end
+
 RegisterNetEvent('qbadmin:client:level', function(level)
     Admin.level = level or 'user'
 end)

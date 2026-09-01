@@ -3,7 +3,10 @@
 local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
 
 QB.commands.add('admin', 'Open the admin menu', nil, false, function(source)
-    TriggerClientEvent('qbadmin:client:openMenu', source)
+    -- Refresh the cosmetic client-side filter on every open. Discord roles can
+    -- change between heartbeat syncs; the server command gate above remains
+    -- authoritative, while this keeps the visible tier in step with it.
+    TriggerClientEvent('qbadmin:client:openMenu', source, Admin.getLevel(source))
 end, {
     permission = 'mod',
     checkPermission = Admin.checkLevel,

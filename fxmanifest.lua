@@ -43,6 +43,7 @@ server_scripts {
     'server/commands/jobgang.lua',
     'server/commands/vehicle.lua',
     'server/commands/entities.lua',
+    'server/commands/development.lua',
     'server/commands/world.lua',
     'server/commands/privileged.lua',
     'server/commands/self.lua'
@@ -52,6 +53,7 @@ server_scripts {
 -- table); menu.lua last since it references everything above.
 client_scripts {
     'client/core.lua',
+    'client/development.lua',
     'client/relay.lua',
     'client/teleport.lua',
     'client/noclip.lua',

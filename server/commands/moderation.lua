@@ -184,6 +184,23 @@ QB.commands.add('god', 'Toggle god mode (invincibility)', { { name = 'id' }, { n
     Admin.respond(source, true, ('God mode %s for %s'):format(state and 'enabled' or 'disabled', data.name))
 end, OPTS_MOD)
 
+QB.commands.add('devmode', 'Toggle core development mode', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
+    local targetSrc, data, err = Admin.resolveTarget(source, args[1])
+    if not targetSrc then return Admin.respond(source, false, err) end
+    if targetSrc ~= source and not Admin.checkLevel(source, 'admin') then
+        return Admin.respond(source, false, 'admin level required to toggle development mode on another player')
+    end
+
+    local state, stateErr = Admin.resolveToggle(args[2], exports.qbcore:isDevMode(targetSrc))
+    if state == nil then return Admin.respond(source, false, stateErr) end
+
+    local ok, setErr = exports.qbcore:setDevMode(targetSrc, state)
+    if not ok then return Admin.respond(source, false, setErr or 'could not update development mode') end
+
+    Admin.log(source, 'devmode', data, { state = state })
+    Admin.respond(source, true, ('Development mode %s for %s'):format(state and 'enabled' or 'disabled', data.name))
+end, OPTS_MOD)
+
 QB.commands.add('invisible', 'Toggle invisibility', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
