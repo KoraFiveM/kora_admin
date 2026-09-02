@@ -25,12 +25,30 @@ function Admin.isDevMode()
     return ok and enabled == true
 end
 
+-- Tracked separately from Admin.level because 'user' is both the default and a
+-- legitimate answer -- without this the retry below could not tell "the server
+-- said you are a user" from "the server never said anything".
+local levelAnswered = false
+
 RegisterNetEvent('qbadmin:client:level', function(level)
     Admin.level = level or 'user'
+    levelAnswered = true
 end)
 
 CreateThread(function()
-    TriggerServerEvent('qbadmin:server:requestLevel')
+    -- One fire-and-forget request at resource start is lost outright if it
+    -- lands before this client's network is ready, and the only other refresh
+    -- is QBCore:Client:OnPlayerLoaded -- which never arrives for a player still
+    -- sitting in character select. A lost request left the menu's filter stuck
+    -- at 'user', which reads to the player as "I have no admin perms" even
+    -- though every command's own server-side ACE check would have passed.
+    -- Keep asking until the server answers.
+    for _ = 1, 15 do
+        TriggerServerEvent('qbadmin:server:requestLevel')
+        Wait(2000)
+        if levelAnswered then return end
+    end
+    print('^1[qbadmin]^7 the server never answered the permission-level request; menu items will stay filtered to "user". Every command still re-checks server-side.')
 end)
 
 -- Re-request on the client's own player-loaded signal, so a (re)connect
