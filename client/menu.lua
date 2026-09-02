@@ -335,7 +335,27 @@ end
 -- server-side regardless of what this menu shows.
 local CATEGORIES = {
     {
-        id = 'player', label = 'Player Management', level = 'mod',
+        id = 'self', label = 'Self / Utility', description = 'Your character and quick tools', icon = 'User', level = 'mod',
+        items = {
+            { id = 'aduty', label = 'Toggle Admin Duty', level = 'mod', run = withFields('aduty') },
+            { id = 'coords', label = 'Copy Coordinates', level = 'mod', run = withFields('coords') },
+            { id = 'health', label = 'Set Health', level = 'mod',
+                run = withFields('health', { { id = 'value', label = 'Health (0-100%, blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Health') },
+            -- Runs /selfrevive, not /revive -- see server/commands/self.lua
+            -- for why a distinct command name matters here.
+            { id = 'selfrevive', label = 'Revive Me', level = 'mod', run = withFields('selfrevive') },
+            { id = 'armor', label = 'Set Armor', level = 'mod',
+                run = withFields('armor', { { id = 'value', label = 'Armor (blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Armor') },
+            { id = 'permission', label = 'My Permission Level', level = 'mod', run = withFields('permission') },
+            { id = 'wardrobe', label = 'Open Wardrobe', level = 'mod', run = function() openClothing('wardrobe') end },
+            { id = 'clothingshop', label = 'Open Clothing Shop (nearby)', level = 'mod', run = function() openClothing('shop', 'clothing') end },
+            { id = 'barbershop', label = 'Open Barber Shop (nearby)', level = 'mod', run = function() openClothing('shop', 'barber') end },
+            { id = 'tattooshop', label = 'Open Tattoo Shop (nearby)', level = 'mod', run = function() openClothing('shop', 'tattoo') end },
+            { id = 'stylingall', label = 'Open Full Styling (Clothing + Barber + Tattoo)', level = 'admin', run = function() openClothing('admin') end },
+        },
+    },
+    {
+        id = 'player', label = 'Players', description = 'Inspect and manage online players', icon = 'Users', level = 'mod',
         items = {
             { id = 'players', label = 'List Players', level = 'mod', run = showPlayers },
             { id = 'checkplayer', label = 'Check Player', level = 'mod', run = withPlayer('checkplayer') },
@@ -346,7 +366,7 @@ local CATEGORIES = {
         },
     },
     {
-        id = 'moderation', label = 'Moderation', level = 'mod',
+        id = 'moderation', label = 'Moderation', description = 'Warnings, restrictions, and recovery', icon = 'ShieldAlert', level = 'mod',
         items = {
             { id = 'warn', label = 'Warn', level = 'mod',
                 run = withPlayer('warn', { { id = 'reason', label = 'Reason', type = 'text', required = true } }, 'Warn Player') },
@@ -372,7 +392,7 @@ local CATEGORIES = {
         },
     },
     {
-        id = 'teleport', label = 'Teleport / Spectate', level = 'mod',
+        id = 'teleport', label = 'Teleport / Spectate', description = 'Move around the map or observe players', icon = 'MapPin', level = 'mod',
         items = {
             { id = 'goto', label = 'Goto Player', level = 'mod', run = withPlayer('goto') },
             { id = 'bring', label = 'Bring Player', level = 'mod', run = withPlayer('bring') },
@@ -388,7 +408,7 @@ local CATEGORIES = {
         },
     },
     {
-        id = 'economy', label = 'Economy', level = 'admin',
+        id = 'economy', label = 'Economy & Inventory', description = 'Money and item administration', icon = 'Wallet', level = 'admin',
         items = {
             { id = 'givemoney', label = 'Give Money', level = 'admin',
                 run = withPlayer('givemoney', {
@@ -423,7 +443,7 @@ local CATEGORIES = {
         },
     },
     {
-        id = 'jobgang', label = 'Job / Gang', level = 'mod',
+        id = 'jobgang', label = 'Jobs & Gangs', description = 'Assignments and duty status', icon = 'Briefcase', level = 'mod',
         items = {
             { id = 'setjob', label = 'Set Job', level = 'admin', run = setJobOrGang('setjob', 'jobs', jobOptions, 'Job') },
             { id = 'setgang', label = 'Set Gang', level = 'admin', run = setJobOrGang('setgang', 'gangs', gangOptions, 'Gang') },
@@ -431,7 +451,7 @@ local CATEGORIES = {
         },
     },
     {
-        id = 'vehicle', label = 'Vehicle', level = 'mod',
+        id = 'vehicle', label = 'Vehicles', description = 'Spawn, repair, and remove vehicles', icon = 'Car', level = 'mod',
         items = {
             { id = 'car', label = 'Spawn by Model (self)', level = 'admin',
                 run = withFields('car', function() return { vehicleModelField() } end, 'Spawn vehicle by model') },
@@ -447,7 +467,7 @@ local CATEGORIES = {
         },
     },
     {
-        id = 'entities', label = 'Entities', level = 'admin',
+        id = 'entities', label = 'Entities', description = 'Spawn and remove peds or props', icon = 'Box', level = 'admin',
         items = {
             { id = 'entity', label = 'Spawn Ped / Prop (self)', level = 'admin',
                 run = withFields('entity', function() return { entityModelField() } end, 'Spawn ped or prop') },
@@ -458,7 +478,7 @@ local CATEGORIES = {
         },
     },
     {
-        id = 'developer', label = 'Developer', level = Config.developer.menuLevel,
+        id = 'developer', label = 'Developer', description = 'Development mode and creation tools', icon = 'Wrench', level = Config.developer.menuLevel,
         items = {
             {
                 id = 'devmode_self',
@@ -496,7 +516,7 @@ local CATEGORIES = {
         },
     },
     {
-        id = 'world', label = 'World / Server', level = 'mod',
+        id = 'world', label = 'World & Server', description = 'Announcements, weather, time, and status', icon = 'Settings', level = 'mod',
         items = {
             { id = 'announce', label = 'Announce', level = 'admin',
                 run = withFields('announce', { { id = 'message', label = 'Message', type = 'textarea', required = true } }, 'Announce') },
@@ -511,14 +531,14 @@ local CATEGORIES = {
         },
     },
     {
-        id = 'audit', label = 'Audit Log', level = 'admin',
+        id = 'audit', label = 'Audit Log', description = 'Review administration activity', icon = 'List', level = 'admin',
         items = {
             { id = 'adminlog', label = 'View Recent Log', level = 'admin', run = showAuditLog },
             { id = 'adminlogfilter', label = 'Filter Log', level = 'admin', run = filterAuditLog },
         },
     },
     {
-        id = 'privileged', label = 'Privileged', level = 'god',
+        id = 'privileged', label = 'Permissions & Resources', description = 'High-privilege server controls', icon = 'Key', level = 'god',
         items = {
             { id = 'setpermission', label = 'Grant Permission', level = 'god',
                 run = withConfirm('Grant this level? This can create another privileged account.',
@@ -527,26 +547,6 @@ local CATEGORIES = {
                 run = withPlayer('revokepermission', { { id = 'level', label = 'Level', type = 'select', options = levelOptions(), required = true } }, 'Revoke Permission') },
             { id = 'restartresource', label = 'Restart Resource', level = 'god',
                 run = withConfirm('Restart this resource?', withFields('restartresource', { { id = 'name', label = 'Resource name', type = 'text', required = true } }, 'Restart Resource')) },
-        },
-    },
-    {
-        id = 'self', label = 'Self / Utility', level = 'mod',
-        items = {
-            { id = 'aduty', label = 'Toggle Admin Duty', level = 'mod', run = withFields('aduty') },
-            { id = 'coords', label = 'Copy Coordinates', level = 'mod', run = withFields('coords') },
-            { id = 'health', label = 'Set Health', level = 'mod',
-                run = withFields('health', { { id = 'value', label = 'Health (0-100%, blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Health') },
-            -- Runs /selfrevive, not /revive -- see server/commands/self.lua
-            -- for why a distinct command name matters here.
-            { id = 'selfrevive', label = 'Revive Me', level = 'mod', run = withFields('selfrevive') },
-            { id = 'armor', label = 'Set Armor', level = 'mod',
-                run = withFields('armor', { { id = 'value', label = 'Armor (blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Armor') },
-            { id = 'permission', label = 'My Permission Level', level = 'mod', run = withFields('permission') },
-            { id = 'wardrobe', label = 'Open Wardrobe', level = 'mod', run = function() openClothing('wardrobe') end },
-            { id = 'clothingshop', label = 'Open Clothing Shop (nearby)', level = 'mod', run = function() openClothing('shop', 'clothing') end },
-            { id = 'barbershop', label = 'Open Barber Shop (nearby)', level = 'mod', run = function() openClothing('shop', 'barber') end },
-            { id = 'tattooshop', label = 'Open Tattoo Shop (nearby)', level = 'mod', run = function() openClothing('shop', 'tattoo') end },
-            { id = 'stylingall', label = 'Open Full Styling (Clothing + Barber + Tattoo)', level = 'admin', run = function() openClothing('admin') end },
         },
     },
 }
@@ -578,12 +578,18 @@ local function openRoot()
             items[#items + 1] = {
                 id = category.id,
                 label = category.label,
+                description = category.description,
+                icon = category.icon,
                 submenu = { title = category.label, items = categoryItems },
             }
         end
     end
 
-    local result = QB.nui.openMenu(items, 'Admin Menu')
+    local result = QB.nui.openMenu(items, 'Admin Menu', {
+        position = { horizontal = 'right', vertical = 'center', offsetX = 48 },
+        maxWidth = 400,
+        maxHeight = 680,
+    })
     if not result or result.cancelled then return end
 
     local categoryId, itemId = result.path and result.path[1], result.selectedId

@@ -124,8 +124,8 @@ QB = {
         get = function() return nil end,
     },
     nui = {
-        openMenu = function(items, title)
-            menuPayload = { items = items, title = title }
+        openMenu = function(items, title, opts)
+            menuPayload = { items = items, title = title, opts = opts }
             return selectedMenuResult
         end,
         openInputDialog = function() return inputResult end,
@@ -188,6 +188,16 @@ test('Developer submenu reflects qbcore dev mode and gates creator shortcuts', f
     equal(developerItem('devmode_self').label, 'Disable My Dev Mode', 'enabled-mode label')
     equal(developerItem('devplacement').disabled, false, 'placement should enable in dev mode')
     equal(developerItem('devzone').disabled, false, 'zone creator should enable in dev mode')
+end)
+
+test('admin menu uses the compact right-side layout', function()
+    selectedMenuResult = { cancelled = true }
+    netEvents['qbadmin:client:openMenu'](Config.developer.menuLevel)
+    equal(menuPayload.opts.position.horizontal, 'right', 'menu should be right aligned')
+    equal(menuPayload.opts.position.vertical, 'center', 'menu should remain vertically centred')
+    equal(menuPayload.opts.position.offsetX, 48, 'menu should retain a right-side inset')
+    equal(menuPayload.opts.maxWidth, 400, 'menu width')
+    equal(menuPayload.opts.maxHeight, 680, 'menu height')
 end)
 
 test('Developer menu zone shortcut runs the permission-checked command', function()
