@@ -60,6 +60,20 @@ Config.world = {
         'THUNDER', 'SMOG', 'FOGGY', 'XMAS', 'SNOWLIGHT', 'BLIZZARD',
     },
     syncOnPlayerLoaded = true, -- re-apply the current server-held weather/time to a client on join
+    -- One-click clock presets. These are the words `/time` accepts in place of
+    -- an hour, and the buttons the admin menu's time selector offers, so both
+    -- entry points mean the same thing -- change an entry's hour here to change
+    -- what "night" means on this server. An ordered list rather than a keyed
+    -- table so the buttons cannot shuffle between openings the way pairs()
+    -- order would. `minute` is optional and treated as 0 when omitted; every
+    -- value still goes through the same 0-23/0-59 whole-number check a typed
+    -- hour does, so a mistyped entry is refused at use time rather than
+    -- reaching the clock.
+    timePresets = {
+        { id = 'morning', label = 'Morning', hour = 8, minute = 0 },
+        { id = 'noon', label = 'Noon', hour = 12, minute = 0 },
+        { id = 'night', label = 'Night', hour = 21, minute = 0 },
+    },
 }
 
 Config.vehicle = {

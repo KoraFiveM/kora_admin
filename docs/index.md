@@ -243,9 +243,17 @@ preview or registers a live zone.
 ```
 /announce <message>
 /weather <type>
-/time <hour> [minute]
+/time <hour> [minute]                     -- /time 21, /time 8 30
+/time <preset>                            -- /time morning|noon|night
 /adminlog [action] [target] [page]
 ```
+`/time` takes either a whole-number hour (`0-23`) with an optional minute
+(`0-59`), or one of the words in `Config.world.timePresets` -- the same words
+the admin menu's **Set Time** selector offers as one-click buttons. The preset
+word is what travels to the server, so its hour and minute come from
+`config.lua` and are range-checked there like any typed value; an unknown word
+or an out-of-range number is refused with a reason rather than clamped. In the
+menu, the hour/minute inputs appear only behind **Custom**.
 
 ### World / server — `mod`
 ```
@@ -278,7 +286,9 @@ default `license`); `Config.ban.durationUnits`/`durationWords` (`30m`, `2h`,
 `7d`, `1w`, or `perm`); `Config.teleport` fade/collision timing and
 `waypointLaunchHeight`/`groundZAttempts`/`groundZRetryDelay` (the ground-snap
 algorithm used by `/tpm`, ported from txAdmin's own); `Config.noclip.baseSpeed`/`fastMultiplier`;
-`Config.world.weatherTypes` and `syncOnPlayerLoaded`; `Config.vehicle.spawnOffset` and
+`Config.world.weatherTypes`, `timePresets` (the ordered `/time` preset words
+and their hour/minute -- change these to change what `night` means here) and
+`syncOnPlayerLoaded`; `Config.vehicle.spawnOffset` and
 `Config.entity.spawnOffset`; `Config.developer.menuLevel` and `requireDevMode`;
 `Config.audit.pageSize`; `Config.keybind` for the default `/admin` keybind
 (`F7`).

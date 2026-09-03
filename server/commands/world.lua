@@ -43,17 +43,60 @@ QB.commands.add('weather', 'Set the server weather', { { name = 'type' } }, true
     Admin.respond(source, true, ('Weather set to %s'):format(weatherType))
 end, OPTS_ADMIN)
 
--- argsRequired=false: minute defaults to 0 below; only hour is truly required.
-QB.commands.add('time', 'Set the server clock', { { name = 'hour' }, { name = 'minute' } }, false, function(source, args)
-    local hour = Admin.finiteNumber(args[1], 0, 23, true)
-    local minute = args[2] == nil and 0 or Admin.finiteNumber(args[2], 0, 59, true)
-    if hour == nil then return Admin.respond(source, false, 'hour must be a whole number from 0-23') end
-    if minute == nil then return Admin.respond(source, false, 'minute must be a whole number from 0-59') end
+---A preset is a Config-owned word, not a number the menu supplies, so the NUI
+---and a typed '/time night' hand the server the exact same input and travel
+---the same validation path below.
+---@param name any
+---@return table|nil
+local function findTimePreset(name)
+    if type(name) ~= 'string' then return nil end
+    local wanted = name:lower()
+    for _, preset in ipairs(Config.world.timePresets) do
+        if preset.id == wanted then return preset end
+    end
+    return nil
+end
+
+local function presetNames()
+    local names = {}
+    for _, preset in ipairs(Config.world.timePresets) do names[#names + 1] = preset.id end
+    return table.concat(names, ', ')
+end
+
+-- argsRequired=false: minute defaults to 0 below and a preset carries its own,
+-- so only the first argument is truly required.
+QB.commands.add('time', 'Set the server clock', { { name = 'hour|preset' }, { name = 'minute' } }, false, function(source, args)
+    local preset = findTimePreset(args[1])
+    local hour, minute
+
+    if preset then
+        -- Config values are re-checked exactly like typed digits: a mistyped
+        -- preset (hour = 25) must be refused here rather than reaching
+        -- NetworkOverrideClockTime with a nonsense clock.
+        hour = Admin.finiteNumber(preset.hour, 0, 23, true)
+        minute = Admin.finiteNumber(preset.minute or 0, 0, 59, true)
+        if hour == nil or minute == nil then
+            return Admin.respond(source, false,
+                ('preset "%s" is misconfigured -- hour must be 0-23 and minute 0-59 in config.lua'):format(preset.id))
+        end
+    else
+        hour = Admin.finiteNumber(args[1], 0, 23, true)
+        minute = args[2] == nil and 0 or Admin.finiteNumber(args[2], 0, 59, true)
+        -- Naming the presets here is the only hint an admin who typed a word
+        -- gets that words are accepted at all.
+        if hour == nil then
+            return Admin.respond(source, false,
+                ('hour must be a whole number from 0-23, or one of: %s'):format(presetNames()))
+        end
+        if minute == nil then return Admin.respond(source, false, 'minute must be a whole number from 0-59') end
+    end
 
     currentTime = { hour = hour, minute = minute }
     TriggerClientEvent('qbadmin:client:setTime', -1, hour, minute)
-    Admin.log(source, 'time', nil, { hour = hour, minute = minute })
-    Admin.respond(source, true, ('Time set to %02d:%02d'):format(hour, minute))
+    Admin.log(source, 'time', nil, { hour = hour, minute = minute, preset = preset and preset.id or nil })
+    Admin.respond(source, true, preset
+        and ('Time set to %s (%02d:%02d)'):format(preset.label, hour, minute)
+        or ('Time set to %02d:%02d'):format(hour, minute))
 end, OPTS_ADMIN)
 
 QB.commands.add('serverinfo', 'Show basic server stats', nil, false, function(source)

@@ -181,6 +181,17 @@ client it was spawned for and is cleaned up on resource restart. **Delete My
 Last Spawned Entity** removes that client's most recent admin entity. Vehicle
 models deliberately stay on the Vehicle flow so they remain networked.
 
+The World / Server category's **Set Time** is a selector, not a number entry:
+one button per `Config.world.timePresets` entry (Morning, Noon, Night by
+default) plus **Custom**, which is the only path that opens the hour/minute
+inputs at all. A preset button runs `/time <preset>` -- the word, not its
+hour -- so the menu and a typed command hand the server the same input and
+`server/commands/world.lua` resolves and range-checks the configured values
+there, exactly as it does typed digits. The selector's title shows the live
+clock, the preset already in effect is marked `current`, and Custom opens
+prefilled with that clock, so an admin can see what the server time actually
+is before changing it.
+
 The Developer category adds `/devplacement <model>` for qblib's temporary
 ped/vehicle/object placement creator and `/devzone <box|sphere|poly>` for its
 zone creator. The existing `/devmode [id=me] [true|false]` command delegates to
@@ -219,7 +230,7 @@ becomes a concern, add a scheduled `DELETE ... WHERE created_at < ...` and a
 
 See `config.lua` for every tunable: permission ranks and the ACE principal
 identifier kind, ban duration units, teleport fade/collision timing, noclip
-speed, weather types and join-sync behavior, vehicle/entity spawn offsets,
+speed, weather types, clock presets and join-sync behavior, vehicle/entity spawn offsets,
 Developer-menu level/dev-mode requirement, and audit log page size.
 
 ## Known gaps (out of scope for v1)

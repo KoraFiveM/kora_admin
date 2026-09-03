@@ -325,6 +325,56 @@ local function weatherOptions()
     return out
 end
 
+---Time selector: one button per Config.world.timePresets entry, plus Custom.
+---The hour/minute inputs are a second step rather than conditional fields in
+---one dialog because openInputDialog fields aren't reactive to each other
+---within a call (same constraint setJobOrGang works around above) -- which is
+---also why a preset click never renders, or has to validate, a number at all.
+---Both paths end in `/time`, so the server re-checks either one.
+local function setTime()
+    local hour, minute = GetClockHours(), GetClockMinutes()
+
+    local items = {}
+    for _, preset in ipairs(Config.world.timePresets) do
+        local presetMinute = preset.minute or 0
+        local clock = ('%02d:%02d'):format(preset.hour, presetMinute)
+        items[#items + 1] = {
+            id = preset.id,
+            label = preset.label,
+            -- The clock an admin is already on would otherwise look like a
+            -- dead button when they click it and nothing visibly changes.
+            description = (preset.hour == hour and presetMinute == minute) and (clock .. ' · current') or clock,
+        }
+    end
+    items[#items + 1] = { id = 'custom', label = 'Custom', description = 'Enter an exact hour and minute' }
+
+    local result = QB.nui.openMenu(items, ('Set Time (now %02d:%02d)'):format(hour, minute))
+    if not result or result.cancelled then return end
+
+    if result.selectedId ~= 'custom' then
+        runCommand('time', result.selectedId)
+        return
+    end
+
+    -- Defaulted to the live clock so Custom opens on the current state rather
+    -- than an arbitrary midnight.
+    local fields = {
+        { id = 'hour', label = 'Hour (0-23)', type = 'number', required = true, min = 0, max = 23, default = hour },
+        { id = 'minute', label = 'Minute', type = 'number', default = minute, min = 0, max = 59 },
+    }
+    local custom = QB.nui.openInputDialog(fields, 'Set Time — Custom')
+    if not custom or custom.cancelled then return end
+
+    -- Same empty-trailing-value handling as withFields: a blank minute is
+    -- simply not appended and the command's own default of 0 applies.
+    local args = { 'time' }
+    for _, field in ipairs(fields) do
+        local value = custom.values[field.id]
+        if value ~= nil and value ~= '' then args[#args + 1] = tostring(value) end
+    end
+    runCommand(table.unpack(args))
+end
+
 local function levelOptions()
     return { { value = 'mod', label = 'mod' }, { value = 'admin', label = 'admin' }, { value = 'god', label = 'god' } }
 end
@@ -502,11 +552,7 @@ local CATEGORIES = {
                 run = withFields('announce', { { id = 'message', label = 'Message', type = 'textarea', required = true } }, 'Announce') },
             { id = 'weather', label = 'Set Weather', level = 'admin',
                 run = withFields('weather', function() return { { id = 'type', label = 'Weather', type = 'select', options = weatherOptions(), required = true } } end, 'Set Weather') },
-            { id = 'time', label = 'Set Time', level = 'admin',
-                run = withFields('time', {
-                    { id = 'hour', label = 'Hour (0-23)', type = 'number', required = true, min = 0, max = 23 },
-                    { id = 'minute', label = 'Minute', type = 'number', default = 0, min = 0, max = 59 },
-                }, 'Set Time') },
+            { id = 'time', label = 'Set Time', level = 'admin', run = setTime },
             { id = 'serverinfo', label = 'Server Info', level = 'mod', run = withFields('serverinfo') },
         },
     },
