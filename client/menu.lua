@@ -321,7 +321,14 @@ end
 
 local function weatherOptions()
     local out = {}
-    for _, w in ipairs(Config.world.weatherTypes) do out[#out + 1] = { value = w, label = w } end
+    -- qb-weathersync owns the accepted weather list.  qbadmin intentionally
+    -- has no manifest dependency on it (the sync resource starts after this
+    -- one so it can own /weather), therefore retain the local list only as a
+    -- graceful fallback while that resource is stopped/restarting.
+    local ok, weatherTypes = pcall(function() return exports['qb-weathersync']:getWeatherTypes() end)
+    for _, w in ipairs(ok and weatherTypes or Config.world.weatherTypes) do
+        out[#out + 1] = { value = w, label = w }
+    end
     return out
 end
 
@@ -552,6 +559,12 @@ local CATEGORIES = {
                 run = withFields('announce', { { id = 'message', label = 'Message', type = 'textarea', required = true } }, 'Announce') },
             { id = 'weather', label = 'Set Weather', level = 'admin',
                 run = withFields('weather', function() return { { id = 'type', label = 'Weather', type = 'select', options = weatherOptions(), required = true } } end, 'Set Weather') },
+            { id = 'dynamicweather', label = 'Dynamic Weather', level = 'admin',
+                description = 'Choose whether weather changes automatically',
+                run = withFields('freezeweather', function()
+                    return { { id = 'enabled', label = 'Automatic changes', type = 'select', required = true,
+                        options = { { value = 'true', label = 'Enabled' }, { value = 'false', label = 'Disabled' } } } }
+                end, 'Dynamic Weather') },
             { id = 'time', label = 'Set Time', level = 'admin', run = setTime },
             { id = 'serverinfo', label = 'Server Info', level = 'mod', run = withFields('serverinfo') },
         },
