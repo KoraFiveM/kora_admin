@@ -383,7 +383,30 @@ local function setTime()
 end
 
 local function levelOptions()
-    return { { value = 'mod', label = 'mod' }, { value = 'admin', label = 'admin' }, { value = 'god', label = 'god' } }
+    local options = {}
+    for role, definition in pairs(Config.permissions.roles) do
+        if role ~= 'user' and definition.grantable ~= false then
+            options[#options + 1] = { value = role, label = definition.label or role, rank = definition.rank }
+        end
+    end
+    table.sort(options, function(a, b) return a.rank == b.rank and a.value < b.value or a.rank < b.rank end)
+    for _, option in ipairs(options) do option.rank = nil end
+    return options
+end
+
+local function temporaryLevelOptions()
+    local maxRole = Config.permissions.roles[Config.permissions.temporaryGrant.maxRole]
+    if not maxRole then return {} end
+
+    local options = {}
+    for role, definition in pairs(Config.permissions.roles) do
+        if role ~= 'user' and definition.grantable ~= false and definition.rank <= maxRole.rank then
+            options[#options + 1] = { value = role, label = definition.label or role, rank = definition.rank }
+        end
+    end
+    table.sort(options, function(a, b) return a.rank == b.rank and a.value < b.value or a.rank < b.rank end)
+    for _, option in ipairs(options) do option.rank = nil end
+    return options
 end
 
 -- label/level/run -- label and disabled may be functions evaluated whenever
@@ -392,10 +415,10 @@ end
 -- server-side regardless of what this menu shows.
 local CATEGORIES = {
     {
-        id = 'player', label = 'Player Management', level = 'mod',
+        id = 'player', label = 'Player Management', level = 'support',
         items = {
-            { id = 'players', label = 'List Players', level = 'mod', run = showPlayers },
-            { id = 'checkplayer', label = 'Check Player', level = 'mod', run = withPlayer('checkplayer') },
+            { id = 'players', label = 'List Players', level = 'support', run = showPlayers },
+            { id = 'checkplayer', label = 'Check Player', level = 'support', run = withPlayer('checkplayer') },
             { id = 'sethunger', label = 'Set Hunger', level = 'admin',
                 run = withPlayer('sethunger', { { id = 'value', label = 'Hunger', type = 'number', min = 0, max = 100, required = true } }, 'Set Hunger') },
             { id = 'setthirst', label = 'Set Thirst', level = 'admin',
@@ -574,6 +597,24 @@ local CATEGORIES = {
         items = {
             { id = 'adminlog', label = 'View Recent Log', level = 'admin', run = showAuditLog },
             { id = 'adminlogfilter', label = 'Filter Log', level = 'admin', run = filterAuditLog },
+        },
+    },
+    {
+        id = 'temporary_access', label = 'Temporary Access', level = Config.permissions.temporaryGrant.managerRole,
+        items = {
+            { id = 'granttempaccess', label = 'Grant Temporary Access', level = Config.permissions.temporaryGrant.managerRole,
+                description = 'Grants expire automatically and are cleared on qbadmin restart',
+                run = withConfirm('Grant temporary admin access?', withPlayer('granttempaccess', {
+                    { id = 'role', label = 'Role', type = 'select', options = temporaryLevelOptions(), required = true },
+                    { id = 'minutes', label = 'Duration (minutes)', type = 'number', required = true,
+                        min = Config.permissions.temporaryGrant.minMinutes,
+                        max = Config.permissions.temporaryGrant.maxMinutes,
+                        default = Config.permissions.temporaryGrant.defaultMinutes },
+                }, 'Grant Temporary Access')) },
+            { id = 'revoketempaccess', label = 'Revoke Temporary Access', level = Config.permissions.temporaryGrant.managerRole,
+                run = withPlayer('revoketempaccess', {
+                    { id = 'role', label = 'Role', type = 'select', options = temporaryLevelOptions(), required = true },
+                }, 'Revoke Temporary Access') },
         },
     },
     {

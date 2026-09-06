@@ -56,6 +56,5 @@ end)
 -- resolver as every command, including optional Discord roles.
 RegisterNetEvent('qbadmin:server:requestLevel', function()
     local src = source
-    local level = Admin.getLevel(src)
-    TriggerClientEvent('qbadmin:client:level', src, level)
+    Admin.syncLevel(src)
 end)

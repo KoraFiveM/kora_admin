@@ -8,12 +8,19 @@
 Admin = Admin or {}
 Admin.level = 'user'
 
-local RANKS = Config.permissions.ranks
+local function roleName(role)
+    return Config.permissions.gates[role] or role
+end
+
+local function roleRank(role)
+    local definition = Config.permissions.roles[roleName(role)]
+    return definition and definition.rank or -1
+end
 
 ---@param required string
 ---@return boolean
 function Admin.hasLevel(required)
-    return (RANKS[Admin.level] or RANKS.user) >= (RANKS[required] or RANKS.user)
+    return roleRank(Admin.level) >= roleRank(required)
 end
 
 ---Reads qbcore's server-controlled development mode mirrored on this client.

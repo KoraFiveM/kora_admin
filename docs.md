@@ -13,48 +13,71 @@ because there is only one implementation.
 
 ## Permission model
 
-Three tiers above `user`, ranked `mod < admin < god`:
+The default staff ladder is `Support < Moderator < Admin < Owner`. Roles are
+ranked, so a higher role automatically receives every lower role's access.
 
 | Tier | Covers |
 |---|---|
-| `mod` | Reversible, low-harm, first-responder tools: player info, spectate, freeze, heal/revive/kill, self god/dev mode/invisible, warn, kick, vehicle repair, on-duty toggle, self teleport, server info, self utilities. |
+| `support` | Open the admin menu, list online players, and inspect player information. |
+| `moderator` | Reversible, low-harm, first-responder tools: spectate, freeze, heal/revive/kill, self god/dev mode/invisible, warn, kick, vehicle repair, on-duty toggle, self teleport, server info, self utilities. |
 | `admin` | Persistent-state, economic, or identity-affecting actions, or projecting power onto another player's world: ban/unban, money, items, job/gang, vehicle/entity spawn/delete, noclip, god/dev mode/invisible **on another player**, announce, weather/time, audit log. |
-| `god` | Server-wide or privilege-altering: grant/revoke permission level, resource restart. |
+| `owner` | Server-wide or unrestricted privilege changes: permanent runtime grants/revokes and resource restart. |
 
 Commands register through **qblib's** `QB.commands.add` and all use
 `Admin.checkLevel` (`server/permissions.lua`). That is a thin adapter over the
 central `QB.permissions.hasLevel` gateway, so command execution, menu data,
 and the level sent to the client menu all resolve permissions identically.
-Rank checks cascade: a resolved `god` satisfies `admin` and `mod` without
-manual principal chaining.
+Rank checks cascade: a resolved `owner` satisfies `admin`, `moderator`, and
+`support` without manual principal chaining.
 
-ACE authorization is always active. qblib checks `qbcore.<tier>` and
-`group.<tier>`; in particular, a `group.admin` ACE grants the admin tier even
+ACE authorization is always active. qblib checks `qbcore.<role>` and
+`group.<role>`; in particular, a `group.admin` ACE grants the admin tier even
 if Discord is disabled or unavailable. Examples:
 
 ```cfg
-add_ace identifier.license:XXXX qbcore.mod allow
-add_ace identifier.license:YYYY qbcore.admin allow
-add_ace identifier.license:ZZZZ qbcore.god allow
-add_principal identifier.license:XXXX group.mod
+add_ace identifier.license:XXXX qbcore.support allow
+add_ace identifier.license:YYYY qbcore.moderator allow
+add_ace identifier.license:ZZZZ qbcore.owner allow
+add_principal identifier.license:XXXX group.support
 add_principal identifier.license:YYYY group.admin
-add_principal identifier.license:ZZZZ group.god
+add_principal identifier.license:ZZZZ group.owner
 ```
+
+For a smooth upgrade, the default `moderator` and `owner` roles also recognize
+the old `mod` and `god` ACE/group names. Remove those aliases from the role
+configuration once your server.cfg has been migrated.
 
 Discord roles are optional additive grants. Configure role names or, ideally,
 role IDs under `Config.permissions.discordRoles`:
 
 ```lua
 discordRoles = {
-    mod = { 'Moderator' },
+    moderator = { 'Moderator' },
     admin = { '123456789012345678' },
-    god = { 'Owner' },
+    owner = { 'Owner' },
 }
 ```
 
 This uses qblib's Discord bot role cache, so `qblib_discord_bot_token` and
 `qblib_discord_guild_id` must be configured for role grants. Missing/stale
 role data fails closed for Discord only; ACE grants continue to work.
+
+### Temporary access
+
+The **Temporary Access** menu is available to `temporaryGrant.managerRole`
+(`admin` by default). It grants a selected configured role for a specified
+number of minutes and can revoke that grant early. The default manager may
+grant through `admin`; set `maxRole` lower if you do not want peer-level
+delegation. Grants are memory-only, expire automatically, are audited, follow
+the recipient through a reconnect during their timer, and are cleared if
+`qbadmin` or the server restarts. They do not call `add_principal`, so expiry
+can never remove a permanent ACE from `server.cfg`.
+
+Use `/granttempaccess <id> <role> <minutes>` and
+`/revoketempaccess <id> <role>` if you prefer commands. Add a role in
+`Config.permissions.roles` with a unique numeric rank; it then appears in the
+pickers automatically. Configure the `gates` table to assign existing feature
+bands to an added role.
 
 ## The `me` convention
 

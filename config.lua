@@ -4,9 +4,27 @@
 Config = Config or {}
 
 Config.permissions = {
-    -- Ranked lowest to highest. 'user' is always rank 1 and can never run a
-    -- gated command; qbadmin never grants anything at 'user'.
-    ranks = { user = 1, mod = 2, admin = 3, god = 4 },
+    -- Every role used by qbadmin. Add roles here (with a unique rank) to make
+    -- them available to ACE/Discord and the temporary-access picker. `user`
+    -- is the non-staff floor and can never be granted.
+    roles = {
+        user = { label = 'User', rank = 0, grantable = false },
+        support = { label = 'Support', rank = 10 },
+        moderator = { label = 'Moderator', rank = 20, aliases = { 'mod' } },
+        admin = { label = 'Admin', rank = 30 },
+        owner = { label = 'Owner', rank = 40, grantable = false, aliases = { 'god' } },
+        -- Example: senior_moderator = { label = 'Senior Moderator', rank = 25 },
+    },
+    -- Internal feature bands. Leave these defaults alone for the standard
+    -- roles, or point a band at one of your added roles to tune access without
+    -- editing command files. `mod`/`god` retain their old names internally so
+    -- existing command definitions and integrations remain compatible.
+    gates = {
+        support = 'support',
+        mod = 'moderator',
+        admin = 'admin',
+        god = 'owner',
+    },
     -- Optional Discord role names or IDs for each tier. Leave this empty for
     -- ACE-only authorization. Matching any role listed for a tier grants that
     -- tier; qblib then applies the normal rank cascade. Role IDs are safest
@@ -15,9 +33,9 @@ Config.permissions = {
     -- ACEs, including group.admin, are always checked first and remain active.
     --
     -- discordRoles = {
-    --     mod = { 'Moderator' },
+    --     moderator = { 'Moderator' },
     --     admin = { '123456789012345678' },
-    --     god = { 'Owner' },
+    --     owner = { 'Owner' },
     -- },
     discordRoles = {},
     -- Must match qbcore's own Config.identity.primaryIdentifier (default
@@ -26,6 +44,16 @@ Config.permissions = {
     -- /revokepermission has to mirror the same identifier kind by hand since
     -- there is no removePermission export to delegate to (see docs.md).
     principalIdentifier = 'license',
+    -- Temporary access exists only in qbadmin memory: it survives reconnects
+    -- during the timer but is intentionally cleared by a qbadmin/server
+    -- restart. The manager may grant any grantable role at or below maxRole.
+    temporaryGrant = {
+        managerRole = 'admin',
+        maxRole = 'admin',
+        defaultMinutes = 60,
+        minMinutes = 1,
+        maxMinutes = 1440,
+    },
 }
 
 Config.ban = {
@@ -103,7 +131,7 @@ Config.audit = {
 
 Config.keybind = {
     -- Attached directly to the server-owned /admin registration. Binding a
-    -- key grants nothing: qblib dispatches it through /admin's normal mod gate.
+    -- key grants nothing: qblib dispatches it through /admin's normal support gate.
     -- Players rebind this freely in Settings > Key Bindings > FiveM; the value
     -- here is only the default. Empty string = registered but unbound.
     label = 'Open the admin menu (qbadmin)',

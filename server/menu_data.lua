@@ -10,7 +10,7 @@ local function allowed(src, level)
 end
 
 QB.callback.register('qbadmin:menuPlayers', function(src)
-    local ok, err = allowed(src, 'mod')
+    local ok, err = allowed(src, 'support')
     if not ok then return nil, err end
 
     local players = {}

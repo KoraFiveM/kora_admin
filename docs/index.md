@@ -30,16 +30,15 @@ ensure qbadmin
 qbadmin migrates its own `admin_logs` table (`sql/001_admin_logs.sql`) on
 first boot via qbsql's migration runner — no manual schema import needed.
 
-Grant permission tiers with ACE principals in `server.cfg` (three tiers above
-`user`, ranked `mod < admin < god`, cascading — a `god` grant automatically
-satisfies a `mod`/`admin` check):
+Grant permission roles with ACE principals in `server.cfg` (`Support <
+Moderator < Admin < Owner`, cascading):
 ```cfg
-add_ace identifier.license:XXXX qbcore.mod allow
-add_ace identifier.license:YYYY qbcore.admin allow
-add_ace identifier.license:ZZZZ qbcore.god allow
-add_principal identifier.license:XXXX group.mod
+add_ace identifier.license:XXXX qbcore.support allow
+add_ace identifier.license:YYYY qbcore.moderator allow
+add_ace identifier.license:ZZZZ qbcore.owner allow
+add_principal identifier.license:XXXX group.support
 add_principal identifier.license:YYYY group.admin
-add_principal identifier.license:ZZZZ group.god
+add_principal identifier.license:ZZZZ group.owner
 ```
 
 All checks go through qblib's central permission gateway. ACEs are always
@@ -48,9 +47,9 @@ tier through `Config.permissions.discordRoles`:
 
 ```lua
 discordRoles = {
-    mod = { 'Moderator' },
+    moderator = { 'Moderator' },
     admin = { '123456789012345678' }, -- role IDs are preferred
-    god = { 'Owner' },
+    owner = { 'Owner' },
 }
 ```
 
@@ -145,7 +144,7 @@ accept an `[id]` argument that defaults to the caller, or the literal word
 `me` — see `Admin.resolveTarget` (`server/target.lua`). Commands marked
 **(no me)** use an offline-capable resolver instead.
 
-### Player / info — `mod`
+### Player / info — `support`
 ```
 /admin                                    -- open the NUI menu
 /players [search]                         -- list online players
@@ -153,7 +152,7 @@ accept an `[id]` argument that defaults to the caller, or the literal word
 /permission [id=me]                       -- show a player's permission level
 ```
 
-### Moderation — `mod`
+### Moderation — `moderator`
 ```
 /warn <id> <reason>
 /warnings <id>                            -- warning history
@@ -173,7 +172,7 @@ accept an `[id]` argument that defaults to the caller, or the literal word
 /unban <license|banId>                    -- (no me) preserves ban history
 ```
 
-### Teleport / noclip / spectate — `mod`
+### Teleport / noclip / spectate — `moderator`
 ```
 /goto <id>          /bring <id>
 /tpm                 /tpback
@@ -204,7 +203,7 @@ accept an `[id]` argument that defaults to the caller, or the literal word
 /setgang <id> <gang> [grade]
 ```
 
-### Job / gang — `mod`
+### Job / gang — `moderator`
 ```
 /setduty [id=me] [true|false]
 ```
@@ -216,7 +215,7 @@ accept an `[id]` argument that defaults to the caller, or the literal word
 /dv                      -- delete the vehicle you're in
 ```
 
-### Vehicle — `mod`
+### Vehicle — `moderator`
 ```
 /fix                     -- repair the vehicle you're in
 ```
@@ -255,12 +254,12 @@ word is what travels to the server, so its hour and minute come from
 or an out-of-range number is refused with a reason rather than clamped. In the
 menu, the hour/minute inputs appear only behind **Custom**.
 
-### World / server — `mod`
+### World / server — `moderator`
 ```
 /serverinfo
 ```
 
-### Self / utility — `mod`
+### Self / utility — `moderator`
 ```
 /aduty                   -- toggle admin on-duty status
 /coords                  -- copy your current coordinates to the clipboard
@@ -270,17 +269,25 @@ menu, the hour/minute inputs appear only behind **Custom**.
 /setthirst <id> <0-100>  -- admin
 ```
 
-### Privileged — `god`
+### Privileged — `owner`
 ```
 /restartresource <name>
-/setpermission <id> <mod|admin|god>       -- runtime only
-/revokepermission <id> <mod|admin|god>    -- runtime only
+/setpermission <id> <role>                -- unrestricted runtime only
+/revokepermission <id> <role>             -- unrestricted runtime only
 ```
+
+### Temporary access — `admin` by default
+```
+/granttempaccess <id> <role> <minutes>
+/revoketempaccess <id> <role>
+```
+Temporary grants are memory-only, expire automatically, and are configured by
+`Config.permissions.temporaryGrant`.
 
 ## Config highlights (`config.lua`)
 
-`Config.permissions.ranks` (`user < mod < admin < god`), optional
-`discordRoles`, and
+`Config.permissions.roles` (the default `Support < Moderator < Admin < Owner`
+ladder), optional `discordRoles`, `temporaryGrant`, and
 `principalIdentifier` (must match qbcore's own `Config.identity.primaryIdentifier`,
 default `license`); `Config.ban.durationUnits`/`durationWords` (`30m`, `2h`,
 `7d`, `1w`, or `perm`); `Config.teleport` fade/collision timing and

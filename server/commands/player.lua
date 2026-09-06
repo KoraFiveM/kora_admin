@@ -8,7 +8,7 @@ QB.commands.add('admin', 'Open the admin menu', nil, false, function(source)
     -- authoritative, while this keeps the visible tier in step with it.
     TriggerClientEvent('qbadmin:client:openMenu', source, Admin.getLevel(source))
 end, {
-    permission = 'mod',
+    permission = 'support',
     checkPermission = Admin.checkLevel,
     resource = 'qbadmin',
     keybind = {
@@ -34,7 +34,7 @@ QB.commands.add('players', 'List online players', { { name = 'search', help = 'o
             return
         end
         Admin.chat(source, table.concat(lines, '\n'))
-    end, { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'qbadmin' })
+    end, { permission = 'support', checkPermission = Admin.checkLevel, resource = 'qbadmin' })
 
 QB.commands.add('checkplayer', 'Show a player info panel', { { name = 'id', help = 'server id, or "me"/omit for self' } }, false,
     function(source, args)
@@ -71,7 +71,7 @@ QB.commands.add('checkplayer', 'Show a player info panel', { { name = 'id', help
         end
 
         Admin.chat(source, table.concat(lines, '\n'))
-    end, { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'qbadmin' })
+    end, { permission = 'support', checkPermission = Admin.checkLevel, resource = 'qbadmin' })
 
 local function addSetNeedCommand(commandName, metadataKey, label)
     QB.commands.add(commandName, ('Set a player\'s %s'):format(label:lower()),
