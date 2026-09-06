@@ -62,48 +62,6 @@ RegisterNetEvent('qbadmin:client:fix', function()
     SetVehicleBodyHealth(veh, 1000.0)
 end)
 
-RegisterNetEvent('qbadmin:client:deleteVehicle', function()
-    local veh = GetVehiclePedIsIn(PlayerPedId(), false)
-    if veh == 0 or not DoesEntityExist(veh) then return end
-    SetEntityAsMissionEntity(veh, true, true)
-    DeleteEntity(veh)
-end)
-
--- This relay is sent only by the permission-checked server commands.  It
--- intentionally owns the resulting network entity locally: that is reliable
--- across FXServer artifacts and lets the recipient enter it immediately.
-RegisterNetEvent('qbadmin:client:spawnVehicle', function(model, warp)
-    if type(model) ~= 'string' then return end
-
-    local hash = joaat(model)
-    if hash == 0 or not IsModelInCdimage(hash) or not IsModelAVehicle(hash) then return end
-
-    RequestModel(hash)
-    local deadline = GetGameTimer() + 5000
-    while not HasModelLoaded(hash) and GetGameTimer() < deadline do Wait(0) end
-    if not HasModelLoaded(hash) then
-        QB.notify.send({ type = 'error', message = ('Could not load %s'):format(model) })
-        return
-    end
-
-    local ped = PlayerPedId()
-    local coords = GetOffsetFromEntityInWorldCoords(ped, 0.0, Config.vehicle.spawnOffset, 0.0)
-    local vehicle = CreateVehicle(hash, coords.x, coords.y, coords.z, GetEntityHeading(ped), true, true)
-    SetModelAsNoLongerNeeded(hash)
-    if vehicle == 0 or not DoesEntityExist(vehicle) then
-        QB.notify.send({ type = 'error', message = ('Could not spawn %s'):format(model) })
-        return
-    end
-
-    local netId = NetworkGetNetworkIdFromEntity(vehicle)
-    SetNetworkIdCanMigrate(netId, true)
-    SetVehicleHasBeenOwnedByPlayer(vehicle, true)
-    SetVehicleNeedsToBeHotwired(vehicle, false)
-    SetVehicleFuelLevel(vehicle, 100.0)
-    SetVehicleDirtLevel(vehicle, 0.0)
-    if warp then TaskWarpPedIntoVehicle(ped, vehicle, -1) end
-end)
-
 -- qblib entities are local and resource-tracked by design, which makes them
 -- useful for admin/testing props and peds without turning this command into a
 -- networked-world cleanup problem. Keep the one most recently spawned by this
@@ -159,7 +117,13 @@ RegisterNetEvent('qbadmin:client:enterVehicle', function(netId, seat)
             attempts = attempts + 1
         end
         if not NetworkDoesEntityExistWithNetworkId(netId) then return end
-        TaskWarpPedIntoVehicle(PlayerPedId(), NetworkGetEntityFromNetworkId(netId), seat or -1)
+        local vehicle = NetworkGetEntityFromNetworkId(netId)
+        if vehicle == 0 or not DoesEntityExist(vehicle) then return end
+        SetVehicleHasBeenOwnedByPlayer(vehicle, true)
+        SetVehicleNeedsToBeHotwired(vehicle, false)
+        SetVehicleFuelLevel(vehicle, 100.0)
+        SetVehicleDirtLevel(vehicle, 0.0)
+        TaskWarpPedIntoVehicle(PlayerPedId(), vehicle, seat or -1)
     end)
 end)
 

@@ -1,10 +1,8 @@
 -- /car, /veh, /dv, /fix
 --
--- Vehicle creation is deliberately performed by the recipient client.  The
--- older server-side CreateVehicle path fails silently on some FXServer builds;
--- client creation is also the reliable ownership path for immediately warping
--- that player into the vehicle.  This remains server-authorised: only these
--- permission-checked commands issue the relay event.
+-- Vehicle creation is server-owned so it remains compatible with strict entity
+-- lockdown. The recipient client receives only the resulting network id for
+-- the local warp after this permission-checked command succeeds.
 
 local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
 local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
@@ -21,11 +19,39 @@ local function validModel(model)
     return model
 end
 
+local function spawnFor(targetSrc, model)
+    local ped = GetPlayerPed(targetSrc)
+    if not ped or ped == 0 then return nil, 'target player is unavailable' end
+
+    local origin = GetEntityCoords(ped)
+    local heading = GetEntityHeading(ped)
+    local radians = math.rad(heading)
+    local distance = tonumber(Config.vehicle.spawnOffset) or 3.0
+    local x = origin.x - math.sin(radians) * distance
+    local y = origin.y + math.cos(radians) * distance
+    local vehicle = CreateVehicle(joaat(model), x, y, origin.z, heading, true, true)
+    if not vehicle or vehicle == 0 or not DoesEntityExist(vehicle) then
+        return nil, 'vehicle creation failed'
+    end
+
+    SetEntityRoutingBucket(vehicle, GetPlayerRoutingBucket(targetSrc))
+
+    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    if not netId or netId == 0 then
+        DeleteEntity(vehicle)
+        return nil, 'vehicle network registration failed'
+    end
+
+    TriggerClientEvent('qbadmin:client:enterVehicle', targetSrc, netId, -1)
+    return netId
+end
+
 QB.commands.add('car', 'Spawn a vehicle and get in', { { name = 'model' } }, true, function(source, args)
     local model = validModel(args[1])
     if not model then return Admin.respond(source, false, 'unknown vehicle model') end
 
-    TriggerClientEvent('qbadmin:client:spawnVehicle', source, model, true)
+    local _, spawnErr = spawnFor(source, model)
+    if spawnErr then return Admin.respond(source, false, spawnErr) end
     Admin.log(source, 'car', nil, { model = model })
     Admin.respond(source, true, ('Spawned %s'):format(model))
 end, OPTS_ADMIN)
@@ -37,16 +63,18 @@ QB.commands.add('veh', 'Spawn a vehicle for a player', { { name = 'id' }, { name
     local model = validModel(args[2])
     if not model then return Admin.respond(source, false, 'unknown vehicle model') end
 
-    TriggerClientEvent('qbadmin:client:spawnVehicle', targetSrc, model, true)
+    local _, spawnErr = spawnFor(targetSrc, model)
+    if spawnErr then return Admin.respond(source, false, spawnErr) end
     Admin.log(source, 'veh', data, { model = model })
     Admin.respond(source, true, ('Spawned %s for %s'):format(model, data.name))
 end, OPTS_ADMIN)
 
 QB.commands.add('dv', 'Delete the vehicle you are in', nil, false, function(source)
-    if GetVehiclePedIsIn(GetPlayerPed(source)) == 0 then
+    local vehicle = GetVehiclePedIsIn(GetPlayerPed(source))
+    if vehicle == 0 or not DoesEntityExist(vehicle) then
         return Admin.respond(source, false, 'you are not in a vehicle')
     end
-    TriggerClientEvent('qbadmin:client:deleteVehicle', source)
+    DeleteEntity(vehicle)
     Admin.log(source, 'dv')
     Admin.respond(source, true, 'Deleted your current vehicle')
 end, OPTS_ADMIN)
