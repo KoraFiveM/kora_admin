@@ -149,12 +149,15 @@ QB = {
         get = function() return nil end,
     },
     nui = {
+        registerApp = function(definition) menuPayload = definition end,
+        openApp = function()
+            return menuPayload.onAction('world:time')
+        end,
         -- The root menu and the time selector share this one mock: the first
         -- call is the root (answered with World / Server -> Set Time so the
         -- selector opens at all), the second is the selector itself.
         openMenu = function(items, title)
             menuPayload = { items = items, title = title }
-            if title == 'Admin Menu' then return { path = { 'world' }, selectedId = 'time' } end
             return selectorResult
         end,
         openInputDialog = function(fields)

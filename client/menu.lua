@@ -652,10 +652,10 @@ local CATEGORIES = {
 }
 
 local function openRoot()
-    local items = {}
+    local navigation = {}
     for _, category in ipairs(CATEGORIES) do
         if Admin.hasLevel(category.level) then
-            local categoryItems = {}
+            local actions = {}
             for _, item in ipairs(category.items) do
                 -- `visible`, unlike the level check below, hides the item
                 -- entirely rather than greying it out: it is for state that
@@ -663,42 +663,53 @@ local function openRoot()
                 if not item.visible or item.visible() then
                     local label = type(item.label) == 'function' and item.label() or item.label
                     local stateDisabled = type(item.disabled) == 'function' and item.disabled() or item.disabled == true
-                    categoryItems[#categoryItems + 1] = {
-                        id = item.id,
+                    actions[#actions + 1] = {
+                        id = category.id .. ':' .. item.id,
                         label = label,
-                        description = item.description,
+                        icon = item.icon,
                         disabled = not Admin.hasLevel(item.level) or stateDisabled,
                     }
                 end
             end
 
-            -- Keep categories in one NUI menu tree. This gives every category
-            -- screen the built-in Back action (and Escape-to-back behaviour)
-            -- instead of opening an unrelated second menu request.
-            items[#items + 1] = {
+            navigation[#navigation + 1] = {
                 id = category.id,
                 label = category.label,
-                submenu = { title = category.label, items = categoryItems },
+                content = {
+                    title = category.label,
+                    description = 'Choose an administrative action. Permissions are enforced again by the command handler.',
+                    blocks = { { type = 'actions', actions = actions } },
+                },
             }
         end
     end
 
-    local result = QB.nui.openMenu(items, 'Admin Menu')
-    if not result or result.cancelled then return end
-
-    local categoryId, itemId = result.path and result.path[1], result.selectedId
-    for _, category in ipairs(CATEGORIES) do
-        if category.id == categoryId then
-            for _, item in ipairs(category.items) do
-                local stateDisabled = type(item.disabled) == 'function' and item.disabled() or item.disabled == true
-                if item.id == itemId and Admin.hasLevel(item.level) and not stateDisabled
-                    and (not item.visible or item.visible()) then
-                    item.run()
+    QB.nui.registerApp({
+        id = 'qbadmin:menu',
+        title = 'Administration',
+        description = 'Server administration',
+        icon = 'shield-check',
+        defaultView = navigation[1] and navigation[1].id,
+        navigation = navigation,
+        footer = 'Every action is checked and audited by the server.',
+        onAction = function(actionId)
+            local categoryId, itemId = actionId:match('^([^:]+):(.+)$')
+            for _, category in ipairs(CATEGORIES) do
+                if category.id == categoryId then
+                    for _, item in ipairs(category.items) do
+                        local stateDisabled = type(item.disabled) == 'function' and item.disabled() or item.disabled == true
+                        if item.id == itemId and Admin.hasLevel(item.level) and not stateDisabled
+                            and (not item.visible or item.visible()) then
+                            item.run()
+                            return {}
+                        end
+                    end
                 end
             end
-            return
-        end
-    end
+            error('That administrative action is no longer available.')
+        end,
+    })
+    QB.nui.openApp('qbadmin:menu')
 end
 
 RegisterNetEvent('qbadmin:client:openMenu', function(level)

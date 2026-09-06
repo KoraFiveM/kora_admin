@@ -124,6 +124,13 @@ QB = {
         get = function() return nil end,
     },
     nui = {
+        registerApp = function(definition) menuPayload = definition end,
+        openApp = function()
+            if selectedMenuResult and selectedMenuResult.path and selectedMenuResult.selectedId then
+                return menuPayload.onAction(selectedMenuResult.path[1] .. ':' .. selectedMenuResult.selectedId)
+            end
+            return { closed = true }
+        end,
         openMenu = function(items, title)
             menuPayload = { items = items, title = title }
             return selectedMenuResult
@@ -161,7 +168,7 @@ test('client launch events call qblib creators and report completion', function(
 end)
 
 local function developerCategory()
-    for _, category in ipairs(menuPayload.items) do
+    for _, category in ipairs(menuPayload.navigation) do
         if category.id == 'developer' then return category end
     end
 end
@@ -169,8 +176,8 @@ end
 local function developerItem(id)
     local category = developerCategory()
     if not category then return nil end
-    for _, item in ipairs(category.submenu.items) do
-        if item.id == id then return item end
+    for _, item in ipairs(category.content.blocks[1].actions) do
+        if item.id == ('developer:' .. id) then return item end
     end
 end
 
