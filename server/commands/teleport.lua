@@ -1,4 +1,4 @@
--- /goto, /bring, /tpm, /tpcoords, /tpback, /spectate, /noclip
+-- /goto, /bring, /sendback, /tpm, /tpcoords, /tpback, /spectate, /noclip
 --
 -- All of goto/bring/tpcoords ultimately just tell a client "go to these
 -- coords" -- server/commands never duplicate that movement logic, they only
@@ -62,6 +62,18 @@ QB.commands.add('bring', 'Teleport a player to you', { { name = 'id' } }, true, 
     TriggerClientEvent('qbadmin:client:teleportTo', targetSrc, { x = coords.x, y = coords.y, z = coords.z })
     Admin.log(source, 'bring', data)
     Admin.respond(source, true, ('Brought %s to you'):format(data.name))
+end, OPTS_MOD)
+
+-- Every qbadmin teleport is recorded by the destination client's own bounded
+-- history. Sending a brought player back therefore uses the exact same undo
+-- primitive as /tpback, but relays it to the selected player instead.
+QB.commands.add('sendback', 'Return a player to their position before the last admin teleport', { { name = 'id' } }, true, function(source, args)
+    local targetSrc, data, err = Admin.resolveTarget(source, args[1])
+    if not targetSrc then return Admin.respond(source, false, err) end
+
+    TriggerClientEvent('qbadmin:client:tpback', targetSrc)
+    Admin.log(source, 'sendback', data)
+    Admin.respond(source, true, ('Sent %s back'):format(data.name))
 end, OPTS_MOD)
 
 QB.commands.add('tpm', 'Teleport to your waypoint', nil, false, function(source)

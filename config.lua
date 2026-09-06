@@ -125,8 +125,42 @@ Config.developer = {
     requireDevMode = true,
 }
 
+Config.medal = {
+    -- Medal's public key is intentionally safe to distribute to clients. Set
+    -- it here, or preferably add `setr qbadmin_medal_public_key "..."` to
+    -- server.cfg so resource updates do not overwrite it. Generate the key
+    -- and register the matching event IDs at https://medal.tv/developer/auto-clipping.
+    publicKey = '',
+    publicKeyConvar = 'qbadmin_medal_public_key',
+    menuLevel = 'admin', -- minimum qbadmin permission tier that sees Medal Clips
+    requestTimeoutMs = 5000, -- fail promptly when Medal is closed/not installed
+    events = {
+        -- IDs, names, durations, and delays must match the events submitted to
+        -- Medal. Add more entries to expose more clip buttons in the menu.
+        { id = '1', name = 'Admin Clip', duration = 30, captureDelayMs = 0 },
+    },
+}
+
 Config.audit = {
     pageSize = 15, -- rows per page for /adminlog and the NUI audit log viewer
+}
+
+Config.reports = {
+    -- Ordered so both the /report suggestion and admin-menu filters remain
+    -- predictable. IDs are persisted; rename labels freely, but retain an ID
+    -- once players have used it so old reports remain filterable.
+    types = {
+        { id = 'player', label = 'Player', description = 'Rule breaking, harassment, or another player issue' },
+        { id = 'bug', label = 'Bug', description = 'Something on the server is broken or behaving incorrectly' },
+        { id = 'exploit', label = 'Exploit / Cheating', description = 'Possible exploit abuse, cheating, or suspicious behaviour' },
+        { id = 'gameplay', label = 'Gameplay', description = 'A character, job, item, vehicle, or world issue' },
+        { id = 'question', label = 'Question / Help', description = 'Help understanding or using a server feature' },
+        { id = 'other', label = 'Other', description = 'Anything that does not fit another report type' },
+    },
+    staffLevel = 'support', -- minimum role that can see, claim, reply to, and close reports
+    pageSize = 20, -- reports shown per admin-menu page or /reports output
+    cooldownSeconds = 30, -- minimum delay between new reports from one connected player
+    maxMessageLength = 1000, -- applies to initial reports, replies, and staff resolution notes
 }
 
 Config.keybind = {

@@ -127,14 +127,12 @@ test('a valid custom hour and minute still applies', function()
     equal(minute, 59, 'minute 59 is valid')
 end)
 
--- The menu's own time selector: presets are one click, and the hour/minute
--- inputs exist only on the Custom path.
+-- Set Time is an AppShell form: presets and exact-time inputs never open a
+-- second menu or input dialog.
 local netEvents = {}
 local menuPayload
-local selectorResult = { cancelled = true }
-local inputFields
-local inputResult = { cancelled = true }
 local executedCommand
+local copiedText
 local clockHour, clockMinute = 8, 0
 
 QB = {
@@ -150,21 +148,8 @@ QB = {
     },
     nui = {
         registerApp = function(definition) menuPayload = definition end,
-        openApp = function()
-            return menuPayload.onAction('world:time')
-        end,
-        -- The root menu and the time selector share this one mock: the first
-        -- call is the root (answered with World / Server -> Set Time so the
-        -- selector opens at all), the second is the selector itself.
-        openMenu = function(items, title)
-            menuPayload = { items = items, title = title }
-            return selectorResult
-        end,
-        openInputDialog = function(fields)
-            inputFields = fields
-            return inputResult
-        end,
-        openAlert = function() return { confirmed = false } end,
+        openApp = function() return { closed = true } end,
+        copyToClipboard = function(value) copiedText = value end,
     },
 }
 exports = { qbcore = { isDevMode = function() return false end } }
@@ -185,69 +170,164 @@ Admin.level = 'god'
 dofile('client/development.lua')
 dofile('client/menu.lua')
 
----Opens the root menu, drills into World / Server -> Set Time, answers the
----selector with `answer`, and returns the selector's own menu payload.
-local function openTimeSelector(answer)
-    executedCommand, inputFields, menuPayload = nil, nil, nil
-    selectorResult = answer or { cancelled = true }
+local function timeAction()
+    executedCommand, menuPayload = nil, nil
     netEvents['qbadmin:client:openMenu']('god')
-    return menuPayload
+    for _, category in ipairs(menuPayload.navigation) do
+        if category.id == 'world' then
+            for _, action in ipairs(category.content.blocks[1].actions) do
+                if action.id == 'world:time' then return action end
+            end
+        end
+    end
 end
 
-test('the selector offers one button per configured preset plus Custom', function()
+test('Set Time provides presets and exact inputs in the app shell', function()
     clockHour, clockMinute = 8, 0
-    local selector = openTimeSelector()
-    equal(#selector.items, #Config.world.timePresets + 1, 'preset buttons plus Custom')
+    local action = timeAction()
+    equal(#action.fields[1].options, #Config.world.timePresets + 1, 'preset choices plus Custom')
     for index, preset in ipairs(Config.world.timePresets) do
-        equal(selector.items[index].id, preset.id, ('button %d id'):format(index))
-        equal(selector.items[index].label, preset.label, ('button %d label'):format(index))
+        equal(action.fields[1].options[index].value, preset.id, ('preset %d id'):format(index))
     end
-    equal(selector.items[#selector.items].id, 'custom', 'Custom is offered last')
-    equal(executedCommand, nil, 'cancelling the selector must not touch the clock')
+    equal(action.fields[1].options[#action.fields[1].options].value, 'custom', 'Custom is offered last')
+    equal(action.fields[2].default, 8, 'custom hour defaults to the live clock')
+    equal(action.fields[3].default, 0, 'custom minute defaults to the live clock')
 end)
 
-test('the selector shows the live clock and marks the preset already applied', function()
-    local applied = Config.world.timePresets[#Config.world.timePresets]
-    clockHour, clockMinute = applied.hour, applied.minute or 0
-    local selector = openTimeSelector()
-    truthy(selector.title:find(('%02d:%02d'):format(clockHour, clockMinute), 1, true),
-        'the title should show the current clock')
-    local marked
-    for _, item in ipairs(selector.items) do
-        if item.description and item.description:find('current', 1, true) then marked = item.id end
-    end
-    equal(marked, applied.id, 'the preset matching the current clock should say so')
-
-    -- Any minute no preset uses, so nothing can legitimately be current.
-    clockHour, clockMinute = applied.hour, 37
-    selector = openTimeSelector()
-    for _, item in ipairs(selector.items) do
-        truthy(not (item.description and item.description:find('current', 1, true)),
-            'no preset should claim to be current at an unconfigured minute')
-    end
-end)
-
-test('a preset click runs /time with the preset word and no numbers', function()
-    openTimeSelector({ selectedId = 'noon' })
+test('a preset submission runs /time with the preset word and no numbers', function()
+    timeAction()
+    menuPayload.onAction('world:time', { value = { preset = 'noon', hour = 8, minute = 0 } })
     equal(executedCommand, 'time noon', 'preset command')
-    equal(inputFields, nil, 'a preset must not open the hour/minute dialog')
 end)
 
-test('Custom opens the hour and minute inputs and runs the typed clock', function()
+test('a Custom submission runs the exact time', function()
     clockHour, clockMinute = 8, 30
-    inputResult = { values = { hour = 3, minute = 45 } }
-    openTimeSelector({ selectedId = 'custom' })
-    equal(#inputFields, 2, 'Custom collects an hour and a minute')
-    equal(inputFields[1].id, 'hour', 'first field')
-    equal(inputFields[1].default, 8, 'hour should default to the live clock')
-    equal(inputFields[2].default, 30, 'minute should default to the live clock')
+    timeAction()
+    menuPayload.onAction('world:time', { value = { preset = 'custom', hour = 3, minute = 45 } })
     equal(executedCommand, 'time 3 45', 'custom command')
 end)
 
-test('a cancelled Custom dialog runs nothing', function()
-    inputResult = { cancelled = true }
-    openTimeSelector({ selectedId = 'custom' })
-    equal(executedCommand, nil, 'cancelling the dialog must not touch the clock')
+test('the sidebar omits actions already available after selecting a player', function()
+    netEvents['qbadmin:client:openMenu']('god')
+    local categories, actions = {}, {}
+    for _, category in ipairs(menuPayload.navigation) do
+        categories[category.id] = true
+        actions[category.id] = {}
+        for _, action in ipairs(category.content.blocks[1].actions) do actions[category.id][action.id] = true end
+    end
+
+    equal(categories.economy, nil, 'no duplicate economy sidebar')
+    equal(categories.jobgang, nil, 'no duplicate job/gang sidebar')
+    equal(categories.temporary_access, nil, 'no duplicate access sidebar')
+    equal(categories.entities, nil, 'no duplicate target-spawning sidebar')
+    equal(categories.privileged, nil, 'single server action should be folded into World / Server')
+    truthy(actions.player['player:players'], 'Players remains the entry point')
+    equal(actions.teleport['teleport:goto'], nil, 'targeted teleport only follows selection')
+    equal(actions.vehicle['vehicle:veh'], nil, 'targeted vehicle spawn only follows selection')
+    equal(actions.developer['developer:devmode_player'], nil, 'targeted dev mode only follows selection')
+    truthy(actions.world['world:restartresource'], 'unique server action remains available')
+end)
+
+test('List Players selects a player before running their admin actions', function()
+    QB.callback.trigger = function(name)
+        if name == 'qbadmin:menuPlayers' then
+            -- The caller is deliberately present in this list: staff may
+            -- select themselves and use the same player-first workflow.
+            return { { id = '7', name = 'Admin', job = 'Police', ping = 12 } }
+        end
+        if name == 'qbadmin:menuPlayerProfile' then
+            return {
+                id = '7', name = 'Admin', citizenid = 'TEST123', job = 'Police (Chief)', gang = 'None',
+                money = 'bank: 5000, cash: 100', ping = 12, health = 200, armor = 50,
+                hunger = 80, thirst = 70, dead = false, cuffed = false,
+                permission = 'owner', license = 'license:test', discord = 'discord:test',
+            }
+        end
+        return {}
+    end
+    netEvents['qbadmin:client:openMenu']('god')
+    menuPayload.onAction('player:players', {})
+    menuPayload.onAction('player:select', { itemId = '7' })
+
+    local selectedActionGroups, profileDetails, onlinePlayers = {}, nil, nil
+    for _, category in ipairs(menuPayload.navigation) do
+        if category.id == 'player' then
+            for _, block in ipairs(category.content.blocks) do
+                if block.id and block.id:match('^selected%-player%-actions') then
+                    selectedActionGroups[block.title] = block.actions
+                end
+                if block.id == 'selected-player-details' then profileDetails = block end
+                if block.id == 'online-players' then onlinePlayers = block end
+            end
+        end
+    end
+    truthy(profileDetails and #profileDetails.rows >= 10, 'clicking a player should open their full profile')
+    equal(onlinePlayers, nil, 'the player list should be replaced by the profile')
+    truthy(selectedActionGroups['Profile'], 'profile controls should have their own category')
+    truthy(selectedActionGroups['Movement & Spectating'], 'movement commands should have their own category')
+    truthy(selectedActionGroups['Health & State'], 'health commands should have their own category')
+    truthy(selectedActionGroups['Moderation'], 'moderation commands should have their own category')
+    truthy(selectedActionGroups['Appearance'], 'appearance commands should have their own category')
+    truthy(selectedActionGroups['Economy & Inventory'], 'economy commands should have their own category')
+    truthy(selectedActionGroups['Job, Gang & Duty'], 'role commands should have their own category')
+    truthy(selectedActionGroups['Spawning'], 'spawn commands should have their own category')
+    truthy(selectedActionGroups['Development'], 'development commands should have their own category')
+    truthy(selectedActionGroups['Access & Permissions'], 'access commands should have their own category')
+
+    executedCommand = nil
+    menuPayload.onAction('player:target:heal', { value = {} })
+    equal(executedCommand, 'heal 7', 'selected player id is retained by the action')
+
+    menuPayload.onAction('player:target:sendback', { value = {} })
+    equal(executedCommand, 'sendback 7', 'Send Back uses the selected player')
+
+    menuPayload.onAction('player:target:barbermenu', { value = {} })
+    equal(executedCommand, 'barbermenu 7', 'appearance tools use the selected player')
+
+    copiedText = nil
+    menuPayload.onAction('player:target:copyinfo', { value = {} })
+    truthy(copiedText and copiedText:find('Citizen ID: TEST123', 1, true), 'copy button should copy the player profile')
+end)
+
+test('Reports list, detail, conversation, and management stay in the app shell', function()
+    QB.callback.trigger = function(name)
+        if name == 'qbadmin:menuReports' then
+            return { {
+                id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen',
+                message = 'Inventory button is stuck', created_at = 'now', updated_at = 'now',
+            } }
+        end
+        if name == 'qbadmin:menuReport' then
+            return {
+                id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen', reporter_source = 12,
+                message = 'Inventory button is stuck', created_at = 'now', messages = {
+                    { author_name = 'Support', author_role = 'staff', message = 'Looking into it', created_at = 'later' },
+                },
+            }
+        end
+        return {}
+    end
+
+    netEvents['qbadmin:client:openMenu']('god')
+    menuPayload.onAction('reports:open', {})
+    menuPayload.onAction('reports:select', { itemId = '42' })
+
+    local conversation, management, reporter
+    for _, category in ipairs(menuPayload.navigation) do
+        if category.id == 'reports' then
+            for _, block in ipairs(category.content.blocks) do
+                if block.id == 'selected-report-conversation' then conversation = block end
+                if block.id == 'selected-report-management' then management = block end
+                if block.id == 'selected-report-player' then reporter = block end
+            end
+        end
+    end
+    equal(#conversation.rows, 2, 'initial report and staff reply should both be visible')
+    truthy(management and #management.actions == 4, 'open report should offer claim, reply, resolve, and dismiss')
+    truthy(reporter and #reporter.actions == 4, 'online reporter should have movement and spectate tools')
+
+    menuPayload.onAction('reports:selected:reply', { value = { message = 'Please try that again now' } })
+    equal(executedCommand, 'reportreply 42 Please try that again now', 'report reply command')
 end)
 
 print(('qbadmin world: %d passed, %d failed'):format(passed, failed))

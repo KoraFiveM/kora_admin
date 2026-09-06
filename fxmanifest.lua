@@ -23,6 +23,14 @@ shared_scripts {
     'config.lua'
 }
 
+-- Invisible client-local bridge for Medal's localhost Auto-Clipping API.
+ui_page 'web/medal.html'
+
+files {
+    'web/medal.html',
+    'web/medal.js'
+}
+
 -- Explicit, never globbed -- matches every sibling resource's own rationale.
 -- Helpers (permissions/target/response/audit) must load before any
 -- commands/*.lua file that calls them; migrate.lua and ban_enforcement.lua
@@ -33,6 +41,7 @@ server_scripts {
     'server/target.lua',
     'server/response.lua',
     'server/audit.lua',
+    'server/reports.lua',
     'server/menu_data.lua',
     'server/migrate.lua',
     'server/ban_enforcement.lua',
@@ -41,10 +50,12 @@ server_scripts {
     'server/commands/teleport.lua',
     'server/commands/economy.lua',
     'server/commands/jobgang.lua',
+    'server/commands/appearance.lua',
     'server/commands/vehicle.lua',
     'server/commands/entities.lua',
     'server/commands/development.lua',
     'server/commands/world.lua',
+    'server/commands/reports.lua',
     'server/commands/privileged.lua',
     'server/commands/self.lua'
 }
@@ -53,6 +64,7 @@ server_scripts {
 -- table); menu.lua last since it references everything above.
 client_scripts {
     'client/core.lua',
+    'client/medal.lua',
     'client/development.lua',
     'client/relay.lua',
     'client/teleport.lua',

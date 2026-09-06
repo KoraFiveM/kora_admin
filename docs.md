@@ -64,8 +64,8 @@ role data fails closed for Discord only; ACE grants continue to work.
 
 ### Temporary access
 
-The **Temporary Access** menu is available to `temporaryGrant.managerRole`
-(`admin` by default). It grants a selected configured role for a specified
+The selected player's **Access & Permissions** group is available to
+`temporaryGrant.managerRole` (`admin` by default). It grants a selected configured role for a specified
 number of minutes and can revoke that grant early. The default manager may
 grant through `admin`; set `maxRole` lower if you do not want peer-level
 delegation. Grants are memory-only, expire automatically, are audited, follow
@@ -85,7 +85,7 @@ Every command that takes a player-id argument treats a missing argument, or
 the literal word `me`, as "the player who ran this command"
 (`server/target.lua`, `Admin.resolveTarget`). `/heal`, `/heal me`, and
 `/heal 3` all work -- the first two heal the caller, the third heals server id
-3. This applies to heal/revive/kill/freeze/god/devmode/invisible/spectate/checkplayer/
+3. This applies to heal/revive/kill/freeze/god/devmode/invisible/spectate/
 setduty/sethunger/setthirst/permission. Commands that operate purely on the caller (noclip,
 coords, aduty, health, armor, fix, dv, tpm/tpcoords/tpback, selfrevive) take no id
 argument at all -- there's nothing to resolve.
@@ -153,10 +153,30 @@ heading.
 
 `/admin` opens the root category menu, filtered to what your tier can reach
 (cosmetic only -- every command re-checks server-side regardless of what the
-menu shows). Most actions that target another player open a searchable player
-picker with a "Me (myself)" entry pinned first. Destructive actions (ban,
-kick, clear inventory, delete vehicle, restart resource) show a confirmation
-dialog before the command actually runs.
+menu shows). **Players → Browse Online Players** is the main player-first
+workflow: click any online player (including yourself) and then choose from
+their full player profile plus categorized history, movement, health/state, moderation, appearance,
+economy/inventory, job/gang/duty, spawning, development, and access actions.
+Movement includes **Send Back**, which returns the player to their position
+before the last qbadmin teleport. Appearance includes server-authorized free
+clothing, barber/hairdresser, and tattoo sessions for the selected player.
+The sidebar deliberately keeps only entry points and actions that do not
+belong to a selected online player: reports, the player browser, offline bans,
+self movement/vehicle/utility tools, developer tools, world/server controls,
+Medal clips, and the audit log. Targeted moderation, economy, job/gang,
+appearance, spawning, development-mode, and permission controls appear only
+after selecting a player.
+
+Selecting a player replaces the online list with a fresh server-built profile:
+identity, job/gang, balances, health/armour, needs, state, and ping. Admins also
+see the player's permission and platform identifiers. **Copy Player Info**
+copies exactly the fields visible to that staff member to the clipboard.
+Destructive actions (ban, kick, clear inventory, delete vehicle, restart
+resource) show a confirmation dialog before the command actually runs.
+
+Actions that need an unobstructed game view explicitly set `shouldClose` in
+the menu definition. Clothing/styling, teleports, spectating, noclip, and the
+developer placement and zone tools close the admin shell before they start.
 
 `F7` is mapped directly on the server-owned `/admin` definition through
 `QB.commands` keymapping support. It therefore enters the exact same permission
@@ -169,12 +189,27 @@ state (for example, Delete My Vehicle while on foot); `disabled` keeps an
 action visible but unavailable, as the creator shortcuts are until development
 mode is enabled. Both are presentation only and never replace server checks.
 
+### Player reports
+
+Players submit `/report <type> <message>` using the configured `player`, `bug`,
+`exploit`, `gameplay`, `question`, or `other` types. Reports persist in
+`admin_reports` with their full conversation in `admin_report_messages`; the
+`Config.reports.cooldownSeconds` submission delay limits spam without losing
+reports when qbadmin restarts.
+
+Staff at `Config.reports.staffLevel` see a **Reports** section in `/admin`.
+Reports can be filtered by status, type, reporter, and page, then claimed,
+replied to, resolved, dismissed, or reopened. A report by an online player also
+offers teleport, bring, send-back, and spectate tools. Players receive status
+and staff-reply notifications and can read or continue their own conversation
+with `/reportstatus <id>` and `/reportreply <id> <message>`.
+
 ### Developer submenu
 
 The **Developer** category is available at `Config.developer.menuLevel`
-(`admin` by default). It can enable/disable qbcore's per-player development
-mode, set that mode for another player, launch `QB.placement.start(model)`, and
-open the qblib box/sphere/poly zone creator. When
+(`admin` by default). It launches `QB.placement.start(model)` and opens the
+qblib box/sphere/poly zone creator. Development mode for yourself or another
+player is changed from that selected player's **Development** group. When
 `Config.developer.requireDevMode` is enabled, the two creator shortcuts remain
 disabled until the caller enables their own development mode.
 
@@ -184,12 +219,32 @@ qbcore-owned development-mode state before relaying to the client. Both tools
 are data-capture utilities: placement deletes its preview, and zone creation
 returns/copies a definition without registering a live zone.
 
+## Medal clips
+
+The **Medal Clips** menu captures a highlight from the admin who clicks it.
+Medal listens on that player's `localhost`, so `client/medal.lua` sends the
+request through qbadmin's invisible NUI bridge rather than relaying it through
+FXServer. A successful response means Medal accepted the event; processing the
+clip remains asynchronous in the Medal desktop app.
+
+Generate a public key and register the event list with [Medal's Auto-Clipping
+builder](https://medal.tv/developer/auto-clipping), then add the key to
+`server.cfg`:
+
+```cfg
+setr qbadmin_medal_public_key "your-public-key"
+```
+
+The entries in `Config.medal.events` must use the same numeric IDs, names,
+durations, and capture delays submitted to Medal. Each entry becomes its own
+menu button. `Config.medal.menuLevel` controls who sees the category; the
+default is `admin`. Medal must be installed and running on each admin's PC.
+
 ## Command reference
 
-See the category tables in the project's admin-menu design plan for the full
-list (Player Management, Moderation, Teleport/Noclip/Spectate, Economy,
-Job/Gang, Vehicle, Developer, World/Server, Privileged, Self/Utility) -- every command
-also has its own in-game help text via `/help <command>` or the chat
+The compact sidebar contains only unique entry points and self/server tools;
+select a player to see the complete categorized targeted command set. Every
+command also has its own in-game help text via `/help <command>` or the chat
 autocomplete suggestion.
 
 The Vehicle category has **Spawn by Model**, a direct text field for any valid
@@ -254,7 +309,8 @@ becomes a concern, add a scheduled `DELETE ... WHERE created_at < ...` and a
 See `config.lua` for every tunable: permission ranks and the ACE principal
 identifier kind, ban duration units, teleport fade/collision timing, noclip
 speed, weather types, clock presets and join-sync behavior, vehicle/entity spawn offsets,
-Developer-menu level/dev-mode requirement, and audit log page size.
+Developer-menu level/dev-mode requirement, Medal events/key/menu level, and
+audit log page size.
 
 ## Known gaps (out of scope for v1)
 

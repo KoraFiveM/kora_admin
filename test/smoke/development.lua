@@ -127,7 +127,7 @@ QB = {
         registerApp = function(definition) menuPayload = definition end,
         openApp = function()
             if selectedMenuResult and selectedMenuResult.path and selectedMenuResult.selectedId then
-                return menuPayload.onAction(selectedMenuResult.path[1] .. ':' .. selectedMenuResult.selectedId)
+                return menuPayload.onAction(selectedMenuResult.path[1] .. ':' .. selectedMenuResult.selectedId, { value = inputResult.values })
             end
             return { closed = true }
         end,
@@ -186,13 +186,12 @@ test('Developer submenu reflects qbcore dev mode and gates creator shortcuts', f
     selectedMenuResult = { cancelled = true }
     netEvents['qbadmin:client:openMenu'](Config.developer.menuLevel)
     truthy(developerCategory(), 'Developer category should be present')
-    equal(developerItem('devmode_self').label, 'Enable My Dev Mode', 'disabled-mode label')
+    equal(developerItem('devmode_self'), nil, 'player dev mode belongs under the selected-player workflow')
     truthy(developerItem('devplacement').disabled, 'placement should be disabled outside dev mode')
     truthy(developerItem('devzone').disabled, 'zone creator should be disabled outside dev mode')
 
     localDevMode = true
     netEvents['qbadmin:client:openMenu'](Config.developer.menuLevel)
-    equal(developerItem('devmode_self').label, 'Disable My Dev Mode', 'enabled-mode label')
     equal(developerItem('devplacement').disabled, false, 'placement should enable in dev mode')
     equal(developerItem('devzone').disabled, false, 'zone creator should enable in dev mode')
 end)

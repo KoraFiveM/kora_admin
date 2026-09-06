@@ -10,30 +10,6 @@ local function runCommand(...)
     ExecuteCommand(table.concat({ ... }, ' '))
 end
 
-local function confirm(message)
-    local result = QB.nui.openAlert({ message = message, destructive = true })
-    return result and result.confirmed
-end
-
----Player picker: a synthetic "Me" entry first, then every other online
----player. Returns the literal string 'me' or a server-id string, or nil if
----cancelled -- both are valid first arguments to the eventual command.
----@param title string|nil
----@return string|nil
-local function pickPlayer(title)
-    local items = { { id = 'me', label = 'Me (myself)' } }
-    local mySrc = QB.cache.serverId()
-    for _, playerId in ipairs(GetActivePlayers()) do
-        local serverId = GetPlayerServerId(playerId)
-        if serverId ~= mySrc then
-            items[#items + 1] = { id = tostring(serverId), label = ('#%d  %s'):format(serverId, GetPlayerName(playerId)) }
-        end
-    end
-    local result = QB.nui.openMenu(items, title or 'Select a player')
-    if not result or result.cancelled then return nil end
-    return result.selectedId
-end
-
 ---Fields may be a plain list or a function returning one, resolved right
 ---before the dialog opens rather than when CATEGORIES is built (see below):
 ---a field using jobOptions()/itemOptions()/etc. needs QB.shared to have
@@ -46,126 +22,88 @@ local function resolveFields(fields)
     return fields
 end
 
----Pick a player, then optionally collect extra fields via openInputDialog,
----then run `commandName target [field values in order]`. Empty/omitted
----trailing field values are simply not appended (same as a human leaving
----optional trailing chat-command args blank). One generic builder instead of
----one bespoke closure per menu leaf.
----@param commandName string
----@param extraFields? table[]|fun():table[]  -- openInputDialog fields
----@param dialogTitle? string
----@return fun()
-local function withPlayer(commandName, extraFields, dialogTitle)
-    return function()
-        local target = pickPlayer(dialogTitle)
-        if not target then return end
-
-        local fields = resolveFields(extraFields)
-        if not fields then
-            runCommand(commandName, target)
-            return
-        end
-
-        local result = QB.nui.openInputDialog(fields, dialogTitle or commandName)
-        if not result or result.cancelled then return end
-
-        local args = { commandName, target }
-        for _, field in ipairs(fields) do
-            local value = result.values[field.id]
-            if value ~= nil and value ~= '' then args[#args + 1] = tostring(value) end
-        end
-        runCommand(table.unpack(args))
-    end
+-- App actions are deliberately shell-only: fields and confirmations render
+-- inline, and no action falls back to a standalone qb-menu/qb-input dialog.
+local function appAction(run, fields, confirmMessage, shouldClose)
+    return { run = run, fields = fields, confirm = confirmMessage, shouldClose = shouldClose == true }
 end
 
----Same as withPlayer but with no target -- collects fields (if any) and runs
----`commandName [field values]`.
+---Collect fields inline (when any) and run the command.
 ---@param commandName string
 ---@param fieldsOrFn? table[]|fun():table[]
 ---@param dialogTitle? string
 ---@return fun()
-local function withFields(commandName, fieldsOrFn, dialogTitle)
-    return function()
-        local fields = resolveFields(fieldsOrFn)
-        if not fields then
-            runCommand(commandName)
-            return
-        end
-
-        local result = QB.nui.openInputDialog(fields, dialogTitle or commandName)
-        if not result or result.cancelled then return end
-
+local function withFields(commandName, fieldsOrFn, dialogTitle, shouldClose)
+    return appAction(function(values)
         local args = { commandName }
+        local fields = resolveFields(fieldsOrFn) or {}
+        if #fields > 0 then assert(type(values) == 'table', 'This action requires AppShell input values.') end
         for _, field in ipairs(fields) do
-            local value = result.values[field.id]
+            local value = values and values[field.id]
             if value ~= nil and value ~= '' then args[#args + 1] = tostring(value) end
         end
         runCommand(table.unpack(args))
-    end
+    end, function() return resolveFields(fieldsOrFn) or {} end, nil, shouldClose)
 end
 
 local function withConfirm(message, fn)
-    return function()
-        if confirm(message) then fn() end
-    end
+    return appAction(function(values)
+        assert(type(values) == 'table', 'This action requires AppShell confirmation.')
+        return fn.run(values)
+    end, fn.fields, message, fn.shouldClose)
 end
 
-local function showPlayers()
-    local players, err = QB.callback.trigger('qbadmin:menuPlayers')
-    if not players then
-        QB.notify.send({ type = 'error', message = err or 'Could not load players' })
-        return
-    end
-
-    if #players == 0 then
-        QB.notify.send({ type = 'info', message = 'No players are online' })
-        return
-    end
-
-    local items = {}
-    for _, player in ipairs(players) do
-        items[#items + 1] = {
-            id = player.id,
-            label = ('#%s  %s'):format(player.id, player.name),
-            description = ('%s · %dms'):format(player.job, player.ping),
-        }
-    end
-    local result = QB.nui.openMenu(items, 'Online Players')
-    if result and not result.cancelled then runCommand('checkplayer', result.selectedId) end
+---Build an action for the player selected from the online-player table.  The
+---target is intentionally closed over rather than rendered again: selecting a
+---player should lead straight to their tools, not another player picker.
+local function forSelectedPlayer(target, commandName, extraFields, confirmMessage, shouldClose)
+    return appAction(function(values)
+        local args = { commandName, target }
+        for _, field in ipairs(resolveFields(extraFields) or {}) do
+            local value = values and values[field.id]
+            if value ~= nil and value ~= '' then args[#args + 1] = tostring(value) end
+        end
+        runCommand(table.unpack(args))
+    end, function()
+        return resolveFields(extraFields) or {}
+    end, confirmMessage, shouldClose)
 end
 
-local function showAuditLog(filters)
-    local rows, err = QB.callback.trigger('qbadmin:menuAuditLog', filters)
-    if not rows then
-        QB.notify.send({ type = 'error', message = err or 'Could not load audit log' })
-        return
-    end
-    if #rows == 0 then
-        QB.notify.send({ type = 'info', message = 'No matching audit entries' })
-        return
-    end
-
-    local items = {}
-    for index, row in ipairs(rows) do
-        items[#items + 1] = {
-            id = tostring(index),
-            label = ('%s · %s'):format(row.action or 'unknown', row.actor_name or 'unknown'),
-            description = ('%s → %s · %s'):format(row.target_name or '-', row.created_at or '-', row.details or ''),
-            disabled = true,
-        }
-    end
-    QB.nui.openMenu(items, 'Audit Log')
-end
-
-local function filterAuditLog()
-    local fields = {
+local filterAuditLog = appAction(function(values)
+    return values
+end, function()
+    return {
         { id = 'action', label = 'Action filter (optional)', type = 'text' },
         { id = 'target', label = 'Target filter (optional)', type = 'text' },
         { id = 'page', label = 'Page', type = 'number', default = 1, min = 1 },
     }
-    local result = QB.nui.openInputDialog(fields, 'Filter Audit Log')
-    if result and not result.cancelled then showAuditLog(result.values) end
+end)
+
+local function reportTypeOptions(includeAll)
+    local options = {}
+    if includeAll then options[#options + 1] = { value = 'all', label = 'All types' } end
+    for _, definition in ipairs(Config.reports.types) do
+        options[#options + 1] = { value = definition.id, label = definition.label }
+    end
+    return options
 end
+
+local filterReports = appAction(function(values)
+    return values
+end, function()
+    return {
+        { id = 'status', label = 'Status', type = 'select', default = 'open', required = true, options = {
+            { value = 'all', label = 'All statuses' },
+            { value = 'open', label = 'Open' },
+            { value = 'claimed', label = 'Claimed' },
+            { value = 'resolved', label = 'Resolved' },
+            { value = 'dismissed', label = 'Dismissed' },
+        } },
+        { id = 'type', label = 'Type', type = 'select', default = 'all', required = true, options = reportTypeOptions(true) },
+        { id = 'reporter', label = 'Reporter name or identifier (optional)', type = 'text' },
+        { id = 'page', label = 'Page', type = 'number', default = 1, min = 1 },
+    }
+end)
 
 local function openClothing(mode, service)
     if GetResourceState('qbclothing') ~= 'started' then
@@ -208,37 +146,6 @@ local function gradeOptions(kind, name)
         end
     end
     return out
-end
-
----Set a player's job or gang. Grade can't be a single reactive dropdown
----alongside the job/gang picker (openInputDialog fields aren't reactive to
----each other within one call -- see resolveFields above), so this asks in
----two steps: pick the job/gang, then pick its grade from that job/gang's own
----ordered list.
----@param commandName string
----@param kind 'jobs'|'gangs'
----@param optionsFn fun():table[]
----@param label string
----@return fun()
-local function setJobOrGang(commandName, kind, optionsFn, label)
-    return function()
-        local target = pickPlayer('Set ' .. label)
-        if not target then return end
-
-        local nameResult = QB.nui.openInputDialog({
-            { id = 'name', label = label, type = 'select', options = optionsFn(), required = true },
-        }, 'Set ' .. label)
-        if not nameResult or nameResult.cancelled then return end
-        local name = nameResult.values.name
-
-        local grades = gradeOptions(kind, name)
-        local gradeResult = QB.nui.openInputDialog({
-            { id = 'grade', label = 'Grade', type = 'select', options = grades, default = grades[1] and grades[1].value, required = true },
-        }, 'Set ' .. label .. ' Grade')
-        if not gradeResult or gradeResult.cancelled then return end
-
-        runCommand(commandName, target, name, gradeResult.values.grade)
-    end
 end
 
 local function vehicleOptions()
@@ -335,52 +242,34 @@ end
 ---Time selector: one button per Config.world.timePresets entry, plus Custom.
 ---The hour/minute inputs are a second step rather than conditional fields in
 ---one dialog because openInputDialog fields aren't reactive to each other
----within a call (same constraint setJobOrGang works around above) -- which is
+---within a call -- which is
 ---also why a preset click never renders, or has to validate, a number at all.
 ---Both paths end in `/time`, so the server re-checks either one.
-local function setTime()
-    local hour, minute = GetClockHours(), GetClockMinutes()
-
-    local items = {}
-    for _, preset in ipairs(Config.world.timePresets) do
-        local presetMinute = preset.minute or 0
-        local clock = ('%02d:%02d'):format(preset.hour, presetMinute)
-        items[#items + 1] = {
-            id = preset.id,
-            label = preset.label,
-            -- The clock an admin is already on would otherwise look like a
-            -- dead button when they click it and nothing visibly changes.
-            description = (preset.hour == hour and presetMinute == minute) and (clock .. ' · current') or clock,
-        }
+-- Keep the preset and exact-clock paths in the AppShell. The optional exact
+-- fields are ignored unless Custom is selected, so choosing a preset does not
+-- require a second menu just to avoid rendering those controls.
+local setTime = appAction(function(values)
+    assert(type(values) == 'table', 'This action requires AppShell input values.')
+    if values.preset and values.preset ~= 'custom' then
+        return runCommand('time', tostring(values.preset))
     end
-    items[#items + 1] = { id = 'custom', label = 'Custom', description = 'Enter an exact hour and minute' }
-
-    local result = QB.nui.openMenu(items, ('Set Time (now %02d:%02d)'):format(hour, minute))
-    if not result or result.cancelled then return end
-
-    if result.selectedId ~= 'custom' then
-        runCommand('time', result.selectedId)
-        return
-    end
-
-    -- Defaulted to the live clock so Custom opens on the current state rather
-    -- than an arbitrary midnight.
-    local fields = {
-        { id = 'hour', label = 'Hour (0-23)', type = 'number', required = true, min = 0, max = 23, default = hour },
-        { id = 'minute', label = 'Minute', type = 'number', default = minute, min = 0, max = 59 },
-    }
-    local custom = QB.nui.openInputDialog(fields, 'Set Time — Custom')
-    if not custom or custom.cancelled then return end
-
-    -- Same empty-trailing-value handling as withFields: a blank minute is
-    -- simply not appended and the command's own default of 0 applies.
-    local args = { 'time' }
-    for _, field in ipairs(fields) do
-        local value = custom.values[field.id]
-        if value ~= nil and value ~= '' then args[#args + 1] = tostring(value) end
-    end
+    local args = { 'time', tostring(values.hour) }
+    if values.minute ~= nil and values.minute ~= '' then args[#args + 1] = tostring(values.minute) end
     runCommand(table.unpack(args))
-end
+end, function()
+    local hour = GetClockHours and GetClockHours() or 0
+    local minute = GetClockMinutes and GetClockMinutes() or 0
+    local options = {}
+    for _, preset in ipairs(Config.world.timePresets) do
+        options[#options + 1] = { value = preset.id, label = ('%s (%02d:%02d)'):format(preset.label, preset.hour, preset.minute or 0) }
+    end
+    options[#options + 1] = { value = 'custom', label = 'Custom exact time' }
+    return {
+        { id = 'preset', label = 'Time preset', type = 'select', options = options, default = 'custom', required = true },
+        { id = 'hour', label = 'Hour for Custom (0-23)', type = 'number', default = hour, min = 0, max = 23, required = true },
+        { id = 'minute', label = 'Minute for Custom', type = 'number', default = minute, min = 0, max = 59 },
+    }
+end)
 
 local function levelOptions()
     local options = {}
@@ -409,161 +298,92 @@ local function temporaryLevelOptions()
     return options
 end
 
+local function medalItems()
+    local items = {}
+    for index, event in ipairs(Config.medal.events or {}) do
+        local configuredEvent = event
+        items[#items + 1] = {
+            id = 'clip_' .. tostring(event.id or index),
+            label = ('Save %s (%ss)'):format(event.name or 'Medal Clip', tostring(event.duration or '?')),
+            description = 'Saves this admin’s local replay buffer; requires Medal to be configured and running.',
+            icon = 'radio',
+            level = Config.medal.menuLevel,
+            disabled = function()
+                return type(Admin.isMedalConfigured) ~= 'function' or not Admin.isMedalConfigured()
+            end,
+            run = appAction(function() Admin.invokeMedalEvent(configuredEvent) end),
+        }
+    end
+    return items
+end
+
 -- label/level/run -- label and disabled may be functions evaluated whenever
 -- the menu opens. `level` is this item's OWN gate (and may exceed the
 -- category's floor). Filtering here is cosmetic only: every command re-checks
 -- server-side regardless of what this menu shows.
 local CATEGORIES = {
     {
-        id = 'player', label = 'Player Management', level = 'support',
+        id = 'reports', label = 'Reports', level = Config.reports.staffLevel,
         items = {
-            { id = 'players', label = 'List Players', level = 'support', run = showPlayers },
-            { id = 'checkplayer', label = 'Check Player', level = 'support', run = withPlayer('checkplayer') },
-            { id = 'sethunger', label = 'Set Hunger', level = 'admin',
-                run = withPlayer('sethunger', { { id = 'value', label = 'Hunger', type = 'number', min = 0, max = 100, required = true } }, 'Set Hunger') },
-            { id = 'setthirst', label = 'Set Thirst', level = 'admin',
-                run = withPlayer('setthirst', { { id = 'value', label = 'Thirst', type = 'number', min = 0, max = 100, required = true } }, 'Set Thirst') },
+            { id = 'open', label = 'View Open Reports', level = Config.reports.staffLevel, run = appAction(function() end) },
+            { id = 'all', label = 'View All Reports', level = Config.reports.staffLevel, run = appAction(function() end) },
+            { id = 'filter', label = 'Filter Reports', level = Config.reports.staffLevel, run = filterReports },
         },
     },
     {
-        id = 'moderation', label = 'Moderation', level = 'mod',
+        id = 'player', label = 'Players', level = 'support',
         items = {
-            { id = 'warn', label = 'Warn', level = 'mod',
-                run = withPlayer('warn', { { id = 'reason', label = 'Reason', type = 'text', required = true } }, 'Warn Player') },
-            { id = 'warnings', label = 'Warning History', level = 'mod', run = withPlayer('warnings', nil, 'Warning History') },
-            { id = 'kick', label = 'Kick', level = 'mod',
-                run = withConfirm('Kick this player?', withPlayer('kick', { { id = 'reason', label = 'Reason', type = 'text' } }, 'Kick Player')) },
-            { id = 'ban', label = 'Ban', level = 'admin',
+            { id = 'players', label = 'Browse Online Players', level = 'support', run = appAction(function() end) },
+        },
+    },
+    {
+        -- Online moderation lives under Players. These remain because an
+        -- offline citizen/license cannot be selected from the player table.
+        id = 'moderation', label = 'Offline Bans', level = 'admin',
+        items = {
+            { id = 'ban', label = 'Ban Offline Player', level = 'admin',
                 run = withConfirm('Ban this player? This is persistent.', withFields('ban', {
-                    { id = 'target', label = 'Target (server id, citizenid, or name)', type = 'text', required = true },
+                    { id = 'target', label = 'Citizen ID or character name', type = 'text', required = true },
                     { id = 'duration', label = 'Duration (30m, 2h, 7d, or perm)', type = 'text', default = 'perm', required = true },
                     { id = 'reason', label = 'Reason', type = 'text', required = true },
                 }, 'Ban Player')) },
             { id = 'unban', label = 'Unban', level = 'admin',
                 run = withFields('unban', { { id = 'target', label = 'License or ban id', type = 'text', required = true } }, 'Unban') },
-            { id = 'freeze', label = 'Freeze', level = 'mod',
-                run = withPlayer('freeze', { { id = 'state', label = 'State', type = 'select',
-                    options = { { value = 'true', label = 'Freeze' }, { value = 'false', label = 'Unfreeze' } }, default = 'true' } }, 'Freeze') },
-            { id = 'kill', label = 'Kill', level = 'mod', run = withConfirm('Kill this player?', withPlayer('kill')) },
-            { id = 'heal', label = 'Heal', level = 'mod', run = withPlayer('heal') },
-            { id = 'revive', label = 'Revive', level = 'mod', run = withPlayer('revive') },
-            { id = 'god', label = 'Toggle God Mode', level = 'mod', run = withPlayer('god') },
-            { id = 'invisible', label = 'Toggle Invisible', level = 'mod', run = withPlayer('invisible') },
         },
     },
     {
         id = 'teleport', label = 'Teleport / Spectate', level = 'mod',
         items = {
-            { id = 'goto', label = 'Goto Player', level = 'mod', run = withPlayer('goto') },
-            { id = 'bring', label = 'Bring Player', level = 'mod', run = withPlayer('bring') },
-            { id = 'tpm', label = 'Teleport to Waypoint', level = 'mod', run = withFields('tpm') },
+            { id = 'tpm', label = 'Teleport to Waypoint', level = 'mod', run = withFields('tpm', nil, nil, true) },
             { id = 'tpcoords', label = 'Teleport to Coords', level = 'mod',
                 run = withFields('tpcoords', {
                     { id = 'coordinates', label = 'Coordinates', type = 'text', placeholder = 'vec4(123.4, 456.7, 78.9, 90.0)', required = true },
-                }, 'Teleport to Coords') },
-            { id = 'tpback', label = 'Teleport Back', level = 'mod', run = withFields('tpback') },
-            { id = 'spectate', label = 'Spectate Player', level = 'mod', run = withPlayer('spectate') },
-            { id = 'spectateStop', label = 'Stop Spectating', level = 'mod', run = withFields('spectate') },
-            { id = 'noclip', label = 'Toggle Noclip', level = 'admin', run = withFields('noclip') },
-        },
-    },
-    {
-        id = 'economy', label = 'Economy', level = 'admin',
-        items = {
-            { id = 'givemoney', label = 'Give Money', level = 'admin',
-                run = withPlayer('givemoney', {
-                    { id = 'account', label = 'Account (cash/bank/crypto)', type = 'text', required = true },
-                    { id = 'amount', label = 'Amount', type = 'number', required = true, min = 1 },
-                    { id = 'reason', label = 'Reason', type = 'text' },
-                }, 'Give Money') },
-            { id = 'removemoney', label = 'Remove Money', level = 'admin',
-                run = withPlayer('removemoney', {
-                    { id = 'account', label = 'Account (cash/bank/crypto)', type = 'text', required = true },
-                    { id = 'amount', label = 'Amount', type = 'number', required = true, min = 1 },
-                    { id = 'reason', label = 'Reason', type = 'text' },
-                }, 'Remove Money') },
-            { id = 'setmoney', label = 'Set Money', level = 'admin',
-                run = withPlayer('setmoney', {
-                    { id = 'account', label = 'Account (cash/bank/crypto)', type = 'text', required = true },
-                    { id = 'amount', label = 'Amount', type = 'number', required = true, min = 0 },
-                    { id = 'reason', label = 'Reason', type = 'text' },
-                }, 'Set Money') },
-            { id = 'giveitem', label = 'Give Item', level = 'admin',
-                run = withPlayer('giveitem', function() return {
-                    { id = 'item', label = 'Item', type = 'select', options = itemOptions(), required = true },
-                    { id = 'amount', label = 'Amount', type = 'number', default = 1, min = 1 },
-                } end, 'Give Item') },
-            { id = 'removeitem', label = 'Remove Item', level = 'admin',
-                run = withPlayer('removeitem', function() return {
-                    { id = 'item', label = 'Item', type = 'select', options = itemOptions(), required = true },
-                    { id = 'amount', label = 'Amount', type = 'number', default = 1, min = 1 },
-                } end, 'Remove Item') },
-            { id = 'clearinventory', label = 'Clear Inventory', level = 'admin',
-                run = withConfirm("Clear this player's entire inventory?", withPlayer('clearinventory')) },
-        },
-    },
-    {
-        id = 'jobgang', label = 'Job / Gang', level = 'mod',
-        items = {
-            { id = 'setjob', label = 'Set Job', level = 'admin', run = setJobOrGang('setjob', 'jobs', jobOptions, 'Job') },
-            { id = 'setgang', label = 'Set Gang', level = 'admin', run = setJobOrGang('setgang', 'gangs', gangOptions, 'Gang') },
-            { id = 'setduty', label = 'Toggle Duty', level = 'mod', run = withPlayer('setduty') },
+                }, 'Teleport to Coords', true) },
+            { id = 'tpback', label = 'Teleport Back', level = 'mod', run = withFields('tpback', nil, nil, true) },
+            { id = 'spectateStop', label = 'Stop Spectating', level = 'mod', run = withFields('spectate', nil, nil, true) },
+            { id = 'noclip', label = 'Toggle Noclip', level = 'admin', run = withFields('noclip', nil, nil, true) },
         },
     },
     {
         id = 'vehicle', label = 'Vehicle', level = 'mod',
         items = {
-            { id = 'car', label = 'Spawn by Model (self)', level = 'admin',
-                run = withFields('car', function() return { vehicleModelField() } end, 'Spawn vehicle by model') },
-            { id = 'car_catalogue', label = 'Spawn from Catalogue (self)', level = 'admin',
+            { id = 'car_catalogue', label = 'Spawn from Catalogue', level = 'admin',
                 run = withFields('car', function() return { vehicleCatalogueField() } end, 'Spawn vehicle from catalogue') },
-            { id = 'veh', label = 'Spawn by Model for Player', level = 'admin',
-                run = withPlayer('veh', function() return { vehicleModelField() } end, 'Spawn vehicle for player') },
-            { id = 'veh_catalogue', label = 'Spawn from Catalogue for Player', level = 'admin',
-                run = withPlayer('veh', function() return { vehicleCatalogueField() } end, 'Spawn vehicle for player') },
             { id = 'dv', label = 'Delete My Vehicle', level = 'admin', visible = function() return QB.cache.vehicle() ~= false end,
                 run = withConfirm('Delete the vehicle you are in?', withFields('dv')) },
             { id = 'fix', label = 'Repair My Vehicle', level = 'mod', run = withFields('fix') },
         },
     },
     {
-        id = 'entities', label = 'Entities', level = 'admin',
-        items = {
-            { id = 'entity', label = 'Spawn Ped / Prop (self)', level = 'admin',
-                run = withFields('entity', function() return { entityModelField() } end, 'Spawn ped or prop') },
-            { id = 'entityfor', label = 'Spawn Ped / Prop for Player', level = 'admin',
-                run = withPlayer('entityfor', function() return { entityModelField() } end, 'Spawn ped or prop for player') },
-            { id = 'deleteLastEntity', label = 'Delete My Last Spawned Entity', level = 'admin',
-                run = withConfirm('Delete your last admin-spawned entity?', withFields('deleteentity')) },
-        },
-    },
-    {
         id = 'developer', label = 'Developer', level = Config.developer.menuLevel,
         items = {
-            {
-                id = 'devmode_self',
-                label = function() return Admin.isDevMode() and 'Disable My Dev Mode' or 'Enable My Dev Mode' end,
-                description = 'God mode, paused passive needs, and faster walking',
-                level = Config.developer.menuLevel,
-                run = function() runCommand('devmode', 'me', tostring(not Admin.isDevMode())) end,
-            },
-            {
-                id = 'devmode_player',
-                label = 'Set Player Dev Mode',
-                description = 'Enable or disable qbcore development mode for a player',
-                level = 'admin',
-                run = withPlayer('devmode', {
-                    { id = 'state', label = 'State', type = 'select', default = 'true', required = true,
-                        options = { { value = 'true', label = 'Enable' }, { value = 'false', label = 'Disable' } } },
-                }, 'Set Player Dev Mode'),
-            },
             {
                 id = 'devplacement',
                 label = 'Place Entity / Model',
                 description = 'Position any valid ped, vehicle, or object and copy its transform',
                 level = Config.developer.menuLevel,
                 disabled = function() return Config.developer.requireDevMode and not Admin.isDevMode() end,
-                run = withFields('devplacement', function() return { placementModelField() } end, 'Entity Placement Creator'),
+                run = withFields('devplacement', function() return { placementModelField() } end, 'Entity Placement Creator', true),
             },
             {
                 id = 'devzone',
@@ -571,7 +391,7 @@ local CATEGORIES = {
                 description = 'Open qblib’s box, sphere, or polygon creator',
                 level = Config.developer.menuLevel,
                 disabled = function() return Config.developer.requireDevMode and not Admin.isDevMode() end,
-                run = withFields('devzone', function() return { zoneTypeField() } end, 'Zone Creator'),
+                run = withFields('devzone', function() return { zoneTypeField() } end, 'Zone Creator', true),
             },
         },
     },
@@ -590,43 +410,20 @@ local CATEGORIES = {
                 end, 'Dynamic Weather') },
             { id = 'time', label = 'Set Time', level = 'admin', run = setTime },
             { id = 'serverinfo', label = 'Server Info', level = 'mod', run = withFields('serverinfo') },
+            { id = 'restartresource', label = 'Restart Resource', level = 'god',
+                run = withConfirm('Restart this resource?', withFields('restartresource', { { id = 'name', label = 'Resource name', type = 'text', required = true } }, 'Restart Resource')) },
         },
+    },
+    {
+        id = 'medal', label = 'Medal Clips', level = Config.medal.menuLevel,
+        description = 'Capture a configured highlight on your local Medal recorder.',
+        items = medalItems(),
     },
     {
         id = 'audit', label = 'Audit Log', level = 'admin',
         items = {
-            { id = 'adminlog', label = 'View Recent Log', level = 'admin', run = showAuditLog },
+            { id = 'adminlog', label = 'View Recent Log', level = 'admin', run = appAction(function() end) },
             { id = 'adminlogfilter', label = 'Filter Log', level = 'admin', run = filterAuditLog },
-        },
-    },
-    {
-        id = 'temporary_access', label = 'Temporary Access', level = Config.permissions.temporaryGrant.managerRole,
-        items = {
-            { id = 'granttempaccess', label = 'Grant Temporary Access', level = Config.permissions.temporaryGrant.managerRole,
-                description = 'Grants expire automatically and are cleared on qbadmin restart',
-                run = withConfirm('Grant temporary admin access?', withPlayer('granttempaccess', {
-                    { id = 'role', label = 'Role', type = 'select', options = temporaryLevelOptions(), required = true },
-                    { id = 'minutes', label = 'Duration (minutes)', type = 'number', required = true,
-                        min = Config.permissions.temporaryGrant.minMinutes,
-                        max = Config.permissions.temporaryGrant.maxMinutes,
-                        default = Config.permissions.temporaryGrant.defaultMinutes },
-                }, 'Grant Temporary Access')) },
-            { id = 'revoketempaccess', label = 'Revoke Temporary Access', level = Config.permissions.temporaryGrant.managerRole,
-                run = withPlayer('revoketempaccess', {
-                    { id = 'role', label = 'Role', type = 'select', options = temporaryLevelOptions(), required = true },
-                }, 'Revoke Temporary Access') },
-        },
-    },
-    {
-        id = 'privileged', label = 'Privileged', level = 'god',
-        items = {
-            { id = 'setpermission', label = 'Grant Permission', level = 'god',
-                run = withConfirm('Grant this level? This can create another privileged account.',
-                    withPlayer('setpermission', { { id = 'level', label = 'Level', type = 'select', options = levelOptions(), required = true } }, 'Grant Permission')) },
-            { id = 'revokepermission', label = 'Revoke Permission', level = 'god',
-                run = withPlayer('revokepermission', { { id = 'level', label = 'Level', type = 'select', options = levelOptions(), required = true } }, 'Revoke Permission') },
-            { id = 'restartresource', label = 'Restart Resource', level = 'god',
-                run = withConfirm('Restart this resource?', withFields('restartresource', { { id = 'name', label = 'Resource name', type = 'text', required = true } }, 'Restart Resource')) },
         },
     },
     {
@@ -641,18 +438,49 @@ local CATEGORIES = {
             { id = 'selfrevive', label = 'Revive Me', level = 'mod', run = withFields('selfrevive') },
             { id = 'armor', label = 'Set Armor', level = 'mod',
                 run = withFields('armor', { { id = 'value', label = 'Armor (blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Armor') },
-            { id = 'permission', label = 'My Permission Level', level = 'mod', run = withFields('permission') },
-            { id = 'wardrobe', label = 'Open Wardrobe', level = 'mod', run = function() openClothing('wardrobe') end },
-            { id = 'clothingshop', label = 'Open Clothing Shop (nearby)', level = 'mod', run = function() openClothing('shop', 'clothing') end },
-            { id = 'barbershop', label = 'Open Barber Shop (nearby)', level = 'mod', run = function() openClothing('shop', 'barber') end },
-            { id = 'tattooshop', label = 'Open Tattoo Shop (nearby)', level = 'mod', run = function() openClothing('shop', 'tattoo') end },
-            { id = 'stylingall', label = 'Open Full Styling (Clothing + Barber + Tattoo)', level = 'admin', run = function() openClothing('admin') end },
+            { id = 'deleteLastEntity', label = 'Delete My Last Spawned Entity', level = 'admin',
+                run = withConfirm('Delete your last admin-spawned entity?', withFields('deleteentity')) },
+            { id = 'wardrobe', label = 'Open Wardrobe', level = 'mod', run = appAction(function() openClothing('wardrobe') end, nil, nil, true) },
+            { id = 'clothingshop', label = 'Open Clothing Shop (nearby)', level = 'mod', run = appAction(function() openClothing('shop', 'clothing') end, nil, nil, true) },
+            { id = 'barbershop', label = 'Open Barber Shop (nearby)', level = 'mod', run = appAction(function() openClothing('shop', 'barber') end, nil, nil, true) },
+            { id = 'tattooshop', label = 'Open Tattoo Shop (nearby)', level = 'mod', run = appAction(function() openClothing('shop', 'tattoo') end, nil, nil, true) },
+            { id = 'stylingall', label = 'Open Full Styling (Clothing + Barber + Tattoo)', level = 'admin', run = appAction(function() openClothing('admin') end, nil, nil, true) },
         },
     },
 }
 
+local function playerProfileRows(profile)
+    local states = { 'Online' }
+    if profile.dead then states[#states + 1] = 'Dead / last stand' end
+    if profile.cuffed then states[#states + 1] = 'Handcuffed' end
+    local rows = {
+        { field = 'Server ID', value = tostring(profile.id) },
+        { field = 'Name', value = profile.name or 'Unknown' },
+        { field = 'Citizen ID', value = profile.citizenid or 'Unknown' },
+        { field = 'Job', value = profile.job or 'Unknown' },
+        { field = 'Gang', value = profile.gang or 'None' },
+        { field = 'Money', value = profile.money or 'None' },
+        { field = 'Health / Armor', value = ('%s / %s'):format(profile.health or 0, profile.armor or 0) },
+        { field = 'Hunger / Thirst', value = ('%s / %s'):format(profile.hunger or 0, profile.thirst or 0) },
+        { field = 'State', value = table.concat(states, ' · ') },
+        { field = 'Ping', value = ('%sms'):format(profile.ping or 0) },
+    }
+    if profile.permission then rows[#rows + 1] = { field = 'Permission', value = profile.permission } end
+    if profile.license then rows[#rows + 1] = { field = 'License', value = profile.license } end
+    if profile.discord then rows[#rows + 1] = { field = 'Discord', value = profile.discord } end
+    return rows
+end
+
+local function playerProfileClipboard(profile)
+    local lines = { ('Player Profile — #%s %s'):format(profile.id, profile.name or 'Unknown') }
+    for _, row in ipairs(playerProfileRows(profile)) do lines[#lines + 1] = ('%s: %s'):format(row.field, row.value) end
+    return table.concat(lines, '\n')
+end
+
 local function openRoot()
     local navigation = {}
+    local selectedPlayerActions = {}
+    local selectedReportActions = {}
     for _, category in ipairs(CATEGORIES) do
         if Admin.hasLevel(category.level) then
             local actions = {}
@@ -666,8 +494,11 @@ local function openRoot()
                     actions[#actions + 1] = {
                         id = category.id .. ':' .. item.id,
                         label = label,
+                        description = item.description,
                         icon = item.icon,
                         disabled = not Admin.hasLevel(item.level) or stateDisabled,
+                        fields = type(item.run) == 'table' and item.run.fields and item.run.fields() or nil,
+                        confirm = type(item.run) == 'table' and item.run.confirm or nil,
                     }
                 end
             end
@@ -677,11 +508,382 @@ local function openRoot()
                 label = category.label,
                 content = {
                     title = category.label,
-                    description = 'Choose an administrative action. Permissions are enforced again by the command handler.',
+                    description = category.description or 'Choose an administrative action. Permissions are enforced again by the command handler.',
                     blocks = { { type = 'actions', actions = actions } },
                 },
             }
         end
+    end
+
+    local function showAuditInShell(filters)
+        local rows, err = QB.callback.trigger('qbadmin:menuAuditLog', filters)
+        if not rows then
+            QB.notify.send({ type = 'error', message = err or 'Could not load audit log' })
+            return {}
+        end
+        for _, view in ipairs(navigation) do
+            if view.id == 'audit' then
+                local blocks = view.content.blocks
+                for index = #blocks, 1, -1 do
+                    if blocks[index].id == 'audit-log' then table.remove(blocks, index) end
+                end
+                local tableRows = {}
+                for _, row in ipairs(rows) do
+                    tableRows[#tableRows + 1] = {
+                        action = row.action or 'unknown', actor = row.actor_name or 'unknown',
+                        target = row.target_name or '-', created = row.created_at or '-', details = row.details or '',
+                    }
+                end
+                blocks[#blocks + 1] = {
+                    id = 'audit-log', type = 'table', title = 'Audit Log',
+                    columns = {
+                        { key = 'action', label = 'Action' }, { key = 'actor', label = 'Actor' },
+                        { key = 'target', label = 'Target' }, { key = 'created', label = 'When' }, { key = 'details', label = 'Details' },
+                    },
+                    rows = tableRows, empty = 'No matching audit entries',
+                }
+                return { update = { navigation = navigation } }
+            end
+        end
+        return {}
+    end
+
+    local function reportView()
+        for _, view in ipairs(navigation) do
+            if view.id == 'reports' then return view end
+        end
+    end
+
+    local function clearReportDetail(blocks)
+        for index = #blocks, 1, -1 do
+            local id = blocks[index].id
+            if id and id:match('^selected%-report') then table.remove(blocks, index) end
+        end
+    end
+
+    local function showReportsInShell(filters)
+        local rows, err = QB.callback.trigger('qbadmin:menuReports', filters or { status = 'open' })
+        if not rows then
+            QB.notify.send({ type = 'error', message = err or 'Could not load reports' })
+            return {}
+        end
+        local view = reportView()
+        if not view then return {} end
+        local blocks = view.content.blocks
+        clearReportDetail(blocks)
+        for index = #blocks, 1, -1 do
+            if blocks[index].id == 'report-list' then table.remove(blocks, index) end
+        end
+
+        local tableRows = {}
+        for _, row in ipairs(rows) do
+            tableRows[#tableRows + 1] = {
+                id = tostring(row.id), status = row.status, type = row.type,
+                reporter = row.reporter_name, assigned = row.claimed_by_name or '-',
+                message = row.message, updated = row.updated_at or row.created_at or '-',
+            }
+        end
+        blocks[#blocks + 1] = {
+            id = 'report-list', type = 'table', title = 'Player Reports',
+            columns = {
+                { key = 'id', label = '#' }, { key = 'status', label = 'Status' },
+                { key = 'type', label = 'Type' }, { key = 'reporter', label = 'Reporter' },
+                { key = 'assigned', label = 'Assigned' }, { key = 'message', label = 'Report' },
+                { key = 'updated', label = 'Updated' },
+            },
+            rows = tableRows, empty = 'No matching reports', action = 'reports:select', idKey = 'id',
+        }
+        return { update = { navigation = navigation } }
+    end
+
+    local function showSelectedReport(id)
+        local report, err = QB.callback.trigger('qbadmin:menuReport', id)
+        if not report then
+            QB.notify.send({ type = 'error', message = err or 'Could not load report' })
+            return {}
+        end
+        local view = reportView()
+        if not view then return {} end
+        local blocks = view.content.blocks
+        clearReportDetail(blocks)
+        selectedReportActions = {}
+
+        local function add(id_, label, run, destructive)
+            selectedReportActions[id_] = run
+            return {
+                id = 'reports:selected:' .. id_, label = label,
+                fields = run.fields and run.fields() or nil,
+                confirm = run.confirm,
+                destructive = destructive == true,
+            }
+        end
+        local function action(command, fields, confirmMessage, shouldClose)
+            return forSelectedPlayer(tostring(report.id), command, fields, confirmMessage, shouldClose)
+        end
+
+        local management = {}
+        if report.status == 'open' or report.status == 'claimed' then
+            management[#management + 1] = add('claim', report.status == 'claimed' and 'Take Over Report' or 'Claim Report', action('reportclaim'))
+            management[#management + 1] = add('reply', 'Reply to Reporter', action('reportreply', {
+                { id = 'message', label = 'Reply', type = 'textarea', required = true },
+            }))
+            management[#management + 1] = add('resolve', 'Resolve Report', action('reportresolve', {
+                { id = 'note', label = 'Resolution', type = 'textarea', required = true },
+            }, 'Resolve this report?'))
+            management[#management + 1] = add('dismiss', 'Dismiss Report', action('reportdismiss', {
+                { id = 'note', label = 'Reason', type = 'textarea', required = true },
+            }, 'Dismiss this report?'), true)
+        else
+            management[#management + 1] = add('reopen', 'Reopen Report', action('reportreopen', {
+                { id = 'note', label = 'Reason for reopening (optional)', type = 'textarea' },
+            }, 'Reopen this report?'))
+        end
+
+        local reporterActions = {}
+        if report.reporter_source then
+            local source = tostring(report.reporter_source)
+            local function playerAction(id_, label, command, confirmMessage, shouldClose)
+                local run = forSelectedPlayer(source, command, nil, confirmMessage, shouldClose)
+                selectedReportActions[id_] = run
+                reporterActions[#reporterActions + 1] = {
+                    id = 'reports:selected:' .. id_, label = label, confirm = run.confirm,
+                }
+            end
+            playerAction('goto', 'Teleport to Reporter', 'goto', nil, true)
+            playerAction('bring', 'Bring Reporter', 'bring')
+            playerAction('sendback', 'Send Reporter Back', 'sendback')
+            playerAction('spectate', 'Spectate Reporter', 'spectate', nil, true)
+        end
+
+        local conversation = {
+            { author = report.reporter_name, role = 'player', message = report.message, created = report.created_at or '-' },
+        }
+        for _, reply in ipairs(report.messages or {}) do
+            conversation[#conversation + 1] = {
+                author = reply.author_name, role = reply.author_role, message = reply.message, created = reply.created_at or '-',
+            }
+        end
+
+        blocks[#blocks + 1] = {
+            id = 'selected-report-summary', type = 'text', title = ('Report #%s · %s · %s'):format(report.id, report.type, report.status),
+            text = ('Reporter: %s%s%s'):format(
+                report.reporter_name,
+                report.claimed_by_name and (' · Assigned to ' .. report.claimed_by_name) or '',
+                report.resolution and (' · Resolution: ' .. report.resolution) or ''),
+        }
+        blocks[#blocks + 1] = {
+            id = 'selected-report-conversation', type = 'table', title = 'Conversation',
+            columns = {
+                { key = 'author', label = 'From' }, { key = 'role', label = 'Role' },
+                { key = 'message', label = 'Message' }, { key = 'created', label = 'When' },
+            },
+            rows = conversation,
+        }
+        blocks[#blocks + 1] = { id = 'selected-report-management', type = 'actions', title = 'Report Management', actions = management }
+        if #reporterActions > 0 then
+            blocks[#blocks + 1] = { id = 'selected-report-player', type = 'actions', title = 'Online Reporter', actions = reporterActions }
+        end
+        return { update = { navigation = navigation } }
+    end
+
+    -- Selecting a row is the player-first workflow.  It exposes every
+    -- meaningful online-player command in one place, with the selected server
+    -- id fixed into the action so staff never have to choose the same person
+    -- twice.  The table includes the caller too, so self actions work through
+    -- exactly the same screen.
+    local function showSelectedPlayer(player)
+        local profile, profileErr = QB.callback.trigger('qbadmin:menuPlayerProfile', player.id)
+        if not profile then
+            QB.notify.send({ type = 'error', message = profileErr or 'That player is no longer online' })
+            return {}
+        end
+
+        local playerView
+        for _, view in ipairs(navigation) do
+            if view.id == 'player' then playerView = view break end
+        end
+        if not playerView then return {} end
+
+        local blocks = playerView.content.blocks
+        for index = #blocks, 1, -1 do
+            local blockId = blocks[index].id
+            if blockId == 'online-players' or (blockId and blockId:match('^selected%-player%-')) then
+                table.remove(blocks, index)
+            end
+        end
+
+        selectedPlayerActions = {}
+        local target = tostring(profile.id)
+        local groups = {
+            { id = 'profile', title = 'Profile', actions = {} },
+            { id = 'history', title = 'History', actions = {} },
+            { id = 'movement', title = 'Movement & Spectating', actions = {} },
+            { id = 'wellbeing', title = 'Health & State', actions = {} },
+            { id = 'moderation', title = 'Moderation', actions = {} },
+            { id = 'appearance', title = 'Appearance', actions = {} },
+            { id = 'economy', title = 'Economy & Inventory', actions = {} },
+            { id = 'roles', title = 'Job, Gang & Duty', actions = {} },
+            { id = 'spawning', title = 'Spawning', actions = {} },
+            { id = 'development', title = 'Development', actions = {} },
+            { id = 'access', title = 'Access & Permissions', actions = {} },
+        }
+        local groupById = {}
+        for _, group in ipairs(groups) do groupById[group.id] = group end
+
+        local function add(groupId, id, label, level, run)
+            if not Admin.hasLevel(level) then return end
+            selectedPlayerActions[id] = { level = level, run = run }
+            local actions = groupById[groupId].actions
+            actions[#actions + 1] = {
+                id = 'player:target:' .. id,
+                label = label,
+                fields = run.fields and run.fields() or nil,
+                confirm = run.confirm,
+            }
+        end
+        local function selected(command, fields, confirmMessage, shouldClose)
+            return forSelectedPlayer(target, command, fields, confirmMessage, shouldClose)
+        end
+
+        add('profile', 'copyinfo', 'Copy Player Info', 'support', appAction(function()
+            QB.nui.copyToClipboard(playerProfileClipboard(profile))
+            QB.notify.send({ type = 'success', message = 'Player information copied' })
+        end))
+        add('history', 'warnings', 'Warning History', 'mod', selected('warnings'))
+
+        add('movement', 'goto', 'Teleport to Player', 'mod', selected('goto', nil, nil, true))
+        add('movement', 'bring', 'Bring to Me', 'mod', selected('bring'))
+        add('movement', 'sendback', 'Send Back', 'mod', selected('sendback'))
+        add('movement', 'spectate', 'Spectate', 'mod', selected('spectate', nil, nil, true))
+
+        add('wellbeing', 'heal', 'Heal', 'mod', selected('heal'))
+        add('wellbeing', 'revive', 'Revive', 'mod', selected('revive'))
+        add('wellbeing', 'sethunger', 'Set Hunger', 'admin', selected('sethunger', {
+            { id = 'value', label = 'Hunger', type = 'number', min = 0, max = 100, required = true },
+        }))
+        add('wellbeing', 'setthirst', 'Set Thirst', 'admin', selected('setthirst', {
+            { id = 'value', label = 'Thirst', type = 'number', min = 0, max = 100, required = true },
+        }))
+        add('wellbeing', 'freeze', 'Freeze / Unfreeze', 'mod', selected('freeze', {
+            { id = 'state', label = 'State', type = 'select', default = 'true', options = {
+                { value = 'true', label = 'Freeze' }, { value = 'false', label = 'Unfreeze' },
+            } },
+        }))
+        add('wellbeing', 'god', 'Toggle God Mode', 'mod', selected('god'))
+        add('wellbeing', 'invisible', 'Toggle Invisible', 'mod', selected('invisible'))
+
+        add('moderation', 'warn', 'Warn', 'mod', selected('warn', {
+            { id = 'reason', label = 'Reason', type = 'text', required = true },
+        }))
+        add('moderation', 'kick', 'Kick', 'mod', selected('kick', {
+            { id = 'reason', label = 'Reason', type = 'text' },
+        }, 'Kick this player?'))
+        add('moderation', 'ban', 'Ban', 'admin', selected('ban', {
+            { id = 'duration', label = 'Duration (30m, 2h, 7d, or perm)', type = 'text', default = 'perm', required = true },
+            { id = 'reason', label = 'Reason', type = 'text', required = true },
+        }, 'Ban this player? This is persistent.'))
+        add('moderation', 'kill', 'Kill', 'mod', selected('kill', nil, 'Kill this player?'))
+
+        add('appearance', 'clothingmenu', 'Open Clothing Menu', 'admin', selected('clothingmenu', nil, nil, true))
+        add('appearance', 'barbermenu', 'Open Barber / Hairdresser', 'admin', selected('barbermenu', nil, nil, true))
+        add('appearance', 'tattoomenu', 'Open Tattoo Menu', 'admin', selected('tattoomenu', nil, nil, true))
+
+        add('economy', 'givemoney', 'Give Money', 'admin', selected('givemoney', {
+            { id = 'account', label = 'Account (cash/bank/crypto)', type = 'text', required = true },
+            { id = 'amount', label = 'Amount', type = 'number', min = 1, required = true },
+            { id = 'reason', label = 'Reason', type = 'text' },
+        }))
+        add('economy', 'removemoney', 'Remove Money', 'admin', selected('removemoney', {
+            { id = 'account', label = 'Account (cash/bank/crypto)', type = 'text', required = true },
+            { id = 'amount', label = 'Amount', type = 'number', min = 1, required = true },
+            { id = 'reason', label = 'Reason', type = 'text' },
+        }))
+        add('economy', 'setmoney', 'Set Money', 'admin', selected('setmoney', {
+            { id = 'account', label = 'Account (cash/bank/crypto)', type = 'text', required = true },
+            { id = 'amount', label = 'Amount', type = 'number', min = 0, required = true },
+            { id = 'reason', label = 'Reason', type = 'text' },
+        }))
+        add('economy', 'giveitem', 'Give Item', 'admin', selected('giveitem', function() return {
+            { id = 'item', label = 'Item', type = 'select', options = itemOptions(), required = true },
+            { id = 'amount', label = 'Amount', type = 'number', default = 1, min = 1 },
+        } end))
+        add('economy', 'removeitem', 'Remove Item', 'admin', selected('removeitem', function() return {
+            { id = 'item', label = 'Item', type = 'select', options = itemOptions(), required = true },
+            { id = 'amount', label = 'Amount', type = 'number', default = 1, min = 1 },
+        } end))
+        add('economy', 'clearinventory', 'Clear Inventory', 'admin', selected('clearinventory', nil, "Clear this player's entire inventory?"))
+
+        add('roles', 'setjob', 'Set Job', 'admin', selected('setjob', function()
+            local roles, gradesByJob = jobOptions(), {}
+            for _, option in ipairs(roles) do gradesByJob[option.value] = gradeOptions('jobs', option.value) end
+            local first = roles[1] and roles[1].value
+            return {
+                { id = 'name', label = 'Job', type = 'select', options = roles, default = first, required = true },
+                { id = 'grade', label = 'Grade', type = 'select', dependsOn = 'name', optionsByValue = gradesByJob, required = true },
+            }
+        end))
+        add('roles', 'setgang', 'Set Gang', 'admin', selected('setgang', function()
+            local roles, gradesByGang = gangOptions(), {}
+            for _, option in ipairs(roles) do gradesByGang[option.value] = gradeOptions('gangs', option.value) end
+            local first = roles[1] and roles[1].value
+            return {
+                { id = 'name', label = 'Gang', type = 'select', options = roles, default = first, required = true },
+                { id = 'grade', label = 'Grade', type = 'select', dependsOn = 'name', optionsByValue = gradesByGang, required = true },
+            }
+        end))
+        add('roles', 'setduty', 'Toggle Duty', 'mod', selected('setduty'))
+
+        add('spawning', 'veh', 'Spawn Vehicle', 'admin', selected('veh', function() return { vehicleModelField() } end))
+        add('spawning', 'veh_catalogue', 'Spawn Vehicle from Catalogue', 'admin', selected('veh', function()
+            return { vehicleCatalogueField() }
+        end))
+        add('spawning', 'entityfor', 'Spawn Ped / Prop', 'admin', selected('entityfor', function() return { entityModelField() } end))
+
+        add('development', 'devmode', 'Set Development Mode', 'admin', selected('devmode', {
+            { id = 'state', label = 'State', type = 'select', default = 'true', options = {
+                { value = 'true', label = 'Enable' }, { value = 'false', label = 'Disable' },
+            } },
+        }))
+
+        add('access', 'granttempaccess', 'Grant Temporary Access', Config.permissions.temporaryGrant.managerRole,
+            selected('granttempaccess', {
+                { id = 'role', label = 'Role', type = 'select', options = temporaryLevelOptions(), required = true },
+                { id = 'minutes', label = 'Duration (minutes)', type = 'number', required = true,
+                    min = Config.permissions.temporaryGrant.minMinutes,
+                    max = Config.permissions.temporaryGrant.maxMinutes,
+                    default = Config.permissions.temporaryGrant.defaultMinutes },
+            }, 'Grant temporary admin access?'))
+        add('access', 'revoketempaccess', 'Revoke Temporary Access', Config.permissions.temporaryGrant.managerRole,
+            selected('revoketempaccess', {
+                { id = 'role', label = 'Role', type = 'select', options = temporaryLevelOptions(), required = true },
+            }))
+        add('access', 'setpermission', 'Grant Permission', 'god', selected('setpermission', {
+            { id = 'level', label = 'Level', type = 'select', options = levelOptions(), required = true },
+        }, 'Grant this level? This can create another privileged account.'))
+        add('access', 'revokepermission', 'Revoke Permission', 'god', selected('revokepermission', {
+            { id = 'level', label = 'Level', type = 'select', options = levelOptions(), required = true },
+        }))
+
+        table.insert(blocks, 1, {
+            id = 'selected-player-header', type = 'text', title = ('Player Profile · #%s %s'):format(target, profile.name),
+            text = ('%s · %s · %dms'):format(profile.job or 'Unknown job', profile.citizenid or 'Unknown citizen', profile.ping or 0),
+        })
+        table.insert(blocks, 2, {
+            id = 'selected-player-details', type = 'table', title = 'Player Information',
+            columns = { { key = 'field', label = 'Field' }, { key = 'value', label = 'Value' } },
+            rows = playerProfileRows(profile),
+        })
+        local insertAt = 3
+        for _, group in ipairs(groups) do
+            if #group.actions > 0 then
+                table.insert(blocks, insertAt, {
+                    id = 'selected-player-actions-' .. group.id,
+                    type = 'actions', title = group.title, actions = group.actions,
+                })
+                insertAt = insertAt + 1
+            end
+        end
+        return { update = { navigation = navigation } }
     end
 
     QB.nui.registerApp({
@@ -692,15 +894,97 @@ local function openRoot()
         defaultView = navigation[1] and navigation[1].id,
         navigation = navigation,
         footer = 'Every action is checked and audited by the server.',
-        onAction = function(actionId)
+        onAction = function(actionId, context)
             local categoryId, itemId = actionId:match('^([^:]+):(.+)$')
+            if categoryId == 'reports' and itemId == 'select' and context and context.itemId then
+                return showSelectedReport(context.itemId)
+            end
+            if categoryId == 'reports' and itemId:match('^selected:') then
+                local selectedAction = selectedReportActions[itemId:sub(#'selected:' + 1)]
+                if not selectedAction then error('That report action is no longer available.') end
+                if selectedAction.shouldClose and QB.nui.closeApp then QB.nui.closeApp('qbadmin:menu') end
+                selectedAction.run(context and context.value)
+                return {}
+            end
+            if categoryId == 'reports' and itemId == 'open' then
+                return showReportsInShell({ status = 'open' })
+            end
+            if categoryId == 'reports' and itemId == 'all' then
+                return showReportsInShell({ status = 'all' })
+            end
+            if categoryId == 'reports' and itemId == 'filter' then
+                return showReportsInShell(context and context.value or {})
+            end
+            if categoryId == 'player' and itemId == 'select' and context and context.itemId then
+                local selected
+                for _, view in ipairs(navigation) do
+                    if view.id == 'player' then
+                        for _, block in ipairs(view.content.blocks) do
+                            if block.id == 'online-players' then
+                                for _, row in ipairs(block.rows) do
+                                    if tostring(row.id) == tostring(context.itemId) then selected = row break end
+                                end
+                            end
+                        end
+                    end
+                end
+                if selected then return showSelectedPlayer(selected) end
+                QB.notify.send({ type = 'error', message = 'That player is no longer online' })
+                return {}
+            end
+            if categoryId == 'player' and itemId:match('^target:') then
+                local selectedAction = selectedPlayerActions[itemId:sub(#'target:' + 1)]
+                if not selectedAction or not Admin.hasLevel(selectedAction.level) then
+                    error('That player action is no longer available.')
+                end
+                if selectedAction.run.shouldClose and QB.nui.closeApp then QB.nui.closeApp('qbadmin:menu') end
+                selectedAction.run.run(context and context.value)
+                return {}
+            end
+            if categoryId == 'player' and itemId == 'players' then
+                local players, err = QB.callback.trigger('qbadmin:menuPlayers')
+                if not players then
+                    QB.notify.send({ type = 'error', message = err or 'Could not load players' })
+                    return {}
+                end
+                for _, view in ipairs(navigation) do
+                    if view.id == 'player' then
+                        local blocks = view.content.blocks
+                        for index = #blocks, 1, -1 do
+                            local blockId = blocks[index].id
+                            if blockId == 'online-players' or (blockId and blockId:match('^selected%-player%-')) then
+                                table.remove(blocks, index)
+                            end
+                        end
+                        local rows = {}
+                        for _, player in ipairs(players) do
+                            rows[#rows + 1] = { id = tostring(player.id), name = player.name, job = player.job, ping = player.ping }
+                        end
+                        blocks[#blocks + 1] = {
+                            id = 'online-players', type = 'table', title = 'Online Players',
+                            columns = { { key = 'id', label = 'ID' }, { key = 'name', label = 'Name' }, { key = 'job', label = 'Job' }, { key = 'ping', label = 'Ping', align = 'right' } },
+                            rows = rows, empty = 'No players are online', action = 'player:select', idKey = 'id',
+                        }
+                        return { update = { navigation = navigation } }
+                    end
+                end
+            end
+            if categoryId == 'audit' and itemId == 'adminlog' then return showAuditInShell() end
+            if categoryId == 'audit' and itemId == 'adminlogfilter' then
+                return showAuditInShell(context and context.value or {})
+            end
             for _, category in ipairs(CATEGORIES) do
                 if category.id == categoryId then
                     for _, item in ipairs(category.items) do
                         local stateDisabled = type(item.disabled) == 'function' and item.disabled() or item.disabled == true
                         if item.id == itemId and Admin.hasLevel(item.level) and not stateDisabled
                             and (not item.visible or item.visible()) then
-                            item.run()
+                            if type(item.run) == 'table' then
+                                if item.run.shouldClose and QB.nui.closeApp then QB.nui.closeApp('qbadmin:menu') end
+                                item.run.run(context and context.value)
+                            else
+                                item.run()
+                            end
                             return {}
                         end
                     end
