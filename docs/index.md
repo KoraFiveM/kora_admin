@@ -70,6 +70,8 @@ Selecting an online player replaces the list with tabbed profile, player-tool,
 moderation, economy/item, role/access, and advanced views; Back returns to the
 live player browser. **Copy Player Info** copies the visible profile fields;
 platform identifiers and permission level are included only for admins.
+The owner-only **Server → Configuration** tab opens the qblib configuration
+workspace described below.
 
 ### Give a player money and an item
 ```
@@ -151,6 +153,32 @@ button with its own event ID, display name, clip duration, and capture delay.
 Medal must be installed and running on the clicking admin's PC. The menu shows
 whether the local recorder accepted the request and gives specific guidance
 for an invalid public key or event.
+
+### Edit registered resource configuration
+
+Owners can open the Configuration workspace from **Server → Configuration**
+in `/admin`, or directly with:
+
+```text
+/config
+```
+
+The workspace lists only first-party or third-party resources that explicitly
+registered a qblib schema. It shows each setting’s scope, saved value, running
+value, and either **Applies now** or **Restart required**. Saving writes the
+owning resource’s `config.local.lua`; it never reformats or reorders that
+resource’s authored `config.lua`. Reset removes the in-game override and
+returns to the documented default immediately for a live setting, or after a
+resource restart otherwise.
+
+The editor never exposes sensitive fields, server.cfg/convars, database-owned
+records, runtime state, or executable values. Successful saves and resets are
+recorded in `admin_logs` as `config.commit` and `config.reset`. The permission
+is `Config.configEditor.level`, which defaults to `owner`.
+
+See qblib’s [configuration guide](https://qbcore2.github.io/qblib/modules/config/docs.html)
+to add schemas, client/server scopes, live handlers, or a migration bridge to
+another resource.
 
 ### Read the audit trail from another resource
 ```lua
@@ -326,6 +354,7 @@ menu, the hour/minute inputs appear only behind **Custom**.
 
 ### Privileged — `owner`
 ```
+/config
 /restartresource <name>
 /setpermission <id> <role>                -- unrestricted runtime only
 /revokepermission <id> <role>             -- unrestricted runtime only
@@ -354,7 +383,11 @@ and their hour/minute -- change these to change what `night` means here) and
 `Config.entity.spawnOffset`; `Config.developer.menuLevel` and `requireDevMode`;
 `Config.medal` for the public key, menu permission, timeout, and clip events;
 `Config.audit.pageSize`; `Config.keybind` for the default `/admin` keybind
-(`F7`).
+(`F7`); and `Config.configEditor.level` for the owner-only configuration
+workspace. qblib-managed edits are server-specific `config.local.lua`
+overrides, not edits to this documented file. The optional Discord role map is
+declared in `server/config.lua`, is server-only, and can be edited only by an
+owner through the workspace.
 
 ## Related resources
 

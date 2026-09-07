@@ -132,6 +132,13 @@ Config.audit = {
     pageSize = 15, -- rows per page for /adminlog and the NUI audit log viewer
 }
 
+Config.configEditor = {
+    -- Editing server configuration can change gameplay, economy, and access
+    -- policy. Keep it above normal administration by default; each request is
+    -- checked again on the server before it reaches qblib.
+    level = 'owner',
+}
+
 Config.reports = {
     -- Ordered so both the /report suggestion and admin-menu filters remain
     -- predictable. IDs are persisted; rename labels freely, but retain an ID
@@ -158,3 +165,6 @@ Config.keybind = {
     label = 'Open the admin menu (qbadmin)',
     defaultKey = 'F7', -- HOME/F6 are qblib-playground's palette, TAB is qbinventory
 }
+
+-- Registers this resource-owned configuration with qblib without changing its public Config table.
+if QB and QB.config and QB.config.adopt then Config = QB.config.adopt(Config) end

@@ -506,6 +506,15 @@ local SECTIONS = {
         },
     },
     {
+        id = 'configuration', label = 'Configuration', level = Config.configEditor.level,
+        title = 'Configuration Editor',
+        description = 'Edit registered resource settings. Each field states whether it applies now or needs a restart.',
+        items = {
+            { id = 'open', label = 'Open Configuration Editor', level = Config.configEditor.level, icon = 'settings',
+                run = appAction(function() TriggerEvent('qbadmin:client:configOpened') end, nil, nil, true) },
+        },
+    },
+    {
         id = 'developer', label = 'Builders', level = Config.developer.menuLevel,
         title = 'Development Tools',
         description = 'Place models, build zones, and clean up entities created during your current session.',
@@ -540,7 +549,7 @@ local PAGE_LAYOUT = {
     { id = 'players', label = 'Players', icon = 'users', description = 'Online player management', sections = { 'player' } },
     { id = 'reports', label = 'Reports', icon = 'flag', description = 'Player support queue', sections = { 'reports' } },
     { id = 'tools', label = 'My Tools', icon = 'wrench', description = 'Personal and in-world utilities', sections = { 'self', 'teleport', 'vehicle', 'appearance' } },
-    { id = 'server', label = 'Server', icon = 'database', description = 'World control and oversight', sections = { 'environment', 'server', 'moderation', 'audit' } },
+    { id = 'server', label = 'Server', icon = 'database', description = 'World control and oversight', sections = { 'environment', 'server', 'moderation', 'audit', 'configuration' } },
     { id = 'development', label = 'Development', icon = 'hammer', description = 'Builders and local captures', sections = { 'developer', 'medal' } },
 }
 

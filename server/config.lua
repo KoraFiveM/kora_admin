@@ -14,3 +14,15 @@ Config.permissions.discordRoles = {
     -- admin = { '123456789012345678' },
     -- owner = { 'Owner' },
 }
+
+-- This file is server-only even though qbadmin's base Config is shared. Keep
+-- optional Discord role mappings out of every client-side configuration
+-- snapshot while still making them visible to the owner-only editor.
+if QB and QB.config and QB.config.extend then
+    QB.config.extend({
+        permissions = {
+            discordRoles = QB.config.map(Config.permissions.discordRoles,
+                QB.config.list({}, QB.config.string('', { minLength = 1 }))),
+        },
+    }, { scope = 'server' })
+end

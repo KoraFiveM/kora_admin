@@ -21,7 +21,7 @@ ranked, so a higher role automatically receives every lower role's access.
 | `support` | Open the admin menu, list online players, and inspect player information. |
 | `moderator` | Reversible, low-harm, first-responder tools: spectate, freeze, heal/revive/kill, self god/dev mode/invisible, warn, kick, vehicle repair, on-duty toggle, self teleport, server info, self utilities. |
 | `admin` | Persistent-state, economic, or identity-affecting actions, or projecting power onto another player's world: ban/unban, money, items, job/gang, vehicle/entity spawn/delete, noclip, god/dev mode/invisible **on another player**, announce, weather/time, audit log. |
-| `owner` | Server-wide or unrestricted privilege changes: permanent runtime grants/revokes and resource restart. |
+| `owner` | Server-wide or unrestricted privilege changes: configuration editor, permanent runtime grants/revokes, and resource restart. |
 
 Commands register through **qblib's** `QB.commands.add` and all use
 `Admin.checkLevel` (`server/permissions.lua`). That is a thin adapter over the
@@ -162,7 +162,8 @@ Movement includes **Send Back**, which returns the player to their position
 before the last qbadmin teleport. Appearance includes server-authorized free
 clothing, barber/hairdresser, and tattoo sessions for the selected player.
 **My Tools** contains General, Movement, Vehicles, and Appearance tabs.
-**Server** contains Environment, Server, Offline Bans, and Audit Log tabs;
+**Server** contains Environment, Server, Offline Bans, Audit Log, and the
+owner-only Configuration tab;
 **Development** contains Builders and Medal Clips. Targeted moderation,
 economy, job/gang, appearance, spawning, development-mode, and permission
 controls appear only after selecting a player.
@@ -305,21 +306,45 @@ ring buffer only, unsuitable for "who banned whom, when" lookups later.
 `/adminlog [action] [target] [page]` and the **Server → Audit Log** tab both
 read from it via `Admin.queryLogs`. No auto-pruning in v1 -- if retention
 becomes a concern, add a scheduled `DELETE ... WHERE created_at < ...` and a
-`Config.audit.retentionDays` knob.
+`Config.audit.retentionDays` knob. Configuration saves and resets use the
+`config.commit` and `config.reset` actions in this same audit trail.
 
 ## Configuration
 
-See `config.lua` for every tunable: permission ranks and the ACE principal
-identifier kind, ban duration units, teleport fade/collision timing, noclip
-speed, weather types, clock presets and join-sync behavior, vehicle/entity spawn offsets,
-Developer-menu level/dev-mode requirement, Medal events/key/menu level, and
-audit log page size.
+`config.lua` remains the documented, community-editable baseline for every
+tunable: permission ranks and the ACE principal identifier kind, ban duration
+units, teleport fade/collision timing, noclip speed, weather types, clock
+presets and join-sync behavior, vehicle/entity spawn offsets, Developer-menu
+level/dev-mode requirement, Medal events/key/menu level, and audit log page
+size.
+
+The owner-only **Server → Configuration** tab and `/config` command open the
+qblib-backed configuration editor. It lists only resources that register a
+schema, shows each setting’s saved and running values, and labels it **Applies
+now** or **Restart required**. A save writes only the changed values to the
+owning resource’s `config.local.lua`; it never rearranges or reformats
+`config.lua`. Reset removes that setting’s override. The backup
+`config.local.lua.bak` lets qblib recover if a generated override becomes
+invalid.
+
+The editor permission is `Config.configEditor.level` (`owner` by default).
+Successful edits are audited as `config.commit` or `config.reset`. Sensitive
+values, server.cfg/convars, database-managed definitions, runtime state, and
+executable configuration are intentionally absent. `Config.permissions.discordRoles`
+lives in `server/config.lua`, is server-only, and remains hidden from clients.
+
+Resources choose `shared`, `client`, or `server` scope and explicitly opt in
+to live application through qblib. Most settings are saved for the next
+resource restart. Refer to [qblib’s configuration guide](https://qbcore2.github.io/qblib/modules/config/docs.html)
+for field types, validation, local overrides, migration, scopes, and safe
+live handlers.
 
 ## Known gaps (out of scope for v1)
 
-- **Screenshot capture** -- no such capability exists anywhere in
-  `qbcore`/`qblib`, and FiveM has no native client screenshot API. Integrate
-  an external resource (e.g. `screenshot-basic`) separately if needed.
+- **Separate-resource NUI compositing in screenshots** -- qblib’s screenshot
+  module can capture the game view and supports screenshot-basic-compatible
+  call sites, but it cannot composite another resource’s CEF layer into that
+  frame.
 - **Freeform SQL console** -- deliberately not built. `qbsql` already ships
   read-only `/qbsql ping|stats|slow|queue` gated by the `command.qbsql` ACE;
   point admins at those instead of adding a second, riskier query surface.
