@@ -279,6 +279,24 @@ test('Vehicle provides both a refreshed catalogue and a free-form spawn code', f
 end)
 
 test('List Players selects a player before running their admin actions', function()
+    local previousSharedAll, previousSharedGet = QB.shared.all, QB.shared.get
+    local jobs = {
+        { name = 'police', label = 'Law Enforcement', grades = {
+            { name = 'Cadet' }, { name = 'Officer' },
+        } },
+        { name = 'ambulance', label = 'EMS', grades = { { name = 'Recruit' } } },
+    }
+    local gangs = {
+        { name = 'none', label = 'No Gang', grades = { { name = 'None' } } },
+    }
+    QB.shared.all = function(name)
+        if name == 'jobs' then return jobs end
+        if name == 'gangs' then return gangs end
+        return {}
+    end
+    -- Role fields must be complete from the same `all()` snapshot; a second
+    -- lookup can be briefly empty while the client registry is being seeded.
+    QB.shared.get = function() return nil end
     QB.callback.trigger = function(name)
         if name == 'qbadmin:menuPlayers' then
             -- The caller is deliberately present in this list: staff may
@@ -329,7 +347,22 @@ test('List Players selects a player before running their admin actions', functio
     truthy(selectedActionGroups['Development'], 'development commands should have their own category')
     truthy(selectedActionGroups['Access & Permissions'], 'access commands should have their own category')
 
+    local setJob = findAction(menuPayload, 'player:target:setjob')
+    equal(setJob.fields[1].default, 'police', 'the first available job should be selected')
+    equal(setJob.fields[2].default, '1', 'the first available grade should be selected')
+    equal(#setJob.fields[2].optionsByValue.police, 2, 'the selected job should expose all of its grades')
+    equal(setJob.fields[2].optionsByValue.police[2].label, '2 - Officer', 'grade choices should be labelled')
+
+    jobs[1].grades[3] = { name = 'Sergeant' }
+    netEvents['qbcore:registry:snapshotAll']({})
+    setJob = findAction(menuPayload, 'player:target:setjob')
+    equal(#setJob.fields[2].optionsByValue.police, 3,
+        'an open player menu should refresh when registry data arrives')
+
     executedCommand = nil
+    menuPayload.onAction('player:target:setjob', { value = { name = 'police', grade = '2' } })
+    equal(executedCommand, 'setjob 7 police 2', 'selected job and grade should reach the command')
+
     menuPayload.onAction('player:target:heal', { value = {} })
     equal(executedCommand, 'heal 7', 'selected player id is retained by the action')
 
@@ -353,21 +386,25 @@ test('List Players selects a player before running their admin actions', functio
     truthy(onlinePlayers, 'Back should return to the online-player browser')
     truthy(onlinePlayers.searchable and onlinePlayers.pageSize == 12,
         'the restored online-player table is searchable and paged')
+
+    QB.shared.all, QB.shared.get = previousSharedAll, previousSharedGet
 end)
 
 test('Reports list, detail, conversation, and management stay in the app shell', function()
+    local createdAt = 1788744746000
+    local repliedAt = 1788744806
     QB.callback.trigger = function(name)
         if name == 'qbadmin:menuReports' then
             return { {
                 id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen',
-                message = 'Inventory button is stuck', created_at = 'now', updated_at = 'now',
+                message = 'Inventory button is stuck', created_at = createdAt, updated_at = createdAt,
             } }
         end
         if name == 'qbadmin:menuReport' then
             return {
                 id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen', reporter_source = 12,
-                message = 'Inventory button is stuck', created_at = 'now', messages = {
-                    { author_name = 'Support', author_role = 'staff', message = 'Looking into it', created_at = 'later' },
+                message = 'Inventory button is stuck', created_at = createdAt, messages = {
+                    { author_name = 'Support', author_role = 'staff', message = 'Looking into it', created_at = repliedAt },
                 },
             }
         end
@@ -376,6 +413,10 @@ test('Reports list, detail, conversation, and management stay in the app shell',
 
     netEvents['qbadmin:client:openMenu']('god')
     menuPayload.onAction('reports:open', {})
+    local queueTab = findTab(findView(menuPayload, 'reports'), 'reports')
+    local queue = queueTab.content.blocks[#queueTab.content.blocks]
+    equal(queue.rows[1].updated, os.date('!%Y-%m-%d %H:%M:%S', createdAt / 1000),
+        'qbsql timestamps should be readable in the report queue')
     local selectedResult = menuPayload.onAction('reports:select', { itemId = '42' })
     equal(selectedResult.navigate.viewId, 'reports', 'report selection returns AppShell navigation')
     equal(selectedResult.navigate.tabId, 'overview', 'report selection opens the report overview')
@@ -394,6 +435,10 @@ test('Reports list, detail, conversation, and management stay in the app shell',
     end
     equal(conversation.type, 'timeline', 'report conversation should use the AppShell timeline')
     equal(#conversation.items, 2, 'initial report and staff reply should both be visible')
+    equal(conversation.items[1].timestamp, os.date('!%Y-%m-%d %H:%M:%S', createdAt / 1000),
+        'qbsql millisecond timestamps should be converted to timeline strings')
+    equal(conversation.items[2].timestamp, os.date('!%Y-%m-%d %H:%M:%S', repliedAt),
+        'second timestamps should use the same conversion')
     truthy(management and #management.actions == 4, 'open report should offer claim, reply, resolve, and dismiss')
     truthy(reporter and #reporter.actions == 4, 'online reporter should have movement and spectate tools')
     truthy(back and back.actions[1].id == 'reports:back', 'report detail should offer a queue back button')

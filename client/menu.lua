@@ -12,7 +12,7 @@ end
 
 ---Fields may be a plain list or a function returning one, resolved right
 ---before the form opens rather than when SECTIONS is built (see below):
----a field using jobOptions()/itemOptions()/etc. needs QB.shared to have
+---a field using registry-backed job/item/vehicle options needs QB.shared to have
 ---already received its mirror snapshot from qbcore, which may not have
 ---happened yet at resource-start when SECTIONS itself is constructed.
 ---@param fields? table[]|fun():table[]
@@ -119,33 +119,35 @@ local function openClothing(mode, service)
     end
 end
 
-local function jobOptions()
-    local out = {}
-    for _, job in ipairs(QB.shared.all('jobs')) do out[#out + 1] = { value = job.name, label = job.label } end
-    return out
-end
-
-local function gangOptions()
-    local out = {}
-    for _, gang in ipairs(QB.shared.all('gangs')) do out[#out + 1] = { value = gang.name, label = gang.label } end
-    return out
-end
-
----Grades for one job/gang, in ascending order -- value is the 1-based grade
----number CoreInternal.player.buildJob/buildGang index `def.grades` with
----directly (see qbcore/modules/player/shared.lua), not a 0-based offset.
+---Build a role selector and its dependent grade selector from one registry
+---snapshot. Reading each record directly from `all()` avoids a second lookup
+---returning nil while a client mirror is being re-seeded.
 ---@param kind 'jobs'|'gangs'
----@param name string
+---@param label string
 ---@return table[]
-local function gradeOptions(kind, name)
-    local record = QB.shared.get(kind, name)
-    local out = {}
-    if record and record.grades then
-        for i, grade in ipairs(record.grades) do
-            out[#out + 1] = { value = tostring(i), label = ('%d - %s'):format(i, grade.name) }
+local function roleFields(kind, label)
+    local roles, gradesByRole = {}, {}
+    for _, role in ipairs(QB.shared.all(kind)) do
+        roles[#roles + 1] = { value = role.name, label = role.label }
+        local grades = {}
+        for gradeNumber, grade in ipairs(role.grades or {}) do
+            grades[#grades + 1] = {
+                value = tostring(gradeNumber),
+                label = ('%d - %s'):format(gradeNumber, grade.name),
+            }
         end
+        gradesByRole[role.name] = grades
     end
-    return out
+
+    local firstRole = roles[1] and roles[1].value
+    local firstGrade = firstRole and gradesByRole[firstRole][1]
+    return {
+        { id = 'name', label = label, type = 'select', options = roles, default = firstRole, required = true },
+        {
+            id = 'grade', label = 'Grade', type = 'select', dependsOn = 'name',
+            optionsByValue = gradesByRole, default = firstGrade and firstGrade.value, required = true,
+        },
+    }
 end
 
 local function vehicleOptions()
@@ -184,10 +186,10 @@ local function vehicleCatalogueField()
 end
 
 -- AppShell receives its action fields as a snapshot. The qbcore registry
--- snapshot can arrive just after this resource builds the menu, which used to
--- leave the catalogue's combobox permanently empty for that menu session.
--- Keep the active navigation so registry sync/delta events can replace just
--- those fields with the now-populated live vehicle list.
+-- snapshot can arrive just after this resource builds the menu, which would
+-- leave catalogue and role fields permanently empty for that menu session.
+-- Keep the active navigation so registry sync/delta events can replace those
+-- fields with the now-populated live lists.
 local activeNavigation
 
 local function forEachNavigationContent(navigation, callback)
@@ -199,7 +201,7 @@ local function forEachNavigationContent(navigation, callback)
     end
 end
 
-local function refreshVehicleCatalogueFields(navigation)
+local function refreshRegistryFields(navigation)
     if type(navigation) ~= 'table' then return end
     forEachNavigationContent(navigation, function(content)
         for _, block in ipairs(content.blocks or {}) do
@@ -207,6 +209,10 @@ local function refreshVehicleCatalogueFields(navigation)
                 for _, action in ipairs(block.actions or {}) do
                     if action.id == 'vehicle:car_catalogue' or action.id == 'player:target:veh_catalogue' then
                         action.fields = { vehicleCatalogueField() }
+                    elseif action.id == 'player:target:setjob' then
+                        action.fields = roleFields('jobs', 'Job')
+                    elseif action.id == 'player:target:setgang' then
+                        action.fields = roleFields('gangs', 'Gang')
                     end
                 end
             end
@@ -214,18 +220,20 @@ local function refreshVehicleCatalogueFields(navigation)
     end)
 end
 
-local function updateActiveVehicleCatalogue()
+local function updateActiveRegistryFields()
     if not activeNavigation then return end
-    refreshVehicleCatalogueFields(activeNavigation)
+    refreshRegistryFields(activeNavigation)
     if QB.nui.updateApp then QB.nui.updateApp('qbadmin:menu', { navigation = activeNavigation }) end
 end
 
 -- `@qbcore/init.lua` re-seeds its local mirror before later event handlers
 -- run, so the snapshot event is the reliable initial-load hook. Changes after
 -- that point arrive through the shared-list subscription.
-RegisterNetEvent('qbcore:registry:snapshotAll', updateActiveVehicleCatalogue)
+RegisterNetEvent('qbcore:registry:snapshotAll', updateActiveRegistryFields)
 if QB.shared.onChange then
-    QB.shared.onChange('vehicles', updateActiveVehicleCatalogue)
+    QB.shared.onChange('vehicles', updateActiveRegistryFields)
+    QB.shared.onChange('jobs', updateActiveRegistryFields)
+    QB.shared.onChange('gangs', updateActiveRegistryFields)
 end
 
 local function entityModelField()
@@ -564,6 +572,19 @@ local function playerProfileClipboard(profile)
     return table.concat(lines, '\n')
 end
 
+-- qbsql follows mysql2 and returns DATETIME/TIMESTAMP columns as epoch
+-- numbers, while oxmysql returns strings. AppShell timelines deliberately
+-- require strings, so normalise both drivers' shapes at this UI boundary.
+local function formatTimestamp(value)
+    if type(value) == 'string' and value ~= '' then return value end
+    if type(value) ~= 'number' then return '-' end
+
+    local seconds = value
+    if math.abs(seconds) >= 100000000000 then seconds = seconds / 1000 end
+    local ok, formatted = pcall(os.date, '!%Y-%m-%d %H:%M:%S', math.floor(seconds))
+    return ok and formatted or tostring(value)
+end
+
 local function openRoot()
     local navigation = {}
     local selectedPlayerActions = {}
@@ -656,7 +677,7 @@ local function openRoot()
         for _, row in ipairs(rows) do
             tableRows[#tableRows + 1] = {
                 action = row.action or 'unknown', actor = row.actor_name or 'unknown',
-                target = row.target_name or '-', created = row.created_at or '-', details = row.details or '',
+                target = row.target_name or '-', created = formatTimestamp(row.created_at), details = row.details or '',
             }
         end
         blocks[#blocks + 1] = {
@@ -728,7 +749,7 @@ local function openRoot()
                 id = tostring(row.id), status = { label = row.status, badge = true,
                     tone = row.status == 'open' and 'warning' or row.status == 'resolved' and 'success' or 'neutral' }, type = row.type,
                 reporter = row.reporter_name, assigned = row.claimed_by_name or '-',
-                message = row.message, updated = row.updated_at or row.created_at or '-',
+                message = row.message, updated = formatTimestamp(row.updated_at or row.created_at),
             }
         end
         blocks[#blocks + 1] = {
@@ -806,13 +827,13 @@ local function openRoot()
 
         local conversation = {
             { id = 'report', title = report.reporter_name, description = report.message,
-                timestamp = report.created_at or '-', icon = 'message-square', tone = 'primary',
+                timestamp = formatTimestamp(report.created_at), icon = 'message-square', tone = 'primary',
                 metadata = { { label = 'Role', value = 'player' } } },
         }
         for index, reply in ipairs(report.messages or {}) do
             conversation[#conversation + 1] = {
                 id = 'reply-' .. index, title = reply.author_name, description = reply.message,
-                timestamp = reply.created_at or '-', icon = 'message-square',
+                timestamp = formatTimestamp(reply.created_at), icon = 'message-square',
                 tone = reply.author_role == 'staff' and 'success' or 'neutral',
                 metadata = { { label = 'Role', value = reply.author_role or 'unknown' } },
             }
@@ -987,22 +1008,10 @@ local function openRoot()
         add('economy', 'clearinventory', 'Clear Inventory', 'admin', selected('clearinventory', nil, "Clear this player's entire inventory?"))
 
         add('roles', 'setjob', 'Set Job', 'admin', selected('setjob', function()
-            local roles, gradesByJob = jobOptions(), {}
-            for _, option in ipairs(roles) do gradesByJob[option.value] = gradeOptions('jobs', option.value) end
-            local first = roles[1] and roles[1].value
-            return {
-                { id = 'name', label = 'Job', type = 'select', options = roles, default = first, required = true },
-                { id = 'grade', label = 'Grade', type = 'select', dependsOn = 'name', optionsByValue = gradesByJob, required = true },
-            }
+            return roleFields('jobs', 'Job')
         end))
         add('roles', 'setgang', 'Set Gang', 'admin', selected('setgang', function()
-            local roles, gradesByGang = gangOptions(), {}
-            for _, option in ipairs(roles) do gradesByGang[option.value] = gradeOptions('gangs', option.value) end
-            local first = roles[1] and roles[1].value
-            return {
-                { id = 'name', label = 'Gang', type = 'select', options = roles, default = first, required = true },
-                { id = 'grade', label = 'Grade', type = 'select', dependsOn = 'name', optionsByValue = gradesByGang, required = true },
-            }
+            return roleFields('gangs', 'Gang')
         end))
         add('roles', 'setduty', 'Toggle Duty', 'mod', selected('setduty'))
 
@@ -1114,7 +1123,7 @@ local function openRoot()
     -- an extra "view" click. The same functions handle refresh/back actions.
     showPlayersInShell()
     showReportsInShell({ status = 'open' })
-    refreshVehicleCatalogueFields(activeNavigation)
+    refreshRegistryFields(activeNavigation)
     QB.nui.registerApp({
         id = 'qbadmin:menu',
         title = 'Administration',
