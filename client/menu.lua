@@ -281,11 +281,11 @@ end
 
 local function weatherOptions()
     local out = {}
-    -- qb-weathersync owns the accepted weather list.  qbadmin intentionally
+    -- qbweathersync owns the accepted weather list.  qbadmin intentionally
     -- has no manifest dependency on it (the sync resource starts after this
     -- one so it can own /weather), therefore retain the local list only as a
     -- graceful fallback while that resource is stopped/restarting.
-    local ok, weatherTypes = pcall(function() return exports['qb-weathersync']:getWeatherTypes() end)
+    local ok, weatherTypes = pcall(function() return exports['qbweathersync']:getWeatherTypes() end)
     for _, w in ipairs(ok and weatherTypes or Config.world.weatherTypes) do
         out[#out + 1] = { value = w, label = w }
     end
