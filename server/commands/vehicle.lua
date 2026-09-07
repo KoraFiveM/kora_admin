@@ -14,7 +14,7 @@ local function validModel(model)
     -- Prefer the canonical shared registry.  Keeping the native hash check as
     -- a fallback preserves support for deliberately registered addon vehicles.
     if QB.shared.get('vehicles', model) then return model end
-    local hash = GetHashKey(model)
+    local hash = joaat(model)
     if hash == 0 or hash == -1 or not IsModelInCdimage(hash) or not IsModelAVehicle(hash) then return nil end
     return model
 end

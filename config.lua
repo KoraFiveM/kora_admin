@@ -25,19 +25,6 @@ Config.permissions = {
         admin = 'admin',
         god = 'owner',
     },
-    -- Optional Discord role names or IDs for each tier. Leave this empty for
-    -- ACE-only authorization. Matching any role listed for a tier grants that
-    -- tier; qblib then applies the normal rank cascade. Role IDs are safest
-    -- because Discord permits duplicate role names. This uses qblib's bot role
-    -- cache and fails closed when the bot/cache/player identifier is unavailable.
-    -- ACEs, including group.admin, are always checked first and remain active.
-    --
-    -- discordRoles = {
-    --     moderator = { 'Moderator' },
-    --     admin = { '123456789012345678' },
-    --     owner = { 'Owner' },
-    -- },
-    discordRoles = {},
     -- Must match qbcore's own Config.identity.primaryIdentifier (default
     -- 'license', not readable from this resource's VM). exports.qbcore's own
     -- addPermission reads qbcore's copy directly when GRANTING; qbadmin's

@@ -238,3 +238,52 @@ end
 function Admin.syncLevel(src)
     TriggerClientEvent('qbadmin:client:level', src, Admin.getLevel(src))
 end
+
+-- The playground is a development-only, trusted consumer.  It needs a narrow
+-- bridge for hands-on permission tests, but must not gain a general-purpose
+-- way to mint owner access or mutate durable ACE configuration.  Its own
+-- server callback supplies the player-facing ACE gate; this export confines
+-- the cross-resource contract to the two explicitly testable staff tiers.
+local PLAYGROUND_RESOURCE = 'qblib-playground'
+local PLAYGROUND_ROLES = { moderator = true, admin = true }
+
+---@param targetSrc integer
+---@param role string
+---@param minutes integer
+---@return integer|nil expiresAt
+---@return string|nil err
+exports('grantPlaygroundTemporaryAccess', function(targetSrc, role, minutes)
+    if GetInvokingResource() ~= PLAYGROUND_RESOURCE then
+        return nil, 'this temporary-access bridge is reserved for qblib-playground'
+    end
+    if not PLAYGROUND_ROLES[role] then
+        return nil, 'playground may grant only moderator or admin'
+    end
+    local maxRank = Admin.roleRank(Config.permissions.temporaryGrant.maxRole)
+    if not maxRank or Admin.roleRank(role) > maxRank then
+        return nil, 'that role is disabled by qbadmin temporary-access policy'
+    end
+
+    local expiresAt, err = Admin.grantTemporaryAccess(targetSrc, role, minutes)
+    if expiresAt then Admin.syncLevel(targetSrc) end
+    return expiresAt, err
+end)
+
+---@param targetSrc integer
+---@param role string
+---@return boolean revoked
+---@return string|nil err
+exports('revokePlaygroundTemporaryAccess', function(targetSrc, role)
+    if GetInvokingResource() ~= PLAYGROUND_RESOURCE then
+        return false, 'this temporary-access bridge is reserved for qblib-playground'
+    end
+    if not PLAYGROUND_ROLES[role] then
+        return false, 'playground may revoke only moderator or admin'
+    end
+    if not Admin.revokeTemporaryAccess(targetSrc, role) then
+        return false, 'the player has no matching temporary grant'
+    end
+
+    Admin.syncLevel(targetSrc)
+    return true
+end)

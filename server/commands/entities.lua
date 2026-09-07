@@ -11,7 +11,7 @@ local function validEntityModel(model)
     if type(model) ~= 'string' or not model:match('^[%w_]+$') then return nil end
     model = model:lower()
 
-    local hash = GetHashKey(model)
+    local hash = joaat(model)
     if hash == 0 or hash == -1 or not IsModelInCdimage(hash) then return nil end
     if IsModelAVehicle(hash) then return nil, 'use /car or /veh for vehicle models' end
     return model

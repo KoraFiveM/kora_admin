@@ -36,6 +36,7 @@ files {
 -- commands/*.lua file that calls them; migrate.lua and ban_enforcement.lua
 -- have no such dependency and can load anywhere after core.lua.
 server_scripts {
+    'server/config.lua',
     'server/core.lua',
     'server/permissions.lua',
     'server/target.lua',
