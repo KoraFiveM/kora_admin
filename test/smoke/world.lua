@@ -131,6 +131,7 @@ end)
 -- second menu or input dialog.
 local netEvents = {}
 local menuPayload
+local menuUpdates
 local executedCommand
 local copiedText
 local clockHour, clockMinute = 8, 0
@@ -148,6 +149,10 @@ QB = {
     },
     nui = {
         registerApp = function(definition) menuPayload = definition end,
+        updateApp = function(_, update)
+            menuUpdates = (menuUpdates or 0) + 1
+            if update.navigation then menuPayload.navigation = update.navigation end
+        end,
         openApp = function() return { closed = true } end,
         copyToClipboard = function(value) copiedText = value end,
     },
@@ -170,16 +175,34 @@ Admin.level = 'god'
 dofile('client/development.lua')
 dofile('client/menu.lua')
 
-local function timeAction()
-    executedCommand, menuPayload = nil, nil
-    netEvents['qbadmin:client:openMenu']('god')
-    for _, category in ipairs(menuPayload.navigation) do
-        if category.id == 'world' then
-            for _, action in ipairs(category.content.blocks[1].actions) do
-                if action.id == 'world:time' then return action end
+local function findView(definition, id)
+    for _, view in ipairs(definition.navigation) do
+        if view.id == id then return view end
+    end
+end
+
+local function findTab(view, id)
+    for _, tab in ipairs(view and view.tabs or {}) do
+        if tab.id == id then return tab end
+    end
+end
+
+local function findAction(definition, id)
+    for _, view in ipairs(definition.navigation) do
+        for _, tab in ipairs(view.tabs or {}) do
+            for _, block in ipairs(tab.content and tab.content.blocks or {}) do
+                for _, action in ipairs(block.actions or {}) do
+                    if action.id == id then return action end
+                end
             end
         end
     end
+end
+
+local function timeAction()
+    executedCommand, menuPayload = nil, nil
+    netEvents['qbadmin:client:openMenu']('god')
+    return findAction(menuPayload, 'world:time')
 end
 
 test('Set Time provides presets and exact inputs in the app shell', function()
@@ -207,25 +230,52 @@ test('a Custom submission runs the exact time', function()
     equal(executedCommand, 'time 3 45', 'custom command')
 end)
 
-test('the sidebar omits actions already available after selecting a player', function()
+test('the sidebar is reduced to focused workspaces with tabbed tools', function()
+    menuUpdates = 0
     netEvents['qbadmin:client:openMenu']('god')
-    local categories, actions = {}, {}
-    for _, category in ipairs(menuPayload.navigation) do
-        categories[category.id] = true
-        actions[category.id] = {}
-        for _, action in ipairs(category.content.blocks[1].actions) do actions[category.id][action.id] = true end
-    end
+    equal(#menuPayload.navigation, 5, 'the long category list should collapse into five workspaces')
+    truthy(findView(menuPayload, 'players'), 'Players workspace')
+    truthy(findView(menuPayload, 'reports'), 'Reports workspace')
+    truthy(findView(menuPayload, 'tools'), 'My Tools workspace')
+    truthy(findView(menuPayload, 'server'), 'Server workspace')
+    truthy(findView(menuPayload, 'development'), 'Development workspace')
+    equal(#findView(menuPayload, 'tools').tabs, 4, 'personal utilities should be split into four tabs')
+    equal(#findView(menuPayload, 'server').tabs, 4, 'server controls should be split into four tabs')
+    truthy(findTab(findView(menuPayload, 'tools'), 'vehicle'), 'vehicles should be a tab, not a sidebar page')
+    truthy(findTab(findView(menuPayload, 'server'), 'audit'), 'audit log should be a server tab')
+    truthy(findAction(menuPayload, 'player:refresh'), 'online browser should have an explicit refresh action')
+    equal(findAction(menuPayload, 'player:players'), nil, 'Players opens directly into the browser')
+    equal(findAction(menuPayload, 'teleport:goto'), nil, 'targeted teleport only follows selection')
+    equal(findAction(menuPayload, 'vehicle:veh'), nil, 'targeted vehicle spawn only follows selection')
+    equal(findAction(menuPayload, 'developer:devmode_player'), nil, 'targeted dev mode only follows selection')
+    truthy(findAction(menuPayload, 'world:restartresource'), 'unique server action remains available')
+    equal(menuUpdates, 0, 'live tables should be seeded before registration without a second render')
+end)
 
-    equal(categories.economy, nil, 'no duplicate economy sidebar')
-    equal(categories.jobgang, nil, 'no duplicate job/gang sidebar')
-    equal(categories.temporary_access, nil, 'no duplicate access sidebar')
-    equal(categories.entities, nil, 'no duplicate target-spawning sidebar')
-    equal(categories.privileged, nil, 'single server action should be folded into World / Server')
-    truthy(actions.player['player:players'], 'Players remains the entry point')
-    equal(actions.teleport['teleport:goto'], nil, 'targeted teleport only follows selection')
-    equal(actions.vehicle['vehicle:veh'], nil, 'targeted vehicle spawn only follows selection')
-    equal(actions.developer['developer:devmode_player'], nil, 'targeted dev mode only follows selection')
-    truthy(actions.world['world:restartresource'], 'unique server action remains available')
+test('Vehicle provides both a refreshed catalogue and a free-form spawn code', function()
+    QB.shared.all = function() return {} end
+    local appUpdate
+    QB.nui.updateApp = function(_, update) appUpdate = update end
+    netEvents['qbadmin:client:openMenu']('god')
+
+    QB.shared.all = function(name)
+        if name == 'vehicles' then return { { model = 'zentorno', name = 'Zentorno' } } end
+        return {}
+    end
+    netEvents['qbcore:registry:snapshotAll']({})
+
+    local code = findAction({ navigation = appUpdate.navigation }, 'vehicle:car')
+    local catalogue = findAction({ navigation = appUpdate.navigation }, 'vehicle:car_catalogue')
+    equal(code.fields[1].type, 'text', 'Spawn from Code accepts a plain model name')
+    equal(catalogue.fields[1].type, 'combobox', 'catalogue stays searchable')
+    equal(catalogue.fields[1].options[1].value, 'zentorno', 'catalogue uses the synced vehicle registry')
+
+    executedCommand = nil
+    menuPayload.onAction('vehicle:car', { value = { model = 'adder' } })
+    equal(executedCommand, 'car adder', 'Spawn from Code calls the self-spawn command')
+
+    QB.shared.all = function() return {} end
+    QB.nui.updateApp = nil
 end)
 
 test('List Players selects a player before running their admin actions', function()
@@ -246,23 +296,28 @@ test('List Players selects a player before running their admin actions', functio
         return {}
     end
     netEvents['qbadmin:client:openMenu']('god')
-    menuPayload.onAction('player:players', {})
-    menuPayload.onAction('player:select', { itemId = '7' })
+    local selectedResult = menuPayload.onAction('player:select', { itemId = '7' })
+    equal(selectedResult.navigate.viewId, 'players', 'player selection returns AppShell navigation')
+    equal(selectedResult.navigate.tabId, 'overview', 'player selection opens the profile overview')
 
-    local selectedActionGroups, profileDetails, onlinePlayers = {}, nil, nil
-    for _, category in ipairs(menuPayload.navigation) do
-        if category.id == 'player' then
-            for _, block in ipairs(category.content.blocks) do
+    local selectedActionGroups, profileDetails, onlinePlayers, back = {}, nil, nil, nil
+    local playerWorkspace = findView(menuPayload, 'players')
+    equal(playerWorkspace.defaultTab, 'overview', 'a selected player should open on a concise overview')
+    equal(#playerWorkspace.tabs, 6, 'the player detail should be split into manageable tabs')
+    for _, tab in ipairs(playerWorkspace.tabs) do
+        for _, block in ipairs(tab.content.blocks) do
                 if block.id and block.id:match('^selected%-player%-actions') then
                     selectedActionGroups[block.title] = block.actions
                 end
                 if block.id == 'selected-player-details' then profileDetails = block end
                 if block.id == 'online-players' then onlinePlayers = block end
-            end
+                if block.id == 'selected-player-back' then back = block end
         end
     end
-    truthy(profileDetails and #profileDetails.rows >= 10, 'clicking a player should open their full profile')
+    truthy(profileDetails and profileDetails.type == 'details' and #profileDetails.items >= 10,
+        'clicking a player should open their full profile as structured details')
     equal(onlinePlayers, nil, 'the player list should be replaced by the profile')
+    truthy(back and back.actions[1].id == 'player:back', 'the profile should offer a back button')
     truthy(selectedActionGroups['Profile'], 'profile controls should have their own category')
     truthy(selectedActionGroups['Movement & Spectating'], 'movement commands should have their own category')
     truthy(selectedActionGroups['Health & State'], 'health commands should have their own category')
@@ -287,6 +342,17 @@ test('List Players selects a player before running their admin actions', functio
     copiedText = nil
     menuPayload.onAction('player:target:copyinfo', { value = {} })
     truthy(copiedText and copiedText:find('Citizen ID: TEST123', 1, true), 'copy button should copy the player profile')
+
+    local backResult = menuPayload.onAction('player:back', {})
+    equal(backResult.navigate.viewId, 'players', 'profile Back returns an AppShell navigation result')
+    playerWorkspace = findView(menuPayload, 'players')
+    equal(#playerWorkspace.tabs, 1, 'Back should collapse player detail tabs to the online browser')
+    for _, block in ipairs(playerWorkspace.tabs[1].content.blocks) do
+        if block.id == 'online-players' then onlinePlayers = block end
+    end
+    truthy(onlinePlayers, 'Back should return to the online-player browser')
+    truthy(onlinePlayers.searchable and onlinePlayers.pageSize == 12,
+        'the restored online-player table is searchable and paged')
 end)
 
 test('Reports list, detail, conversation, and management stay in the app shell', function()
@@ -310,24 +376,39 @@ test('Reports list, detail, conversation, and management stay in the app shell',
 
     netEvents['qbadmin:client:openMenu']('god')
     menuPayload.onAction('reports:open', {})
-    menuPayload.onAction('reports:select', { itemId = '42' })
+    local selectedResult = menuPayload.onAction('reports:select', { itemId = '42' })
+    equal(selectedResult.navigate.viewId, 'reports', 'report selection returns AppShell navigation')
+    equal(selectedResult.navigate.tabId, 'overview', 'report selection opens the report overview')
 
-    local conversation, management, reporter
-    for _, category in ipairs(menuPayload.navigation) do
-        if category.id == 'reports' then
-            for _, block in ipairs(category.content.blocks) do
+    local conversation, management, reporter, back
+    local reportWorkspace = findView(menuPayload, 'reports')
+    equal(reportWorkspace.defaultTab, 'overview', 'selected reports should open on their overview')
+    equal(#reportWorkspace.tabs, 3, 'report detail should separate overview, management, and reporter tools')
+    for _, tab in ipairs(reportWorkspace.tabs) do
+        for _, block in ipairs(tab.content.blocks) do
                 if block.id == 'selected-report-conversation' then conversation = block end
                 if block.id == 'selected-report-management' then management = block end
                 if block.id == 'selected-report-player' then reporter = block end
-            end
+                if block.id == 'selected-report-back' then back = block end
         end
     end
-    equal(#conversation.rows, 2, 'initial report and staff reply should both be visible')
+    equal(conversation.type, 'timeline', 'report conversation should use the AppShell timeline')
+    equal(#conversation.items, 2, 'initial report and staff reply should both be visible')
     truthy(management and #management.actions == 4, 'open report should offer claim, reply, resolve, and dismiss')
     truthy(reporter and #reporter.actions == 4, 'online reporter should have movement and spectate tools')
+    truthy(back and back.actions[1].id == 'reports:back', 'report detail should offer a queue back button')
 
     menuPayload.onAction('reports:selected:reply', { value = { message = 'Please try that again now' } })
     equal(executedCommand, 'reportreply 42 Please try that again now', 'report reply command')
+
+    local backResult = menuPayload.onAction('reports:back', {})
+    equal(backResult.navigate.viewId, 'reports', 'report Back returns an AppShell navigation result')
+    reportWorkspace = findView(menuPayload, 'reports')
+    equal(#reportWorkspace.tabs, 1, 'Back should restore the queue tab')
+    truthy(findTab(reportWorkspace, 'reports'), 'report queue tab should be restored')
+    local queue = findTab(reportWorkspace, 'reports').content.blocks[#findTab(reportWorkspace, 'reports').content.blocks]
+    truthy(queue.searchable and queue.pageSize == 12, 'the restored report queue is searchable and paged')
+    truthy(queue.rows[1].status.badge, 'report status uses a rich AppShell badge cell')
 end)
 
 print(('qbadmin world: %d passed, %d failed'):format(passed, failed))

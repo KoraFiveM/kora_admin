@@ -169,23 +169,27 @@ end)
 
 local function developerCategory()
     for _, category in ipairs(menuPayload.navigation) do
-        if category.id == 'developer' then return category end
+        if category.id == 'development' then return category end
     end
 end
 
 local function developerItem(id)
     local category = developerCategory()
     if not category then return nil end
-    for _, item in ipairs(category.content.blocks[1].actions) do
-        if item.id == ('developer:' .. id) then return item end
+    for _, tab in ipairs(category.tabs or {}) do
+        if tab.id == 'developer' then
+            for _, item in ipairs(tab.content.blocks[1].actions) do
+                if item.id == ('developer:' .. id) then return item end
+            end
+        end
     end
 end
 
-test('Developer submenu reflects qbcore dev mode and gates creator shortcuts', function()
+test('Builders tab reflects qbcore dev mode and gates creator shortcuts', function()
     localDevMode = false
     selectedMenuResult = { cancelled = true }
     netEvents['qbadmin:client:openMenu'](Config.developer.menuLevel)
-    truthy(developerCategory(), 'Developer category should be present')
+    truthy(developerCategory(), 'Development workspace should be present')
     equal(developerItem('devmode_self'), nil, 'player dev mode belongs under the selected-player workflow')
     truthy(developerItem('devplacement').disabled, 'placement should be disabled outside dev mode')
     truthy(developerItem('devzone').disabled, 'zone creator should be disabled outside dev mode')
@@ -196,7 +200,7 @@ test('Developer submenu reflects qbcore dev mode and gates creator shortcuts', f
     equal(developerItem('devzone').disabled, false, 'zone creator should enable in dev mode')
 end)
 
-test('Developer menu zone shortcut runs the permission-checked command', function()
+test('Builders tab zone shortcut runs the permission-checked command', function()
     selectedMenuResult = { path = { 'developer' }, selectedId = 'devzone' }
     inputResult = { values = { type = 'sphere' } }
     netEvents['qbadmin:client:openMenu'](Config.developer.menuLevel)

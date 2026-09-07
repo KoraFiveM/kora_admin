@@ -63,13 +63,13 @@ Almost every action below can be typed in chat by an admin, clicked in the
 `ExecuteCommand` — the server console is exempt from the permission check
 entirely, so a trusted server-side script can call any command directly.
 
-The menu sidebar is intentionally compact. **Players → Browse Online Players**
-is the entry point for all online-player actions; selecting a row reveals the
-full player profile and categorized moderation, movement, health, appearance, economy/inventory,
-job/gang, spawning, development, and access tools. The sidebar retains only
-unique report, offline-ban, self, developer, world/server, Medal, and audit
-workflows. **Copy Player Info** copies the visible profile fields; platform
-identifiers and permission level are included only for admins.
+The menu sidebar is split into five focused workspaces: **Players**, **Reports**,
+**My Tools**, **Server**, and **Development**. Tabs inside those pages keep
+related actions together without turning every tool into another sidebar row.
+Selecting an online player replaces the list with tabbed profile, player-tool,
+moderation, economy/item, role/access, and advanced views; Back returns to the
+live player browser. **Copy Player Info** copies the visible profile fields;
+platform identifiers and permission level are included only for admins.
 
 ### Give a player money and an item
 ```
@@ -122,10 +122,11 @@ end)
 /deleteentity           -- delete your last admin-spawned entity
 ```
 
-In the admin menu, **Vehicle → Spawn by Model** accepts a plain spawn code:
-enter `outlaw`, `zentorno`, or any valid streamed addon vehicle model.
-**Spawn from Catalogue** is a separate searchable quick-pick list of common
-vanilla vehicles; it is not an allow-list.
+In the admin menu, **My Tools → Vehicles → Spawn from Code** uses the same
+`/car` command and accepts a plain spawn code: enter `outlaw`, `zentorno`, or
+any valid streamed addon vehicle model. **Browse Vehicle Catalogue** is a
+separate searchable quick-pick list of common vanilla vehicles; it is not an
+allow-list.
 
 **Entities → Spawn Ped / Prop** accepts any valid ped or prop model. These
 spawns are local to the recipient and static, which makes them safe for
@@ -135,9 +136,9 @@ networked.
 
 ### Capture a Medal clip
 
-The **Medal Clips** category saves a configured highlight from the local Medal
-recorder of the admin who clicks it. Generate a public key and submit the same
-event IDs through [Medal's Auto-Clipping
+The **Development → Medal Clips** tab saves a configured highlight from the
+local Medal recorder of the admin who clicks it. Generate a public key and
+submit the same event IDs through [Medal's Auto-Clipping
 builder](https://medal.tv/developer/auto-clipping), then add this replicated
 setting to `server.cfg`:
 
@@ -224,11 +225,11 @@ accept an `[id]` argument that defaults to the caller, or the literal word
 /reportreopen <id> [reason]              -- support+
 ```
 
-The admin menu's **Reports** section shows persistent reports and their full
-conversation, with filters for status, type, reporter, and page. Open reports
-can be claimed, replied to, resolved, or dismissed; closed reports can be
-reopened. When the reporter is online, staff also get teleport, bring,
-send-back, and spectate shortcuts.
+The admin menu's **Reports** workspace shows persistent reports with filters
+for status, type, reporter, and page. Selecting one opens separate Overview,
+Manage, and Online Reporter tabs. Open reports can be claimed, replied to,
+resolved, or dismissed; closed reports can be reopened. When the reporter is
+online, staff also get teleport, bring, send-back, and spectate shortcuts.
 
 ### Selected-player appearance — `admin`
 ```

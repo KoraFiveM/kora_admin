@@ -11,10 +11,10 @@ local function runCommand(...)
 end
 
 ---Fields may be a plain list or a function returning one, resolved right
----before the dialog opens rather than when CATEGORIES is built (see below):
+---before the form opens rather than when SECTIONS is built (see below):
 ---a field using jobOptions()/itemOptions()/etc. needs QB.shared to have
 ---already received its mirror snapshot from qbcore, which may not have
----happened yet at resource-start when CATEGORIES itself is constructed.
+---happened yet at resource-start when SECTIONS itself is constructed.
 ---@param fields? table[]|fun():table[]
 ---@return table[]|nil
 local function resolveFields(fields)
@@ -183,6 +183,51 @@ local function vehicleCatalogueField()
     }
 end
 
+-- AppShell receives its action fields as a snapshot. The qbcore registry
+-- snapshot can arrive just after this resource builds the menu, which used to
+-- leave the catalogue's combobox permanently empty for that menu session.
+-- Keep the active navigation so registry sync/delta events can replace just
+-- those fields with the now-populated live vehicle list.
+local activeNavigation
+
+local function forEachNavigationContent(navigation, callback)
+    for _, view in ipairs(navigation or {}) do
+        if view.content then callback(view.content, view) end
+        for _, tab in ipairs(view.tabs or {}) do
+            if tab.content then callback(tab.content, view, tab) end
+        end
+    end
+end
+
+local function refreshVehicleCatalogueFields(navigation)
+    if type(navigation) ~= 'table' then return end
+    forEachNavigationContent(navigation, function(content)
+        for _, block in ipairs(content.blocks or {}) do
+            if block.type == 'actions' then
+                for _, action in ipairs(block.actions or {}) do
+                    if action.id == 'vehicle:car_catalogue' or action.id == 'player:target:veh_catalogue' then
+                        action.fields = { vehicleCatalogueField() }
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function updateActiveVehicleCatalogue()
+    if not activeNavigation then return end
+    refreshVehicleCatalogueFields(activeNavigation)
+    if QB.nui.updateApp then QB.nui.updateApp('qbadmin:menu', { navigation = activeNavigation }) end
+end
+
+-- `@qbcore/init.lua` re-seeds its local mirror before later event handlers
+-- run, so the snapshot event is the reliable initial-load hook. Changes after
+-- that point arrive through the shared-list subscription.
+RegisterNetEvent('qbcore:registry:snapshotAll', updateActiveVehicleCatalogue)
+if QB.shared.onChange then
+    QB.shared.onChange('vehicles', updateActiveVehicleCatalogue)
+end
+
 local function entityModelField()
     return {
         id = 'model',
@@ -317,13 +362,24 @@ local function medalItems()
     return items
 end
 
--- label/level/run -- label and disabled may be functions evaluated whenever
--- the menu opens. `level` is this item's OWN gate (and may exceed the
--- category's floor). Filtering here is cosmetic only: every command re-checks
--- server-side regardless of what this menu shows.
-local CATEGORIES = {
+-- Sections become tabs inside the broader PAGE_LAYOUT workspaces below.
+-- `actionGroup` keeps the established action ids stable when one old section
+-- is split into clearer tabs (for example Environment and Server both still
+-- dispatch `world:*`). Permission filtering here is cosmetic only: every
+-- command re-checks server-side regardless of what this menu shows.
+local SECTIONS = {
     {
-        id = 'reports', label = 'Reports', level = Config.reports.staffLevel,
+        id = 'player', label = 'Online', level = 'support',
+        title = 'Online Players',
+        description = 'Select a player once, then use focused tabs for their profile and administrative tools.',
+        items = {
+            { id = 'refresh', label = 'Refresh Online Players', level = 'support', icon = 'activity', run = appAction(function() end) },
+        },
+    },
+    {
+        id = 'reports', label = 'Queue', level = Config.reports.staffLevel,
+        title = 'Player Reports',
+        description = 'Review open reports, search the full queue, and manage a report without leaving this workspace.',
         items = {
             { id = 'open', label = 'View Open Reports', level = Config.reports.staffLevel, run = appAction(function() end) },
             { id = 'all', label = 'View All Reports', level = Config.reports.staffLevel, run = appAction(function() end) },
@@ -331,122 +387,153 @@ local CATEGORIES = {
         },
     },
     {
-        id = 'player', label = 'Players', level = 'support',
+        id = 'self', label = 'General', level = 'mod',
+        title = 'Personal Admin Tools',
+        description = 'Common staff-state, recovery, and coordinate utilities for your own character.',
         items = {
-            { id = 'players', label = 'Browse Online Players', level = 'support', run = appAction(function() end) },
+            { id = 'aduty', label = 'Toggle Admin Duty', level = 'mod', icon = 'shield', run = withFields('aduty') },
+            { id = 'coords', label = 'Copy Coordinates', level = 'mod', icon = 'copy', run = withFields('coords') },
+            { id = 'health', label = 'Set Health', level = 'mod', icon = 'heart',
+                run = withFields('health', { { id = 'value', label = 'Health (0-100%, blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Health') },
+            { id = 'selfrevive', label = 'Revive Me', level = 'mod', icon = 'activity', run = withFields('selfrevive') },
+            { id = 'armor', label = 'Set Armor', level = 'mod', icon = 'shield',
+                run = withFields('armor', { { id = 'value', label = 'Armor (blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Armor') },
         },
     },
     {
-        -- Online moderation lives under Players. These remain because an
-        -- offline citizen/license cannot be selected from the player table.
-        id = 'moderation', label = 'Offline Bans', level = 'admin',
+        id = 'teleport', label = 'Movement', level = 'mod',
+        title = 'Movement & Spectating',
+        description = 'Move around the map, return to your last position, or leave an active spectate session.',
         items = {
-            { id = 'ban', label = 'Ban Offline Player', level = 'admin',
+            { id = 'tpm', label = 'Teleport to Waypoint', level = 'mod', icon = 'map-pin', run = withFields('tpm', nil, nil, true) },
+            { id = 'tpcoords', label = 'Teleport to Coordinates', level = 'mod', icon = 'map',
+                run = withFields('tpcoords', {
+                    { id = 'coordinates', label = 'Coordinates', type = 'text', placeholder = 'vec4(123.4, 456.7, 78.9, 90.0)', required = true },
+                }, 'Teleport to Coordinates', true) },
+            { id = 'tpback', label = 'Teleport Back', level = 'mod', icon = 'arrow-left', run = withFields('tpback', nil, nil, true) },
+            { id = 'spectateStop', label = 'Stop Spectating', level = 'mod', icon = 'crosshair', run = withFields('spectate', nil, nil, true) },
+            { id = 'noclip', label = 'Toggle Noclip', level = 'admin', icon = 'unlock', run = withFields('noclip', nil, nil, true) },
+        },
+    },
+    {
+        id = 'vehicle', label = 'Vehicles', level = 'mod',
+        title = 'Vehicle Tools',
+        description = 'Spawn a vehicle for yourself, or repair and remove the vehicle you are using.',
+        items = {
+            { id = 'car', label = 'Spawn from Code', level = 'admin', icon = 'car', variant = 'primary',
+                description = 'Spawn any valid GTA or streamed addon vehicle model for yourself',
+                run = withFields('car', function() return { vehicleModelField() } end, 'Spawn vehicle from code') },
+            { id = 'car_catalogue', label = 'Browse Vehicle Catalogue', level = 'admin', icon = 'search',
+                run = withFields('car', function() return { vehicleCatalogueField() } end, 'Spawn vehicle from catalogue') },
+            { id = 'fix', label = 'Repair Current Vehicle', level = 'mod', icon = 'wrench', run = withFields('fix') },
+            { id = 'dv', label = 'Delete Current Vehicle', level = 'admin', icon = 'trash-2', variant = 'destructive',
+                visible = function() return QB.cache.vehicle() ~= false end,
+                run = withConfirm('Delete the vehicle you are in?', withFields('dv')) },
+        },
+    },
+    {
+        id = 'appearance', actionGroup = 'self', label = 'Appearance', level = 'mod',
+        title = 'Appearance & Clothing',
+        description = 'Open a nearby fitting service or your full administrative styling session.',
+        items = {
+            { id = 'wardrobe', label = 'Open Wardrobe', level = 'mod', icon = 'shopping-bag', run = appAction(function() openClothing('wardrobe') end, nil, nil, true) },
+            { id = 'clothingshop', label = 'Nearby Clothing Shop', level = 'mod', icon = 'shopping-bag', run = appAction(function() openClothing('shop', 'clothing') end, nil, nil, true) },
+            { id = 'barbershop', label = 'Nearby Barber Shop', level = 'mod', icon = 'user', run = appAction(function() openClothing('shop', 'barber') end, nil, nil, true) },
+            { id = 'tattooshop', label = 'Nearby Tattoo Shop', level = 'mod', icon = 'edit', run = appAction(function() openClothing('shop', 'tattoo') end, nil, nil, true) },
+            { id = 'stylingall', label = 'Full Administrative Styling', level = 'admin', icon = 'star', variant = 'primary', run = appAction(function() openClothing('admin') end, nil, nil, true) },
+        },
+    },
+    {
+        id = 'environment', actionGroup = 'world', label = 'Environment', level = 'admin',
+        title = 'World & Environment',
+        description = 'Control announcements, global weather, and the server clock.',
+        items = {
+            { id = 'announce', label = 'Send Announcement', level = 'admin', icon = 'bell',
+                run = withFields('announce', { { id = 'message', label = 'Message', type = 'textarea', required = true } }, 'Announce') },
+            { id = 'weather', label = 'Set Weather', level = 'admin', icon = 'activity',
+                run = withFields('weather', function() return { { id = 'type', label = 'Weather', type = 'select', options = weatherOptions(), required = true } } end, 'Set Weather') },
+            { id = 'dynamicweather', label = 'Dynamic Weather', level = 'admin', icon = 'settings',
+                description = 'Choose whether weather changes automatically',
+                run = withFields('freezeweather', function()
+                    return { { id = 'enabled', label = 'Automatic changes', type = 'select', required = true,
+                        options = { { value = 'true', label = 'Enabled' }, { value = 'false', label = 'Disabled' } } } }
+                end, 'Dynamic Weather') },
+            { id = 'time', label = 'Set Time', level = 'admin', icon = 'clock', run = setTime },
+        },
+    },
+    {
+        id = 'server', actionGroup = 'world', label = 'Server', level = 'mod',
+        title = 'Server Utilities',
+        description = 'Inspect the running server or perform carefully gated resource operations.',
+        items = {
+            { id = 'serverinfo', label = 'Server Information', level = 'mod', icon = 'info', run = withFields('serverinfo') },
+            { id = 'restartresource', label = 'Restart Resource', level = 'god', icon = 'activity', variant = 'destructive',
+                run = withConfirm('Restart this resource?', withFields('restartresource', { { id = 'name', label = 'Resource name', type = 'text', required = true } }, 'Restart Resource')) },
+        },
+    },
+    {
+        -- Online moderation lives in the selected-player workspace. These
+        -- actions remain for players who cannot be selected from the table.
+        id = 'moderation', label = 'Offline Bans', level = 'admin',
+        title = 'Offline Moderation',
+        description = 'Ban an offline character or revoke an existing ban by identifier.',
+        items = {
+            { id = 'ban', label = 'Ban Offline Player', level = 'admin', icon = 'ban', variant = 'destructive',
                 run = withConfirm('Ban this player? This is persistent.', withFields('ban', {
                     { id = 'target', label = 'Citizen ID or character name', type = 'text', required = true },
                     { id = 'duration', label = 'Duration (30m, 2h, 7d, or perm)', type = 'text', default = 'perm', required = true },
                     { id = 'reason', label = 'Reason', type = 'text', required = true },
                 }, 'Ban Player')) },
-            { id = 'unban', label = 'Unban', level = 'admin',
+            { id = 'unban', label = 'Unban', level = 'admin', icon = 'unlock',
                 run = withFields('unban', { { id = 'target', label = 'License or ban id', type = 'text', required = true } }, 'Unban') },
         },
     },
     {
-        id = 'teleport', label = 'Teleport / Spectate', level = 'mod',
+        id = 'audit', label = 'Audit Log', level = 'admin',
+        title = 'Administrative Audit Log',
+        description = 'Review recent staff actions or narrow the log by action, target, and page.',
         items = {
-            { id = 'tpm', label = 'Teleport to Waypoint', level = 'mod', run = withFields('tpm', nil, nil, true) },
-            { id = 'tpcoords', label = 'Teleport to Coords', level = 'mod',
-                run = withFields('tpcoords', {
-                    { id = 'coordinates', label = 'Coordinates', type = 'text', placeholder = 'vec4(123.4, 456.7, 78.9, 90.0)', required = true },
-                }, 'Teleport to Coords', true) },
-            { id = 'tpback', label = 'Teleport Back', level = 'mod', run = withFields('tpback', nil, nil, true) },
-            { id = 'spectateStop', label = 'Stop Spectating', level = 'mod', run = withFields('spectate', nil, nil, true) },
-            { id = 'noclip', label = 'Toggle Noclip', level = 'admin', run = withFields('noclip', nil, nil, true) },
+            { id = 'adminlog', label = 'View Recent Activity', level = 'admin', icon = 'list', run = appAction(function() end) },
+            { id = 'adminlogfilter', label = 'Filter Audit Log', level = 'admin', icon = 'search', run = filterAuditLog },
         },
     },
     {
-        id = 'vehicle', label = 'Vehicle', level = 'mod',
-        items = {
-            { id = 'car_catalogue', label = 'Spawn from Catalogue', level = 'admin',
-                run = withFields('car', function() return { vehicleCatalogueField() } end, 'Spawn vehicle from catalogue') },
-            { id = 'dv', label = 'Delete My Vehicle', level = 'admin', visible = function() return QB.cache.vehicle() ~= false end,
-                run = withConfirm('Delete the vehicle you are in?', withFields('dv')) },
-            { id = 'fix', label = 'Repair My Vehicle', level = 'mod', run = withFields('fix') },
-        },
-    },
-    {
-        id = 'developer', label = 'Developer', level = Config.developer.menuLevel,
+        id = 'developer', label = 'Builders', level = Config.developer.menuLevel,
+        title = 'Development Tools',
+        description = 'Place models, build zones, and clean up entities created during your current session.',
         items = {
             {
-                id = 'devplacement',
-                label = 'Place Entity / Model',
+                id = 'devplacement', label = 'Place Entity / Model', icon = 'box',
                 description = 'Position any valid ped, vehicle, or object and copy its transform',
                 level = Config.developer.menuLevel,
                 disabled = function() return Config.developer.requireDevMode and not Admin.isDevMode() end,
                 run = withFields('devplacement', function() return { placementModelField() } end, 'Entity Placement Creator', true),
             },
             {
-                id = 'devzone',
-                label = 'Create Zone',
+                id = 'devzone', label = 'Create Zone', icon = 'map',
                 description = 'Open qblib’s box, sphere, or polygon creator',
                 level = Config.developer.menuLevel,
                 disabled = function() return Config.developer.requireDevMode and not Admin.isDevMode() end,
                 run = withFields('devzone', function() return { zoneTypeField() } end, 'Zone Creator', true),
             },
-        },
-    },
-    {
-        id = 'world', label = 'World / Server', level = 'mod',
-        items = {
-            { id = 'announce', label = 'Announce', level = 'admin',
-                run = withFields('announce', { { id = 'message', label = 'Message', type = 'textarea', required = true } }, 'Announce') },
-            { id = 'weather', label = 'Set Weather', level = 'admin',
-                run = withFields('weather', function() return { { id = 'type', label = 'Weather', type = 'select', options = weatherOptions(), required = true } } end, 'Set Weather') },
-            { id = 'dynamicweather', label = 'Dynamic Weather', level = 'admin',
-                description = 'Choose whether weather changes automatically',
-                run = withFields('freezeweather', function()
-                    return { { id = 'enabled', label = 'Automatic changes', type = 'select', required = true,
-                        options = { { value = 'true', label = 'Enabled' }, { value = 'false', label = 'Disabled' } } } }
-                end, 'Dynamic Weather') },
-            { id = 'time', label = 'Set Time', level = 'admin', run = setTime },
-            { id = 'serverinfo', label = 'Server Info', level = 'mod', run = withFields('serverinfo') },
-            { id = 'restartresource', label = 'Restart Resource', level = 'god',
-                run = withConfirm('Restart this resource?', withFields('restartresource', { { id = 'name', label = 'Resource name', type = 'text', required = true } }, 'Restart Resource')) },
+            { id = 'deleteLastEntity', actionGroup = 'self', label = 'Delete Last Spawned Entity', icon = 'trash-2', variant = 'destructive', level = 'admin',
+                run = withConfirm('Delete your last admin-spawned entity?', withFields('deleteentity')) },
         },
     },
     {
         id = 'medal', label = 'Medal Clips', level = Config.medal.menuLevel,
-        description = 'Capture a configured highlight on your local Medal recorder.',
+        title = 'Medal Clips',
+        description = 'Capture a configured highlight from your local Medal replay buffer.',
         items = medalItems(),
     },
-    {
-        id = 'audit', label = 'Audit Log', level = 'admin',
-        items = {
-            { id = 'adminlog', label = 'View Recent Log', level = 'admin', run = appAction(function() end) },
-            { id = 'adminlogfilter', label = 'Filter Log', level = 'admin', run = filterAuditLog },
-        },
-    },
-    {
-        id = 'self', label = 'Self / Utility', level = 'mod',
-        items = {
-            { id = 'aduty', label = 'Toggle Admin Duty', level = 'mod', run = withFields('aduty') },
-            { id = 'coords', label = 'Copy Coordinates', level = 'mod', run = withFields('coords') },
-            { id = 'health', label = 'Set Health', level = 'mod',
-                run = withFields('health', { { id = 'value', label = 'Health (0-100%, blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Health') },
-            -- Runs /selfrevive, not /revive -- see server/commands/self.lua
-            -- for why a distinct command name matters here.
-            { id = 'selfrevive', label = 'Revive Me', level = 'mod', run = withFields('selfrevive') },
-            { id = 'armor', label = 'Set Armor', level = 'mod',
-                run = withFields('armor', { { id = 'value', label = 'Armor (blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Armor') },
-            { id = 'deleteLastEntity', label = 'Delete My Last Spawned Entity', level = 'admin',
-                run = withConfirm('Delete your last admin-spawned entity?', withFields('deleteentity')) },
-            { id = 'wardrobe', label = 'Open Wardrobe', level = 'mod', run = appAction(function() openClothing('wardrobe') end, nil, nil, true) },
-            { id = 'clothingshop', label = 'Open Clothing Shop (nearby)', level = 'mod', run = appAction(function() openClothing('shop', 'clothing') end, nil, nil, true) },
-            { id = 'barbershop', label = 'Open Barber Shop (nearby)', level = 'mod', run = appAction(function() openClothing('shop', 'barber') end, nil, nil, true) },
-            { id = 'tattooshop', label = 'Open Tattoo Shop (nearby)', level = 'mod', run = appAction(function() openClothing('shop', 'tattoo') end, nil, nil, true) },
-            { id = 'stylingall', label = 'Open Full Styling (Clothing + Barber + Tattoo)', level = 'admin', run = appAction(function() openClothing('admin') end, nil, nil, true) },
-        },
-    },
+}
+
+local PAGE_LAYOUT = {
+    { id = 'players', label = 'Players', icon = 'users', description = 'Online player management', sections = { 'player' } },
+    { id = 'reports', label = 'Reports', icon = 'flag', description = 'Player support queue', sections = { 'reports' } },
+    { id = 'tools', label = 'My Tools', icon = 'wrench', description = 'Personal and in-world utilities', sections = { 'self', 'teleport', 'vehicle', 'appearance' } },
+    { id = 'server', label = 'Server', icon = 'database', description = 'World control and oversight', sections = { 'environment', 'server', 'moderation', 'audit' } },
+    { id = 'development', label = 'Development', icon = 'hammer', description = 'Builders and local captures', sections = { 'developer', 'medal' } },
 }
 
 local function playerProfileRows(profile)
@@ -481,37 +568,75 @@ local function openRoot()
     local navigation = {}
     local selectedPlayerActions = {}
     local selectedReportActions = {}
-    for _, category in ipairs(CATEGORIES) do
-        if Admin.hasLevel(category.level) then
-            local actions = {}
-            for _, item in ipairs(category.items) do
-                -- `visible`, unlike the level check below, hides the item
-                -- entirely rather than greying it out: it is for state that
-                -- makes an item nonsensical to offer, not permission.
-                if not item.visible or item.visible() then
-                    local label = type(item.label) == 'function' and item.label() or item.label
-                    local stateDisabled = type(item.disabled) == 'function' and item.disabled() or item.disabled == true
-                    actions[#actions + 1] = {
-                        id = category.id .. ':' .. item.id,
-                        label = label,
-                        description = item.description,
-                        icon = item.icon,
-                        disabled = not Admin.hasLevel(item.level) or stateDisabled,
-                        fields = type(item.run) == 'table' and item.run.fields and item.run.fields() or nil,
-                        confirm = type(item.run) == 'table' and item.run.confirm or nil,
-                    }
-                end
-            end
+    local currentReportFilters = { status = 'open' }
+    local sectionsById = {}
+    for _, section in ipairs(SECTIONS) do sectionsById[section.id] = section end
 
+    local function actionGroup(section, item)
+        return item.actionGroup or section.actionGroup or section.id
+    end
+
+    local function buildSectionContent(section)
+        local actions = {}
+        for _, item in ipairs(section.items) do
+            -- `visible`, unlike the level check below, hides the item entirely
+            -- when offering it would make no sense in the current game state.
+            if not item.visible or item.visible() then
+                local label = type(item.label) == 'function' and item.label() or item.label
+                local stateDisabled = type(item.disabled) == 'function' and item.disabled() or item.disabled == true
+                actions[#actions + 1] = {
+                    id = actionGroup(section, item) .. ':' .. item.id,
+                    label = label,
+                    icon = item.icon,
+                    variant = item.variant,
+                    disabled = not Admin.hasLevel(item.level) or stateDisabled,
+                    fields = type(item.run) == 'table' and item.run.fields and item.run.fields() or nil,
+                    confirm = type(item.run) == 'table' and item.run.confirm or nil,
+                    closeBeforeAction = type(item.run) == 'table' and item.run.shouldClose or nil,
+                }
+            end
+        end
+
+        local blocks = {}
+        if #actions > 0 then blocks[1] = { type = 'actions', actions = actions } end
+        return {
+            title = section.title or section.label,
+            description = section.description or 'Choose an administrative action. Permissions are enforced again by the command handler.',
+            blocks = blocks,
+        }
+    end
+
+    local function sectionTab(section)
+        return { id = section.id, label = section.label, content = buildSectionContent(section) }
+    end
+
+    for _, page in ipairs(PAGE_LAYOUT) do
+        local tabs = {}
+        for _, sectionId in ipairs(page.sections) do
+            local section = sectionsById[sectionId]
+            if section and Admin.hasLevel(section.level) then tabs[#tabs + 1] = sectionTab(section) end
+        end
+        if #tabs > 0 then
             navigation[#navigation + 1] = {
-                id = category.id,
-                label = category.label,
-                content = {
-                    title = category.label,
-                    description = category.description or 'Choose an administrative action. Permissions are enforced again by the command handler.',
-                    blocks = { { type = 'actions', actions = actions } },
-                },
+                id = page.id,
+                label = page.label,
+                icon = page.icon,
+                description = page.description,
+                defaultTab = tabs[1].id,
+                tabs = tabs,
             }
+        end
+    end
+
+    local function findView(id)
+        for _, view in ipairs(navigation) do
+            if view.id == id then return view end
+        end
+    end
+
+    local function findTab(view, id)
+        for _, tab in ipairs(view and view.tabs or {}) do
+            if tab.id == id then return tab end
         end
     end
 
@@ -521,79 +646,103 @@ local function openRoot()
             QB.notify.send({ type = 'error', message = err or 'Could not load audit log' })
             return {}
         end
-        for _, view in ipairs(navigation) do
-            if view.id == 'audit' then
-                local blocks = view.content.blocks
-                for index = #blocks, 1, -1 do
-                    if blocks[index].id == 'audit-log' then table.remove(blocks, index) end
-                end
-                local tableRows = {}
-                for _, row in ipairs(rows) do
-                    tableRows[#tableRows + 1] = {
-                        action = row.action or 'unknown', actor = row.actor_name or 'unknown',
-                        target = row.target_name or '-', created = row.created_at or '-', details = row.details or '',
-                    }
-                end
-                blocks[#blocks + 1] = {
-                    id = 'audit-log', type = 'table', title = 'Audit Log',
-                    columns = {
-                        { key = 'action', label = 'Action' }, { key = 'actor', label = 'Actor' },
-                        { key = 'target', label = 'Target' }, { key = 'created', label = 'When' }, { key = 'details', label = 'Details' },
-                    },
-                    rows = tableRows, empty = 'No matching audit entries',
-                }
-                return { update = { navigation = navigation } }
-            end
+        local tab = findTab(findView('server'), 'audit')
+        if not tab then return {} end
+        local blocks = tab.content.blocks
+        for index = #blocks, 1, -1 do
+            if blocks[index].id == 'audit-log' then table.remove(blocks, index) end
         end
-        return {}
+        local tableRows = {}
+        for _, row in ipairs(rows) do
+            tableRows[#tableRows + 1] = {
+                action = row.action or 'unknown', actor = row.actor_name or 'unknown',
+                target = row.target_name or '-', created = row.created_at or '-', details = row.details or '',
+            }
+        end
+        blocks[#blocks + 1] = {
+            id = 'audit-log', type = 'table', title = 'Audit Log',
+            searchable = true, pageSize = 15,
+            columns = {
+                { key = 'action', label = 'Action', sortable = true }, { key = 'actor', label = 'Actor', sortable = true },
+                { key = 'target', label = 'Target', sortable = true }, { key = 'created', label = 'When', sortable = true }, { key = 'details', label = 'Details' },
+            },
+            rows = tableRows, empty = 'No matching audit entries',
+        }
+        return { update = { navigation = navigation }, navigate = { viewId = 'server', tabId = 'audit' } }
     end
 
     local function reportView()
-        for _, view in ipairs(navigation) do
-            if view.id == 'reports' then return view end
-        end
+        return findView('reports')
     end
 
-    local function clearReportDetail(blocks)
-        for index = #blocks, 1, -1 do
-            local id = blocks[index].id
-            if id and id:match('^selected%-report') then table.remove(blocks, index) end
+    local function playerView()
+        return findView('players')
+    end
+
+    local function showPlayersInShell()
+        local view = playerView()
+        if not view then return {} end
+        local players, err = QB.callback.trigger('qbadmin:menuPlayers')
+        if not players then
+            QB.notify.send({ type = 'error', message = err or 'Could not load players' })
+            return {}
         end
+
+        local tab = sectionTab(sectionsById.player)
+        tab.badge = #players
+        view.defaultTab = tab.id
+        view.tabs = { tab }
+        local blocks = tab.content.blocks
+
+        local rows = {}
+        for _, player in ipairs(players) do
+            rows[#rows + 1] = { id = tostring(player.id), name = player.name, job = player.job, ping = player.ping }
+        end
+        blocks[#blocks + 1] = {
+            id = 'online-players', type = 'table', title = 'Online Players',
+            searchable = true, pageSize = 12,
+            columns = { { key = 'id', label = 'ID', sortable = true }, { key = 'name', label = 'Name', sortable = true }, { key = 'job', label = 'Job', sortable = true }, { key = 'ping', label = 'Ping', align = 'right', sortable = true } },
+            rows = rows, empty = 'No players are online', action = 'player:select', idKey = 'id',
+        }
+        return { update = { navigation = navigation }, navigate = { viewId = 'players', tabId = tab.id, replace = true } }
     end
 
     local function showReportsInShell(filters)
-        local rows, err = QB.callback.trigger('qbadmin:menuReports', filters or { status = 'open' })
+        local view = reportView()
+        if not view then return {} end
+        currentReportFilters = filters or currentReportFilters
+        local rows, err = QB.callback.trigger('qbadmin:menuReports', currentReportFilters)
         if not rows then
             QB.notify.send({ type = 'error', message = err or 'Could not load reports' })
             return {}
         end
-        local view = reportView()
-        if not view then return {} end
-        local blocks = view.content.blocks
-        clearReportDetail(blocks)
-        for index = #blocks, 1, -1 do
-            if blocks[index].id == 'report-list' then table.remove(blocks, index) end
-        end
+        local tab = sectionTab(sectionsById.reports)
+        tab.badge = #rows
+        view.defaultTab = tab.id
+        view.tabs = { tab }
+        local blocks = tab.content.blocks
 
         local tableRows = {}
         for _, row in ipairs(rows) do
             tableRows[#tableRows + 1] = {
-                id = tostring(row.id), status = row.status, type = row.type,
+                id = tostring(row.id), status = { label = row.status, badge = true,
+                    tone = row.status == 'open' and 'warning' or row.status == 'resolved' and 'success' or 'neutral' }, type = row.type,
                 reporter = row.reporter_name, assigned = row.claimed_by_name or '-',
                 message = row.message, updated = row.updated_at or row.created_at or '-',
             }
         end
         blocks[#blocks + 1] = {
             id = 'report-list', type = 'table', title = 'Player Reports',
+            searchable = true, pageSize = 12,
             columns = {
-                { key = 'id', label = '#' }, { key = 'status', label = 'Status' },
-                { key = 'type', label = 'Type' }, { key = 'reporter', label = 'Reporter' },
+                { key = 'id', label = '#', sortable = true }, { key = 'status', label = 'Status', sortable = true },
+                { key = 'type', label = 'Type', sortable = true }, { key = 'reporter', label = 'Reporter', sortable = true },
                 { key = 'assigned', label = 'Assigned' }, { key = 'message', label = 'Report' },
                 { key = 'updated', label = 'Updated' },
             },
             rows = tableRows, empty = 'No matching reports', action = 'reports:select', idKey = 'id',
         }
-        return { update = { navigation = navigation } }
+        return { update = { navigation = navigation }, navigate = { viewId = 'reports', tabId = tab.id, replace = true } }
     end
 
     local function showSelectedReport(id)
@@ -604,8 +753,6 @@ local function openRoot()
         end
         local view = reportView()
         if not view then return {} end
-        local blocks = view.content.blocks
-        clearReportDetail(blocks)
         selectedReportActions = {}
 
         local function add(id_, label, run, destructive)
@@ -614,7 +761,8 @@ local function openRoot()
                 id = 'reports:selected:' .. id_, label = label,
                 fields = run.fields and run.fields() or nil,
                 confirm = run.confirm,
-                destructive = destructive == true,
+                variant = destructive == true and 'destructive' or nil,
+                closeBeforeAction = run.shouldClose,
             }
         end
         local function action(command, fields, confirmMessage, shouldClose)
@@ -647,6 +795,7 @@ local function openRoot()
                 selectedReportActions[id_] = run
                 reporterActions[#reporterActions + 1] = {
                     id = 'reports:selected:' .. id_, label = label, confirm = run.confirm,
+                    closeBeforeAction = run.shouldClose,
                 }
             end
             playerAction('goto', 'Teleport to Reporter', 'goto', nil, true)
@@ -656,34 +805,68 @@ local function openRoot()
         end
 
         local conversation = {
-            { author = report.reporter_name, role = 'player', message = report.message, created = report.created_at or '-' },
+            { id = 'report', title = report.reporter_name, description = report.message,
+                timestamp = report.created_at or '-', icon = 'message-square', tone = 'primary',
+                metadata = { { label = 'Role', value = 'player' } } },
         }
-        for _, reply in ipairs(report.messages or {}) do
+        for index, reply in ipairs(report.messages or {}) do
             conversation[#conversation + 1] = {
-                author = reply.author_name, role = reply.author_role, message = reply.message, created = reply.created_at or '-',
+                id = 'reply-' .. index, title = reply.author_name, description = reply.message,
+                timestamp = reply.created_at or '-', icon = 'message-square',
+                tone = reply.author_role == 'staff' and 'success' or 'neutral',
+                metadata = { { label = 'Role', value = reply.author_role or 'unknown' } },
             }
         end
 
-        blocks[#blocks + 1] = {
-            id = 'selected-report-summary', type = 'text', title = ('Report #%s · %s · %s'):format(report.id, report.type, report.status),
-            text = ('Reporter: %s%s%s'):format(
-                report.reporter_name,
-                report.claimed_by_name and (' · Assigned to ' .. report.claimed_by_name) or '',
-                report.resolution and (' · Resolution: ' .. report.resolution) or ''),
-        }
-        blocks[#blocks + 1] = {
-            id = 'selected-report-conversation', type = 'table', title = 'Conversation',
-            columns = {
-                { key = 'author', label = 'From' }, { key = 'role', label = 'Role' },
-                { key = 'message', label = 'Message' }, { key = 'created', label = 'When' },
+        local tabs = {
+            {
+                id = 'overview', label = 'Overview',
+                content = {
+                    title = ('Report #%s · %s'):format(report.id, report.type),
+                    description = 'Review the report conversation and current assignment before taking action.',
+                    blocks = {
+                        {
+                            id = 'selected-report-back', type = 'actions',
+                            actions = { { id = 'reports:back', label = 'Back to Report Queue', icon = 'arrow-left', variant = 'ghost' } },
+                        },
+                        {
+                            id = 'selected-report-summary', type = 'details', title = 'Report summary', columns = 2,
+                            items = {
+                                { label = 'Status', value = report.status, tone = report.status == 'open' and 'warning' or 'neutral' },
+                                { label = 'Reporter', value = report.reporter_name },
+                                { label = 'Assigned to', value = report.claimed_by_name or 'Unassigned' },
+                                { label = 'Resolution', value = report.resolution or 'Open' },
+                            },
+                        },
+                        {
+                            id = 'selected-report-conversation', type = 'timeline', title = 'Conversation',
+                            items = conversation,
+                        },
+                    },
+                },
             },
-            rows = conversation,
+            {
+                id = 'manage', label = 'Manage', badge = #management,
+                content = {
+                    title = 'Report Management',
+                    description = 'Claim, respond to, or resolve this report. Every action is written to the audit log.',
+                    blocks = { { id = 'selected-report-management', type = 'actions', actions = management } },
+                },
+            },
         }
-        blocks[#blocks + 1] = { id = 'selected-report-management', type = 'actions', title = 'Report Management', actions = management }
         if #reporterActions > 0 then
-            blocks[#blocks + 1] = { id = 'selected-report-player', type = 'actions', title = 'Online Reporter', actions = reporterActions }
+            tabs[#tabs + 1] = {
+                id = 'reporter', label = 'Online Reporter',
+                content = {
+                    title = report.reporter_name,
+                    description = 'The reporter is online. Use these shortcuts without leaving the report.',
+                    blocks = { { id = 'selected-report-player', type = 'actions', actions = reporterActions } },
+                },
+            }
         end
-        return { update = { navigation = navigation } }
+        view.defaultTab = 'overview'
+        view.tabs = tabs
+        return { update = { navigation = navigation }, navigate = { viewId = 'reports', tabId = 'overview' } }
     end
 
     -- Selecting a row is the player-first workflow.  It exposes every
@@ -698,19 +881,8 @@ local function openRoot()
             return {}
         end
 
-        local playerView
-        for _, view in ipairs(navigation) do
-            if view.id == 'player' then playerView = view break end
-        end
-        if not playerView then return {} end
-
-        local blocks = playerView.content.blocks
-        for index = #blocks, 1, -1 do
-            local blockId = blocks[index].id
-            if blockId == 'online-players' or (blockId and blockId:match('^selected%-player%-')) then
-                table.remove(blocks, index)
-            end
-        end
+        local view = playerView()
+        if not view then return {} end
 
         selectedPlayerActions = {}
         local target = tostring(profile.id)
@@ -739,6 +911,7 @@ local function openRoot()
                 label = label,
                 fields = run.fields and run.fields() or nil,
                 confirm = run.confirm,
+                closeBeforeAction = run.shouldClose,
             }
         end
         local function selected(command, fields, confirmMessage, shouldClose)
@@ -864,28 +1037,84 @@ local function openRoot()
             { id = 'level', label = 'Level', type = 'select', options = levelOptions(), required = true },
         }))
 
-        table.insert(blocks, 1, {
-            id = 'selected-player-header', type = 'text', title = ('Player Profile · #%s %s'):format(target, profile.name),
-            text = ('%s · %s · %dms'):format(profile.job or 'Unknown job', profile.citizenid or 'Unknown citizen', profile.ping or 0),
-        })
-        table.insert(blocks, 2, {
-            id = 'selected-player-details', type = 'table', title = 'Player Information',
-            columns = { { key = 'field', label = 'Field' }, { key = 'value', label = 'Value' } },
-            rows = playerProfileRows(profile),
-        })
-        local insertAt = 3
-        for _, group in ipairs(groups) do
-            if #group.actions > 0 then
-                table.insert(blocks, insertAt, {
-                    id = 'selected-player-actions-' .. group.id,
-                    type = 'actions', title = group.title, actions = group.actions,
-                })
-                insertAt = insertAt + 1
+        local function actionBlocks(groupIds)
+            local blocks = {}
+            for _, groupId in ipairs(groupIds) do
+                local group = groupById[groupId]
+                if group and #group.actions > 0 then
+                    blocks[#blocks + 1] = {
+                        id = 'selected-player-actions-' .. group.id,
+                        type = 'actions', title = group.title, actions = group.actions,
+                    }
+                end
+            end
+            return blocks
+        end
+
+        local overviewBlocks = {
+            {
+                id = 'selected-player-back', type = 'actions',
+                actions = { { id = 'player:back', label = 'Back to Online Players', icon = 'arrow-left', variant = 'ghost' } },
+            },
+            {
+                id = 'selected-player-header', type = 'text', title = ('#%s · %s'):format(target, profile.name),
+                text = ('%s · %s · %dms'):format(profile.job or 'Unknown job', profile.citizenid or 'Unknown citizen', profile.ping or 0),
+            },
+            {
+                id = 'selected-player-details', type = 'details', title = 'Player Information', columns = 2,
+                items = (function()
+                    local items = {}
+                    for _, row in ipairs(playerProfileRows(profile)) do
+                        items[#items + 1] = { label = row.field, value = row.value }
+                    end
+                    return items
+                end)(),
+            },
+        }
+        for _, block in ipairs(actionBlocks({ 'profile', 'history' })) do overviewBlocks[#overviewBlocks + 1] = block end
+
+        local tabGroups = {
+            { id = 'player-tools', label = 'Player Tools', groups = { 'movement', 'wellbeing', 'appearance' } },
+            { id = 'moderation', label = 'Moderation', groups = { 'moderation' } },
+            { id = 'inventory', label = 'Economy & Items', groups = { 'economy' } },
+            { id = 'roles', label = 'Roles & Access', groups = { 'roles', 'access' } },
+            { id = 'advanced', label = 'Advanced', groups = { 'spawning', 'development' } },
+        }
+        local tabs = {
+            {
+                id = 'overview', label = 'Overview',
+                content = {
+                    title = ('Player Profile · #%s %s'):format(target, profile.name),
+                    description = 'Fresh server data for the selected player. Use the tabs to keep related actions together.',
+                    blocks = overviewBlocks,
+                },
+            },
+        }
+        for _, tabGroup in ipairs(tabGroups) do
+            local blocks = actionBlocks(tabGroup.groups)
+            if #blocks > 0 then
+                tabs[#tabs + 1] = {
+                    id = tabGroup.id, label = tabGroup.label,
+                    content = {
+                        title = ('%s · %s'):format(profile.name, tabGroup.label),
+                        description = 'Actions apply to the selected player until you return to the online list.',
+                        blocks = blocks,
+                    },
+                }
             end
         end
-        return { update = { navigation = navigation } }
+        view.defaultTab = 'overview'
+        view.tabs = tabs
+        return { update = { navigation = navigation }, navigate = { viewId = 'players', tabId = 'overview' } }
     end
 
+    activeNavigation = navigation
+    -- Seed the two live-data workspaces before registration so opening the
+    -- menu lands on useful tables immediately, without a blank first frame or
+    -- an extra "view" click. The same functions handle refresh/back actions.
+    showPlayersInShell()
+    showReportsInShell({ status = 'open' })
+    refreshVehicleCatalogueFields(activeNavigation)
     QB.nui.registerApp({
         id = 'qbadmin:menu',
         title = 'Administration',
@@ -902,7 +1131,6 @@ local function openRoot()
             if categoryId == 'reports' and itemId:match('^selected:') then
                 local selectedAction = selectedReportActions[itemId:sub(#'selected:' + 1)]
                 if not selectedAction then error('That report action is no longer available.') end
-                if selectedAction.shouldClose and QB.nui.closeApp then QB.nui.closeApp('qbadmin:menu') end
                 selectedAction.run(context and context.value)
                 return {}
             end
@@ -915,15 +1143,21 @@ local function openRoot()
             if categoryId == 'reports' and itemId == 'filter' then
                 return showReportsInShell(context and context.value or {})
             end
+            if categoryId == 'reports' and itemId == 'back' then
+                return showReportsInShell(currentReportFilters)
+            end
+            if categoryId == 'player' and itemId == 'refresh' then
+                return showPlayersInShell()
+            end
             if categoryId == 'player' and itemId == 'select' and context and context.itemId then
                 local selected
-                for _, view in ipairs(navigation) do
-                    if view.id == 'player' then
-                        for _, block in ipairs(view.content.blocks) do
-                            if block.id == 'online-players' then
-                                for _, row in ipairs(block.rows) do
-                                    if tostring(row.id) == tostring(context.itemId) then selected = row break end
-                                end
+                local tab = findTab(playerView(), 'player')
+                for _, block in ipairs(tab and tab.content.blocks or {}) do
+                    if block.id == 'online-players' then
+                        for _, row in ipairs(block.rows) do
+                            if tostring(row.id) == tostring(context.itemId) then
+                                selected = row
+                                break
                             end
                         end
                     end
@@ -932,61 +1166,33 @@ local function openRoot()
                 QB.notify.send({ type = 'error', message = 'That player is no longer online' })
                 return {}
             end
+            if categoryId == 'player' and itemId == 'back' then
+                return showPlayersInShell()
+            end
             if categoryId == 'player' and itemId:match('^target:') then
                 local selectedAction = selectedPlayerActions[itemId:sub(#'target:' + 1)]
                 if not selectedAction or not Admin.hasLevel(selectedAction.level) then
                     error('That player action is no longer available.')
                 end
-                if selectedAction.run.shouldClose and QB.nui.closeApp then QB.nui.closeApp('qbadmin:menu') end
                 selectedAction.run.run(context and context.value)
                 return {}
-            end
-            if categoryId == 'player' and itemId == 'players' then
-                local players, err = QB.callback.trigger('qbadmin:menuPlayers')
-                if not players then
-                    QB.notify.send({ type = 'error', message = err or 'Could not load players' })
-                    return {}
-                end
-                for _, view in ipairs(navigation) do
-                    if view.id == 'player' then
-                        local blocks = view.content.blocks
-                        for index = #blocks, 1, -1 do
-                            local blockId = blocks[index].id
-                            if blockId == 'online-players' or (blockId and blockId:match('^selected%-player%-')) then
-                                table.remove(blocks, index)
-                            end
-                        end
-                        local rows = {}
-                        for _, player in ipairs(players) do
-                            rows[#rows + 1] = { id = tostring(player.id), name = player.name, job = player.job, ping = player.ping }
-                        end
-                        blocks[#blocks + 1] = {
-                            id = 'online-players', type = 'table', title = 'Online Players',
-                            columns = { { key = 'id', label = 'ID' }, { key = 'name', label = 'Name' }, { key = 'job', label = 'Job' }, { key = 'ping', label = 'Ping', align = 'right' } },
-                            rows = rows, empty = 'No players are online', action = 'player:select', idKey = 'id',
-                        }
-                        return { update = { navigation = navigation } }
-                    end
-                end
             end
             if categoryId == 'audit' and itemId == 'adminlog' then return showAuditInShell() end
             if categoryId == 'audit' and itemId == 'adminlogfilter' then
                 return showAuditInShell(context and context.value or {})
             end
-            for _, category in ipairs(CATEGORIES) do
-                if category.id == categoryId then
-                    for _, item in ipairs(category.items) do
-                        local stateDisabled = type(item.disabled) == 'function' and item.disabled() or item.disabled == true
-                        if item.id == itemId and Admin.hasLevel(item.level) and not stateDisabled
-                            and (not item.visible or item.visible()) then
-                            if type(item.run) == 'table' then
-                                if item.run.shouldClose and QB.nui.closeApp then QB.nui.closeApp('qbadmin:menu') end
-                                item.run.run(context and context.value)
-                            else
-                                item.run()
-                            end
-                            return {}
+            for _, section in ipairs(SECTIONS) do
+                for _, item in ipairs(section.items) do
+                    local stateDisabled = type(item.disabled) == 'function' and item.disabled() or item.disabled == true
+                    if actionGroup(section, item) == categoryId and item.id == itemId
+                        and Admin.hasLevel(item.level) and not stateDisabled
+                        and (not item.visible or item.visible()) then
+                        if type(item.run) == 'table' then
+                            item.run.run(context and context.value)
+                        else
+                            item.run()
                         end
+                        return {}
                     end
                 end
             end

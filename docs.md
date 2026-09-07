@@ -151,21 +151,21 @@ heading.
 
 ## Menu usage
 
-`/admin` opens the root category menu, filtered to what your tier can reach
-(cosmetic only -- every command re-checks server-side regardless of what the
-menu shows). **Players → Browse Online Players** is the main player-first
-workflow: click any online player (including yourself) and then choose from
-their full player profile plus categorized history, movement, health/state, moderation, appearance,
-economy/inventory, job/gang/duty, spawning, development, and access actions.
+`/admin` opens five focused workspaces -- **Players**, **Reports**, **My
+Tools**, **Server**, and **Development** -- filtered to what your tier can
+reach (cosmetic only; every command re-checks server-side regardless of what
+the menu shows). Tabs inside each page group related actions. **Players** is
+the main player-first workflow: click any online player (including yourself)
+and the list becomes a tabbed profile with player tools, moderation,
+economy/items, roles/access, and advanced actions.
 Movement includes **Send Back**, which returns the player to their position
 before the last qbadmin teleport. Appearance includes server-authorized free
 clothing, barber/hairdresser, and tattoo sessions for the selected player.
-The sidebar deliberately keeps only entry points and actions that do not
-belong to a selected online player: reports, the player browser, offline bans,
-self movement/vehicle/utility tools, developer tools, world/server controls,
-Medal clips, and the audit log. Targeted moderation, economy, job/gang,
-appearance, spawning, development-mode, and permission controls appear only
-after selecting a player.
+**My Tools** contains General, Movement, Vehicles, and Appearance tabs.
+**Server** contains Environment, Server, Offline Bans, and Audit Log tabs;
+**Development** contains Builders and Medal Clips. Targeted moderation,
+economy, job/gang, appearance, spawning, development-mode, and permission
+controls appear only after selecting a player.
 
 Selecting a player replaces the online list with a fresh server-built profile:
 identity, job/gang, balances, health/armour, needs, state, and ping. Admins also
@@ -184,10 +184,11 @@ and error-handling path as typing `/admin`; there is no client forwarding
 command that can open the menu independently.
 
 A menu item can also set `visible` or `disabled` functions, evaluated each time
-its category opens. `visible` hides actions that make no sense in the current
-state (for example, Delete My Vehicle while on foot); `disabled` keeps an
-action visible but unavailable, as the creator shortcuts are until development
-mode is enabled. Both are presentation only and never replace server checks.
+the workspace is built. `visible` hides actions that make no sense in the
+current state (for example, Delete Current Vehicle while on foot); `disabled`
+keeps an action visible but unavailable, as the creator shortcuts are until
+development mode is enabled. Both are presentation only and never replace
+server checks.
 
 ### Player reports
 
@@ -197,19 +198,20 @@ Players submit `/report <type> <message>` using the configured `player`, `bug`,
 `Config.reports.cooldownSeconds` submission delay limits spam without losing
 reports when qbadmin restarts.
 
-Staff at `Config.reports.staffLevel` see a **Reports** section in `/admin`.
-Reports can be filtered by status, type, reporter, and page, then claimed,
-replied to, resolved, dismissed, or reopened. A report by an online player also
-offers teleport, bring, send-back, and spectate tools. Players receive status
-and staff-reply notifications and can read or continue their own conversation
-with `/reportstatus <id>` and `/reportreply <id> <message>`.
+Staff at `Config.reports.staffLevel` see the **Reports** workspace in `/admin`.
+Reports can be filtered by status, type, reporter, and page. Selecting one
+opens separate Overview, Manage, and Online Reporter tabs for claiming,
+replying, resolving, dismissing, reopening, and player shortcuts. Players
+receive status and staff-reply notifications and can read or continue their
+own conversation with `/reportstatus <id>` and `/reportreply <id> <message>`.
 
-### Developer submenu
+### Development workspace
 
-The **Developer** category is available at `Config.developer.menuLevel`
-(`admin` by default). It launches `QB.placement.start(model)` and opens the
-qblib box/sphere/poly zone creator. Development mode for yourself or another
-player is changed from that selected player's **Development** group. When
+The **Development → Builders** tab is available at
+`Config.developer.menuLevel` (`admin` by default). It launches
+`QB.placement.start(model)` and opens the qblib box/sphere/poly zone creator.
+Development mode for yourself or another player is changed from that selected
+player's **Development** group. When
 `Config.developer.requireDevMode` is enabled, the two creator shortcuts remain
 disabled until the caller enables their own development mode.
 
@@ -221,8 +223,8 @@ returns/copies a definition without registering a live zone.
 
 ## Medal clips
 
-The **Medal Clips** menu captures a highlight from the admin who clicks it.
-Medal listens on that player's `localhost`, so `client/medal.lua` sends the
+The **Development → Medal Clips** tab captures a highlight from the admin who
+clicks it. Medal listens on that player's `localhost`, so `client/medal.lua` sends the
 request through qbadmin's invisible NUI bridge rather than relaying it through
 FXServer. A successful response means Medal accepted the event; processing the
 clip remains asynchronous in the Medal desktop app.
@@ -237,30 +239,31 @@ setr qbadmin_medal_public_key "your-public-key"
 
 The entries in `Config.medal.events` must use the same numeric IDs, names,
 durations, and capture delays submitted to Medal. Each entry becomes its own
-menu button. `Config.medal.menuLevel` controls who sees the category; the
+menu button. `Config.medal.menuLevel` controls who sees the tab; the
 default is `admin`. Medal must be installed and running on each admin's PC.
 
 ## Command reference
 
-The compact sidebar contains only unique entry points and self/server tools;
-select a player to see the complete categorized targeted command set. Every
-command also has its own in-game help text via `/help <command>` or the chat
-autocomplete suggestion.
+The compact sidebar contains five workspaces; their tabs hold self/server
+tools, and selecting a player reveals the complete categorized targeted
+command set. Every command also has its own in-game help text via `/help
+<command>` or the chat autocomplete suggestion.
 
-The Vehicle category has **Spawn by Model**, a direct text field for any valid
-GTA/addon spawn code (for example `outlaw`), and **Spawn from Catalogue**, a
-searchable common-vehicle quick-pick. The catalogue is convenience only; the
-server's native model validation decides whether an entered code can spawn.
+The **My Tools → Vehicles** tab has **Spawn from Code**, a direct text field
+that runs `/car` for any valid GTA/addon spawn code (for example `outlaw`), and
+**Browse Vehicle Catalogue**, a searchable common-vehicle quick-pick. The
+catalogue is convenience only; the server's native model validation decides
+whether an entered code can spawn.
 
-The Entities category spawns any valid **ped or prop** model, such as
-`a_m_m_skater_01` or `prop_barrel_02a`, for yourself or a selected player. It
+The selected player's **Advanced** tab spawns any valid **ped or prop** model,
+such as `a_m_m_skater_01` or `prop_barrel_02a`, for yourself or a selected player. It
 uses qblib's local, static entity API, so an entity is visible only to the
 client it was spawned for and is cleaned up on resource restart. **Delete My
 Last Spawned Entity** removes that client's most recent admin entity. Vehicle
 models deliberately stay on the Vehicle flow so they remain networked.
 
-The World / Server category's **Set Time** is a selector, not a number entry:
-one button per `Config.world.timePresets` entry (Morning, Noon, Night by
+The **Server → Environment** tab's **Set Time** action is a selector, not a
+number entry: one button per `Config.world.timePresets` entry (Morning, Noon, Night by
 default) plus **Custom**, which is the only path that opens the hour/minute
 inputs at all. A preset button runs `/time <preset>` -- the word, not its
 hour -- so the menu and a typed command hand the server the same input and
@@ -270,7 +273,7 @@ clock, the preset already in effect is marked `current`, and Custom opens
 prefilled with that clock, so an admin can see what the server time actually
 is before changing it.
 
-The Developer category adds `/devplacement <model>` for qblib's temporary
+The **Development → Builders** tab adds `/devplacement <model>` for qblib's temporary
 ped/vehicle/object placement creator and `/devzone <box|sphere|poly>` for its
 zone creator. The existing `/devmode [id=me] [true|false]` command delegates to
 qbcore's `setDevMode` export; its state is per-player and ephemeral.
@@ -299,7 +302,7 @@ its history (reason, who banned, original date) survives for `/adminlog`.
 `admin_logs` (migrated by `server/migrate.lua`, `sql/001_admin_logs.sql`) is
 the durable audit trail -- qbcore's own `logEvent` is an in-memory 500-entry
 ring buffer only, unsuitable for "who banned whom, when" lookups later.
-`/adminlog [action] [target] [page]` and the NUI's Audit Log category both
+`/adminlog [action] [target] [page]` and the **Server → Audit Log** tab both
 read from it via `Admin.queryLogs`. No auto-pruning in v1 -- if retention
 becomes a concern, add a scheduled `DELETE ... WHERE created_at < ...` and a
 `Config.audit.retentionDays` knob.

@@ -30,6 +30,14 @@ local function spawnFor(targetSrc, model)
     local x = origin.x - math.sin(radians) * distance
     local y = origin.y + math.cos(radians) * distance
     local vehicle = CreateVehicle(joaat(model), x, y, origin.z, heading, true, true)
+    -- Server-created entities are registered asynchronously.  Checking in the
+    -- same tick can report a failure even though the vehicle is about to
+    -- appear, which made /car and /veh show a false error notification.
+    local attempts = 0
+    while vehicle and vehicle ~= 0 and not DoesEntityExist(vehicle) and attempts < 100 do
+        Wait(0)
+        attempts = attempts + 1
+    end
     if not vehicle or vehicle == 0 or not DoesEntityExist(vehicle) then
         return nil, 'vehicle creation failed'
     end
@@ -37,7 +45,13 @@ local function spawnFor(targetSrc, model)
     SetEntityRoutingBucket(vehicle, GetPlayerRoutingBucket(targetSrc))
 
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
-    if not netId or netId == 0 then
+    attempts = 0
+    while (type(netId) ~= 'number' or netId <= 0) and attempts < 100 do
+        Wait(0)
+        attempts = attempts + 1
+        netId = NetworkGetNetworkIdFromEntity(vehicle)
+    end
+    if type(netId) ~= 'number' or netId <= 0 then
         DeleteEntity(vehicle)
         return nil, 'vehicle network registration failed'
     end

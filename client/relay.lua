@@ -34,10 +34,18 @@ end)
 -- takes a 0-100 health percentage).
 local function reviveLocalPed()
     local ped = PlayerPedId()
-    local coords = GetEntityCoords(ped)
-    NetworkResurrectLocalPlayer(coords.x, coords.y, coords.z, GetEntityHeading(ped), true, false)
+    -- NetworkResurrectLocalPlayer places its subject at world coordinates.  If
+    -- that subject is seated, GTA resolves those coordinates outside the
+    -- vehicle and can launch the player upward.  qbambulance already prevents
+    -- the native wasted flow, so restoring health is sufficient here; preserve
+    -- the current seat instead of trying to resurrect onto the vehicle.
+    local inVehicle = IsPedInAnyVehicle(ped, false)
+    if not inVehicle then
+        local coords = GetEntityCoords(ped)
+        NetworkResurrectLocalPlayer(coords.x, coords.y, coords.z, GetEntityHeading(ped), true, false)
+    end
     SetEntityHealth(ped, GetEntityMaxHealth(ped))
-    ClearPedTasksImmediately(ped)
+    if not inVehicle then ClearPedTasksImmediately(ped) end
     TriggerEvent('hospital:client:Revive')
     TriggerEvent('qbambulance:client:revived', 100)
 end
