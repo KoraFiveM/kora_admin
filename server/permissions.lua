@@ -145,6 +145,35 @@ function Admin.checkLevel(src, required)
     return requiredRank ~= nil and heldRank ~= nil and heldRank >= requiredRank
 end
 
+---Build an understandable access summary for a denied admin-menu request.
+---Roles are effective tiers: a higher tier inherits every tier below it.
+---@param src integer
+---@param required string
+---@return string
+function Admin.menuAccessDeniedMessage(src, required)
+    local requiredRole = Admin.resolveRole(required)
+    local heldRole = Admin.getLevel(src)
+    local heldRank = Admin.roleRank(heldRole) or 0
+    local effectiveRoles = {}
+
+    for _, role in ipairs(Admin.levels()) do
+        if Admin.roleRank(role) <= heldRank then
+            effectiveRoles[#effectiveRoles + 1] = role
+        end
+    end
+    table.sort(effectiveRoles, function(a, b) return Admin.roleRank(a) < Admin.roleRank(b) end)
+
+    local labels = {}
+    for index, role in ipairs(effectiveRoles) do labels[index] = Admin.roleLabel(role) end
+
+    return ('Admin menu unavailable: requires %s (rank %d). Your highest role is %s (rank %d); effective roles: %s.')
+        :format(
+            Admin.roleLabel(requiredRole), Admin.roleRank(requiredRole) or 0,
+            Admin.roleLabel(heldRole), heldRank,
+            #labels > 0 and table.concat(labels, ', ') or 'none'
+        )
+end
+
 ---@param src integer
 ---@param role string
 ---@return boolean

@@ -11,6 +11,12 @@ end, {
     permission = 'support',
     checkPermission = Admin.checkLevel,
     resource = 'qbadmin',
+    -- The command dispatcher invokes this only after its server-side gate
+    -- denies access. Give the player the exact requirement and their resolved
+    -- role tiers instead of its generic permission error.
+    notify = function(source)
+        QB.notify.send(source, { message = Admin.menuAccessDeniedMessage(source, 'support'), type = 'error' })
+    end,
     keybind = {
         description = Config.keybind.label,
         defaultMapper = 'keyboard',

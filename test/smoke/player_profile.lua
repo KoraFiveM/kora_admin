@@ -15,6 +15,7 @@ local adminViewer = false
 QB = {
     callback = { register = function(name, handler) callbacks[name] = handler end },
     commands = { add = function(name, _, _, _, handler, options) commands[name] = { handler = handler, options = options } end },
+    notify = { send = function() end },
 }
 Admin = {
     checkLevel = function(_, level) return level ~= 'admin' or adminViewer end,
@@ -29,6 +30,7 @@ Admin = {
         }
     end,
     getLevel = function() return 'moderator' end,
+    menuAccessDeniedMessage = function() return 'Admin menu unavailable: requires Support (rank 10).' end,
     queryLogs = function() return {} end,
     queryReports = function() return {} end,
     getReport = function() return nil end,
@@ -78,6 +80,16 @@ test('the old player-details command is no longer registered', function()
         end
         return matches
     end)(), 0, 'unexpected player command')
+end)
+
+test('a denied admin-menu open explains the permission requirement and roles', function()
+    local message, kind
+    QB.notify.send = function(_, payload) message, kind = payload.message, payload.type end
+
+    commands.admin.options.notify(7)
+
+    equal(message, 'Admin menu unavailable: requires Support (rank 10).', 'the access reason is shown')
+    equal(kind, 'error', 'the access reason is an error notification')
 end)
 
 print(('qbadmin player profile: %d passed, %d failed'):format(passed, failed))
