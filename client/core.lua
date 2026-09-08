@@ -7,6 +7,8 @@
 
 Admin = Admin or {}
 Admin.level = 'user'
+Admin.noclipActive = false
+Admin.spectating = false
 
 local function roleName(role)
     return Config.permissions.gates[role] or role
@@ -30,6 +32,27 @@ end
 function Admin.isDevMode()
     local ok, enabled = pcall(function() return exports.qbcore:isDevMode() end)
     return ok and enabled == true
+end
+
+---Returns the current server-replicated admin-duty state for this character.
+---The server remains authoritative; a missing player snapshot is treated as
+---off until qbcore has finished loading it.
+---@return boolean
+function Admin.isAdminDuty()
+    local ok, state = pcall(function()
+        return exports.qbcore:getPlayerData({ 'metadata', 'adminDuty' })
+    end)
+    return ok and state == true
+end
+
+---@return boolean
+function Admin.isNoclipActive()
+    return Admin.noclipActive == true
+end
+
+---@return boolean
+function Admin.isSpectating()
+    return Admin.spectating == true
 end
 
 RegisterNetEvent('qbadmin:client:level', function(level)

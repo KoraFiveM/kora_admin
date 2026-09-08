@@ -23,6 +23,7 @@ local events = {}
 local existenceChecks = 0
 local networkChecks = 0
 local waits = 0
+local grantedKeys = {}
 
 QB = {
     commands = {
@@ -40,12 +41,24 @@ QB = {
     },
 }
 
+exports = {
+    qbvehiclekeys = {
+        giveKeys = function(_, target, plate, override)
+            grantedKeys[#grantedKeys + 1] = { target = target, plate = plate, override = override }
+            return true
+        end,
+    },
+}
+
 Admin = {
     checkLevel = function() return true end,
     respond = function(_, ok, message)
         responses[#responses + 1] = { ok = ok, message = message }
     end,
     log = function() end,
+    resolveTarget = function(_, id)
+        return tonumber(id), { name = 'Target' }
+    end,
 }
 
 function GetPlayerPed() return 101 end
@@ -67,6 +80,9 @@ function NetworkGetNetworkIdFromEntity()
     networkChecks = networkChecks + 1
     return networkChecks >= 3 and 301 or 0
 end
+function GetVehicleNumberPlateText() return 'ADMIN 1' end
+function GetVehiclePedIsIn() return 201 end
+function GetPedInVehicleSeat() return 101 end
 function DeleteEntity() error('the eventually ready vehicle must not be deleted') end
 function TriggerClientEvent(name, target, ...)
     events[#events + 1] = { name = name, target = target, args = { ... } }
@@ -86,6 +102,17 @@ test('car waits for server entity and network registration before succeeding', f
     equal(events[#events].name, 'qbadmin:client:enterVehicle', 'warp event')
     equal(events[#events].target, 7, 'warp target')
     equal(events[#events].args[1], 301, 'registered network id')
+    equal(grantedKeys[#grantedKeys].target, 7, 'spawn recipient receives the keys')
+    equal(grantedKeys[#grantedKeys].plate, 'ADMIN 1', 'spawned vehicle plate is granted')
+    equal(grantedKeys[#grantedKeys].override, true, 'admin grants work when ordinary temporary keys are disabled')
+end)
+
+test('givekeys grants the driver keys to their current vehicle', function()
+    commands.givekeys.handler(7, { '7' })
+
+    equal(commands.givekeys.options.permission, 'admin', '/givekeys permission')
+    equal(responses[#responses].ok, true, 'key grant must report success')
+    equal(grantedKeys[#grantedKeys].target, 7, 'driver receives the keys')
 end)
 
 print(('-- %d passed, %d failed --'):format(passed, failed))

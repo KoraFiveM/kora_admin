@@ -19,6 +19,20 @@ local function validModel(model)
     return model
 end
 
+---@param targetSrc integer
+---@param vehicle integer
+---@return boolean granted
+local function giveVehicleKeys(targetSrc, vehicle)
+    if not vehicle or vehicle == 0 or not DoesEntityExist(vehicle) then return false end
+    local plate = GetVehicleNumberPlateText(vehicle)
+    if type(plate) ~= 'string' or plate:match('^%s*$') then return false end
+
+    -- Administrative grants must work on servers that have disabled ordinary
+    -- temporary keys. qbvehiclekeys still owns plate normalisation and access
+    -- state; this flag marks the grant as an intentional privileged override.
+    return exports.qbvehiclekeys:giveKeys(targetSrc, plate, true) == true
+end
+
 local function spawnFor(targetSrc, model)
     local ped = GetPlayerPed(targetSrc)
     if not ped or ped == 0 then return nil, 'target player is unavailable' end
@@ -56,6 +70,11 @@ local function spawnFor(targetSrc, model)
         return nil, 'vehicle network registration failed'
     end
 
+    if not giveVehicleKeys(targetSrc, vehicle) then
+        DeleteEntity(vehicle)
+        return nil, 'could not grant vehicle keys'
+    end
+
     TriggerClientEvent('qbadmin:client:enterVehicle', targetSrc, netId, -1)
     return netId
 end
@@ -81,6 +100,23 @@ QB.commands.add('veh', 'Spawn a vehicle for a player', { { name = 'id' }, { name
     if spawnErr then return Admin.respond(source, false, spawnErr) end
     Admin.log(source, 'veh', data, { model = model })
     Admin.respond(source, true, ('Spawned %s for %s'):format(model, data.name))
+end, OPTS_ADMIN)
+
+QB.commands.add('givekeys', 'Give a player keys to the vehicle they are driving', { { name = 'id' } }, true, function(source, args)
+    local targetSrc, data, err = Admin.resolveTarget(source, args[1])
+    if not targetSrc then return Admin.respond(source, false, err) end
+
+    local targetPed = GetPlayerPed(targetSrc)
+    local vehicle = targetPed and targetPed ~= 0 and GetVehiclePedIsIn(targetPed, false) or 0
+    if vehicle == 0 or GetPedInVehicleSeat(vehicle, -1) ~= targetPed then
+        return Admin.respond(source, false, ('%s must be driving a vehicle'):format(data.name))
+    end
+    if not giveVehicleKeys(targetSrc, vehicle) then
+        return Admin.respond(source, false, 'could not grant vehicle keys')
+    end
+
+    Admin.log(source, 'givekeys', data, { plate = GetVehicleNumberPlateText(vehicle) })
+    Admin.respond(source, true, ('Gave %s the keys to their current vehicle'):format(data.name))
 end, OPTS_ADMIN)
 
 QB.commands.add('dv', 'Delete the vehicle you are in', nil, false, function(source)

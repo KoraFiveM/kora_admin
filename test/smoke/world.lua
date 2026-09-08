@@ -127,6 +127,16 @@ test('a valid custom hour and minute still applies', function()
     equal(minute, 59, 'minute 59 is valid')
 end)
 
+test('authoritative player state changes request a live selected-profile refresh', function()
+    local before = #clientEvents
+    Admin.refreshMenuPlayerState(7, 12)
+    local event = clientEvents[#clientEvents]
+    equal(#clientEvents, before + 1, 'state changes should notify the viewing admin')
+    equal(event.name, 'qbadmin:client:refreshMenuPlayerState', 'selected profile refresh event')
+    equal(event.target, 7, 'refresh returns to the viewing admin')
+    equal(event.args[1], 12, 'refresh identifies the changed player')
+end)
+
 -- Set Time is an AppShell form: presets and exact-time inputs never open a
 -- second menu or input dialog.
 local netEvents = {}
@@ -135,6 +145,8 @@ local menuUpdates
 local executedCommand
 local copiedText
 local clockHour, clockMinute = 8, 0
+local adminDuty = false
+local adminDutyChanged
 
 QB = {
     notify = { send = function() end },
@@ -157,7 +169,17 @@ QB = {
         copyToClipboard = function(value) copiedText = value end,
     },
 }
-exports = { qbcore = { isDevMode = function() return false end } }
+exports = {
+    qbcore = {
+        isDevMode = function() return false end,
+        getPlayerData = function(_, path)
+            if path[1] == 'metadata' and path[2] == 'adminDuty' then return adminDuty end
+        end,
+        onPlayerDataChange = function(_, path, callback)
+            if path[1] == 'metadata' and path[2] == 'adminDuty' then adminDutyChanged = callback end
+        end,
+    },
+}
 Admin = nil
 function RegisterNetEvent(name, callback)
     if callback then netEvents[name] = callback end
@@ -253,6 +275,29 @@ test('the sidebar is reduced to focused workspaces with a configuration editor',
     equal(menuUpdates, 0, 'live tables should be seeded before registration without a second render')
 end)
 
+test('Admin Duty shows its current state and the action it will take', function()
+    adminDuty = false
+    netEvents['qbadmin:client:openMenu']('god')
+    local action = findAction(menuPayload, 'self:aduty')
+    equal(action.label, 'Turn Admin Duty On', 'off-duty staff should be offered the on action')
+    equal(action.state, false, 'off-duty state is explicit')
+    equal(action.variant, 'primary', 'enabling duty is the primary action')
+    local noclip = findAction(menuPayload, 'teleport:noclip')
+    equal(noclip.label, 'Turn Noclip On', 'noclip action should name its result')
+    equal(noclip.state, false, 'noclip state is explicit')
+    local spectate = findAction(menuPayload, 'teleport:spectateStop')
+    equal(spectate.state, false, 'spectating state is explicit')
+    truthy(spectate.disabled, 'Stop Spectating is disabled until spectating starts')
+
+    adminDuty = true
+    truthy(adminDutyChanged, 'the menu should subscribe to admin-duty replication')
+    adminDutyChanged({ 'metadata', 'adminDuty' }, true)
+    action = findAction(menuPayload, 'self:aduty')
+    equal(action.label, 'Turn Admin Duty Off', 'on-duty staff should be offered the off action')
+    equal(action.state, true, 'on-duty state is explicit')
+    equal(action.variant, 'outline', 'disabling duty should not look like an enable action')
+end)
+
 test('Vehicle provides both a refreshed catalogue and a free-form spawn code', function()
     QB.shared.all = function() return {} end
     local appUpdate
@@ -309,6 +354,7 @@ test('List Players selects a player before running their admin actions', functio
                 id = '7', name = 'Admin', citizenid = 'TEST123', job = 'Police (Chief)', gang = 'None',
                 money = 'bank: 5000, cash: 100', ping = 12, health = 200, armor = 50,
                 hunger = 80, thirst = 70, dead = false, cuffed = false,
+                onDuty = true, frozen = false, godMode = true, invisible = false, devMode = true,
                 permission = 'owner', license = 'license:test', discord = 'discord:test',
             }
         end
@@ -353,6 +399,22 @@ test('List Players selects a player before running their admin actions', functio
     equal(setJob.fields[2].default, '1', 'the first available grade should be selected')
     equal(#setJob.fields[2].optionsByValue.police, 2, 'the selected job should expose all of its grades')
     equal(setJob.fields[2].optionsByValue.police[2].label, '2 - Officer', 'grade choices should be labelled')
+
+    local duty = findAction(menuPayload, 'player:target:setduty')
+    equal(duty.label, 'Take Off Duty', 'selected-player duty action should name its result')
+    equal(duty.state, true, 'selected-player duty state is explicit')
+    local frozen = findAction(menuPayload, 'player:target:freeze')
+    equal(frozen.label, 'Freeze Player', 'selected-player freeze action should name its result')
+    equal(frozen.state, false, 'selected-player freeze state is explicit')
+    local god = findAction(menuPayload, 'player:target:god')
+    equal(god.label, 'Turn God Mode Off', 'selected-player god action should name its result')
+    equal(god.state, true, 'selected-player god state is explicit')
+    local invisible = findAction(menuPayload, 'player:target:invisible')
+    equal(invisible.label, 'Turn Invisibility On', 'selected-player invisibility action should name its result')
+    equal(invisible.state, false, 'selected-player invisibility state is explicit')
+    local devMode = findAction(menuPayload, 'player:target:devmode')
+    equal(devMode.label, 'Turn Development Mode Off', 'selected-player development action should name its result')
+    equal(devMode.state, true, 'selected-player development state is explicit')
 
     jobs[1].grades[3] = { name = 'Sergeant' }
     netEvents['qbcore:registry:snapshotAll']({})

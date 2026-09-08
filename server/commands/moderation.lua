@@ -136,6 +136,7 @@ QB.commands.add('freeze', 'Freeze/unfreeze a player', { { name = 'id' }, { name 
     if state == nil then return Admin.respond(source, false, stateErr) end
     Admin.states.frozen[targetSrc] = state
     TriggerClientEvent('qbadmin:client:freeze', targetSrc, state)
+    Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'freeze', data, { state = state })
     Admin.respond(source, true, ('%s %s'):format(state and 'Froze' or 'Unfroze', data.name))
 end, OPTS_MOD)
@@ -180,6 +181,7 @@ QB.commands.add('god', 'Toggle god mode (invincibility)', { { name = 'id' }, { n
     if state == nil then return Admin.respond(source, false, stateErr) end
     Admin.states.god[targetSrc] = state
     TriggerClientEvent('qbadmin:client:god', targetSrc, state)
+    Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'god', data, { state = state })
     Admin.respond(source, true, ('God mode %s for %s'):format(state and 'enabled' or 'disabled', data.name))
 end, OPTS_MOD)
@@ -197,6 +199,7 @@ QB.commands.add('devmode', 'Toggle core development mode', { { name = 'id' }, { 
     local ok, setErr = exports.qbcore:setDevMode(targetSrc, state)
     if not ok then return Admin.respond(source, false, setErr or 'could not update development mode') end
 
+    Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'devmode', data, { state = state })
     Admin.respond(source, true, ('Development mode %s for %s'):format(state and 'enabled' or 'disabled', data.name))
 end, OPTS_MOD)
@@ -212,6 +215,7 @@ QB.commands.add('invisible', 'Toggle invisibility', { { name = 'id' }, { name = 
     if state == nil then return Admin.respond(source, false, stateErr) end
     Admin.states.invisible[targetSrc] = state
     TriggerClientEvent('qbadmin:client:invisible', targetSrc, state)
+    Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'invisible', data, { state = state })
     Admin.respond(source, true, ('Invisibility %s for %s'):format(state and 'enabled' or 'disabled', data.name))
 end, OPTS_MOD)

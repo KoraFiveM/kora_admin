@@ -50,6 +50,7 @@ QB.commands.add('setduty', 'Toggle on/off duty', { { name = 'id' }, { name = 'st
 
     local ok, actionErr = exports.qbcore:setJobDuty(targetSrc, state)
     if not ok then return Admin.respond(source, false, actionErr or 'could not set duty state') end
+    Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'setduty', data, { state = state })
     Admin.respond(source, true, ('%s is now %s duty'):format(data.name, state and 'on' or 'off'))
 end, OPTS_MOD)

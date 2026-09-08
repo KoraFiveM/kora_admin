@@ -61,12 +61,23 @@ end
 dofile('server/commands/development.lua')
 
 test('developer commands use the configured server permission gate', function()
+    equal(commands.entitypicker.options.permission, Config.developer.menuLevel, 'entity picker permission')
     equal(commands.devplacement.options.permission, Config.developer.menuLevel, 'placement permission')
     equal(commands.devzone.options.permission, Config.developer.menuLevel, 'zone permission')
     equal(commands.devplacement.options.checkPermission, Admin.checkLevel, 'placement check function')
 end)
 
+test('entity picker launches only after the developer gate passes', function()
+    devMode = true
+    commands.entitypicker.handler(7, {})
+    local event = clientEvents[#clientEvents]
+    equal(event.name, 'qbadmin:client:startEntityPicker', 'entity picker event')
+    equal(event.target, 7, 'entity picker target')
+    equal(logs[#logs].action, 'entitypicker', 'entity picker request should be audited')
+end)
+
 test('creator commands reject until qbcore development mode is enabled', function()
+    devMode = false
     local before = #clientEvents
     commands.devplacement.handler(7, { 'prop_barrel_02a' })
     equal(#clientEvents, before, 'disabled dev mode must not launch placement')
@@ -109,6 +120,9 @@ local menuPayload
 local selectedMenuResult = { cancelled = true }
 local inputResult = { cancelled = true }
 local executedCommand
+local keybinds = {}
+local textUi = {}
+local copiedText
 
 QB = {
     notify = { send = function(payload) notifications[#notifications + 1] = payload end },
@@ -119,6 +133,8 @@ QB = {
         vehicle = function() return false end,
     },
     callback = { trigger = function() return {} end },
+    raycast = { fromCamera = function() return true, { x = 3.0, y = 4.0, z = 0.0 }, 99 end },
+    lookup = { model = function() return { name = 'prop_catalogue', label = 'Catalogue prop' } end },
     shared = {
         all = function() return {} end,
         get = function() return nil end,
@@ -137,6 +153,24 @@ QB = {
         end,
         openInputDialog = function() return inputResult end,
         openAlert = function() return { confirmed = false } end,
+        copyToClipboard = function(text) copiedText = text end,
+    },
+    keybind = {
+        add = function(options)
+            keybinds[options.name] = options
+            return {}
+        end,
+    },
+    textui = {
+        show = function(text, options)
+            textUi.text, textUi.options = text, options
+            return 1
+        end,
+        update = function(_, text, options)
+            textUi.text, textUi.options = text, options
+            return true
+        end,
+        hide = function() end,
     },
 }
 exports = {
@@ -148,15 +182,34 @@ Admin = nil
 function RegisterNetEvent(name, callback)
     if callback then netEvents[name] = callback end
 end
-function CreateThread(fn) fn() end
+function CreateThread(fn)
+    local thread = coroutine.create(fn)
+    local ok, err = coroutine.resume(thread)
+    if not ok then error(err, 0) end
+end
+function Wait() coroutine.yield() end
 function TriggerServerEvent() end
 function ExecuteCommand(command) executedCommand = command end
 function GetActivePlayers() return {} end
 function GetResourceState() return 'missing' end
+function AddEventHandler() end
+function GetCurrentResourceName() return 'qbadmin' end
+function DoesEntityExist(entity) return entity == 99 end
+function GetEntityType() return 3 end
+function GetEntityModel() return 123456 end
+function GetEntityArchetypeName() return 'prop_actual_map_name' end
+function GetEntityCoords(entity)
+    if entity == 99 then return { x = 3.0, y = 4.0, z = 0.0 } end
+    return { x = 0.0, y = 0.0, z = 0.0 }
+end
+function PlayerPedId() return 1 end
+function GetEntityHeading() return 90.0 end
+function GetGameTimer() return 0 end
 
 dofile('client/core.lua')
 Admin.level = Config.developer.menuLevel
 dofile('client/development.lua')
+dofile('client/entity_picker.lua')
 dofile('client/menu.lua')
 
 test('client launch events call qblib creators and report completion', function()
@@ -193,11 +246,27 @@ test('Builders tab reflects qbcore dev mode and gates creator shortcuts', functi
     equal(developerItem('devmode_self'), nil, 'player dev mode belongs under the selected-player workflow')
     truthy(developerItem('devplacement').disabled, 'placement should be disabled outside dev mode')
     truthy(developerItem('devzone').disabled, 'zone creator should be disabled outside dev mode')
+    truthy(developerItem('entitypicker').disabled, 'entity picker should be disabled outside dev mode')
 
     localDevMode = true
     netEvents['qbadmin:client:openMenu'](Config.developer.menuLevel)
     equal(developerItem('devplacement').disabled, false, 'placement should enable in dev mode')
     equal(developerItem('devzone').disabled, false, 'zone creator should enable in dev mode')
+    equal(developerItem('entitypicker').disabled, false, 'entity picker should enable in dev mode')
+end)
+
+test('entity picker registers rebindable copy and close controls', function()
+    equal(keybinds.qbadmin_entitypicker_copy.defaultKey, Config.entityPicker.copyKey, 'copy key default')
+    equal(keybinds.qbadmin_entitypicker_close.defaultKey, Config.entityPicker.closeKey, 'close key default')
+end)
+
+test('entity picker displays and copies the real prop archetype name', function()
+    netEvents['qbadmin:client:startEntityPicker']()
+    truthy(textUi.text:find('prop_actual_map_name', 1, true), 'HUD should prefer the game archetype name')
+
+    keybinds.qbadmin_entitypicker_copy.onPressed()
+    equal(copiedText, 'prop_actual_map_name', 'copy binding should copy the real prop name')
+    keybinds.qbadmin_entitypicker_close.onPressed()
 end)
 
 test('Builders tab zone shortcut runs the permission-checked command', function()

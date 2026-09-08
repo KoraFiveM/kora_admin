@@ -192,6 +192,22 @@ end
 -- fields with the now-populated live lists.
 local activeNavigation
 
+local function toggleLabel(subject, enabled)
+    return enabled and ('Turn %s Off'):format(subject) or ('Turn %s On'):format(subject)
+end
+
+local function toggleVariant(enabled)
+    return enabled and 'outline' or 'primary'
+end
+
+local function adminDutyLabel()
+    return toggleLabel('Admin Duty', Admin.isAdminDuty())
+end
+
+local function adminDutyVariant()
+    return toggleVariant(Admin.isAdminDuty())
+end
+
 local function forEachNavigationContent(navigation, callback)
     for _, view in ipairs(navigation or {}) do
         if view.content then callback(view.content, view) end
@@ -226,6 +242,33 @@ local function updateActiveRegistryFields()
     if QB.nui.updateApp then QB.nui.updateApp('qbadmin:menu', { navigation = activeNavigation }) end
 end
 
+local function refreshAppActionStates()
+    if not activeNavigation then return end
+    forEachNavigationContent(activeNavigation, function(content)
+        for _, block in ipairs(content.blocks or {}) do
+            if block.type == 'actions' then
+                for _, action in ipairs(block.actions or {}) do
+                    if action.id == 'self:aduty' then
+                        action.label = adminDutyLabel()
+                        action.variant = adminDutyVariant()
+                        action.state = Admin.isAdminDuty()
+                    elseif action.id == 'teleport:noclip' then
+                        local active = Admin.isNoclipActive()
+                        action.label = toggleLabel('Noclip', active)
+                        action.variant = toggleVariant(active)
+                        action.state = active
+                    elseif action.id == 'teleport:spectateStop' then
+                        action.state = Admin.isSpectating()
+                        action.disabled = not Admin.isSpectating()
+                    end
+                end
+            end
+        end
+    end)
+    if QB.nui.updateApp then QB.nui.updateApp('qbadmin:menu', { navigation = activeNavigation }) end
+end
+Admin.refreshAppActionStates = refreshAppActionStates
+
 -- `@qbcore/init.lua` re-seeds its local mirror before later event handlers
 -- run, so the snapshot event is the reliable initial-load hook. Changes after
 -- that point arrive through the shared-list subscription.
@@ -235,6 +278,13 @@ if QB.shared.onChange then
     QB.shared.onChange('jobs', updateActiveRegistryFields)
     QB.shared.onChange('gangs', updateActiveRegistryFields)
 end
+
+-- Admin duty is replicated by qbcore after the server accepts /aduty. Refresh
+-- an already-open shell from that authoritative update instead of guessing at
+-- the post-click state locally.
+pcall(function()
+    exports.qbcore:onPlayerDataChange({ 'metadata', 'adminDuty' }, refreshAppActionStates)
+end)
 
 local function entityModelField()
     return {
@@ -399,7 +449,10 @@ local SECTIONS = {
         title = 'Personal Admin Tools',
         description = 'Common staff-state, recovery, and coordinate utilities for your own character.',
         items = {
-            { id = 'aduty', label = 'Toggle Admin Duty', level = 'mod', icon = 'shield', run = withFields('aduty') },
+            {
+                id = 'aduty', label = adminDutyLabel, level = 'mod', icon = 'shield',
+                variant = adminDutyVariant, state = Admin.isAdminDuty, run = withFields('aduty'),
+            },
             { id = 'coords', label = 'Copy Coordinates', level = 'mod', icon = 'copy', run = withFields('coords') },
             { id = 'health', label = 'Set Health', level = 'mod', icon = 'heart',
                 run = withFields('health', { { id = 'value', label = 'Health (0-100%, blank = full)', type = 'number', min = 0, max = 100 } }, 'Set Health') },
@@ -419,8 +472,16 @@ local SECTIONS = {
                     { id = 'coordinates', label = 'Coordinates', type = 'text', placeholder = 'vec4(123.4, 456.7, 78.9, 90.0)', required = true },
                 }, 'Teleport to Coordinates', true) },
             { id = 'tpback', label = 'Teleport Back', level = 'mod', icon = 'arrow-left', run = withFields('tpback', nil, nil, true) },
-            { id = 'spectateStop', label = 'Stop Spectating', level = 'mod', icon = 'crosshair', run = withFields('spectate', nil, nil, true) },
-            { id = 'noclip', label = 'Toggle Noclip', level = 'admin', icon = 'unlock', run = withFields('noclip', nil, nil, true) },
+            {
+                id = 'spectateStop', label = 'Stop Spectating', level = 'mod', icon = 'crosshair',
+                state = Admin.isSpectating, disabled = function() return not Admin.isSpectating() end,
+                run = withFields('spectate', nil, nil, true),
+            },
+            {
+                id = 'noclip', label = function() return toggleLabel('Noclip', Admin.isNoclipActive()) end,
+                level = 'admin', icon = 'unlock', variant = function() return toggleVariant(Admin.isNoclipActive()) end,
+                state = Admin.isNoclipActive, run = withFields('noclip', nil, nil, true),
+            },
         },
     },
     {
@@ -517,8 +578,15 @@ local SECTIONS = {
     {
         id = 'developer', label = 'Builders', level = Config.developer.menuLevel,
         title = 'Development Tools',
-        description = 'Place models, build zones, and clean up entities created during your current session.',
+        description = 'Inspect world entities, place models, build zones, and clean up entities created during your current session.',
         items = {
+            {
+                id = 'entitypicker', label = 'Inspect Entity', icon = 'scan-search',
+                description = 'Aim at a prop, ped, or vehicle to see and copy its real model name',
+                level = Config.developer.menuLevel,
+                disabled = function() return Config.developer.requireDevMode and not Admin.isDevMode() end,
+                run = withFields('entitypicker', nil, nil, true),
+            },
             {
                 id = 'devplacement', label = 'Place Entity / Model', icon = 'box',
                 description = 'Position any valid ped, vehicle, or object and copy its transform',
@@ -613,12 +681,16 @@ local function openRoot()
             -- when offering it would make no sense in the current game state.
             if not item.visible or item.visible() then
                 local label = type(item.label) == 'function' and item.label() or item.label
+                local variant = type(item.variant) == 'function' and item.variant() or item.variant
+                local state = item.state
+                if type(state) == 'function' then state = state() end
                 local stateDisabled = type(item.disabled) == 'function' and item.disabled() or item.disabled == true
                 actions[#actions + 1] = {
                     id = actionGroup(section, item) .. ':' .. item.id,
                     label = label,
                     icon = item.icon,
-                    variant = item.variant,
+                    variant = variant,
+                    state = state,
                     disabled = not Admin.hasLevel(item.level) or stateDisabled,
                     fields = type(item.run) == 'table' and item.run.fields and item.run.fields() or nil,
                     confirm = type(item.run) == 'table' and item.run.confirm or nil,
@@ -932,7 +1004,7 @@ local function openRoot()
         local groupById = {}
         for _, group in ipairs(groups) do groupById[group.id] = group end
 
-        local function add(groupId, id, label, level, run)
+        local function add(groupId, id, label, level, run, state, variant)
             if not Admin.hasLevel(level) then return end
             selectedPlayerActions[id] = { level = level, run = run }
             local actions = groupById[groupId].actions
@@ -942,6 +1014,8 @@ local function openRoot()
                 fields = run.fields and run.fields() or nil,
                 confirm = run.confirm,
                 closeBeforeAction = run.shouldClose,
+                state = state,
+                variant = variant,
             }
         end
         local function selected(command, fields, confirmMessage, shouldClose)
@@ -967,13 +1041,12 @@ local function openRoot()
         add('wellbeing', 'setthirst', 'Set Thirst', 'admin', selected('setthirst', {
             { id = 'value', label = 'Thirst', type = 'number', min = 0, max = 100, required = true },
         }))
-        add('wellbeing', 'freeze', 'Freeze / Unfreeze', 'mod', selected('freeze', {
-            { id = 'state', label = 'State', type = 'select', default = 'true', options = {
-                { value = 'true', label = 'Freeze' }, { value = 'false', label = 'Unfreeze' },
-            } },
-        }))
-        add('wellbeing', 'god', 'Toggle God Mode', 'mod', selected('god'))
-        add('wellbeing', 'invisible', 'Toggle Invisible', 'mod', selected('invisible'))
+        add('wellbeing', 'freeze', profile.frozen and 'Unfreeze Player' or 'Freeze Player', 'mod', selected('freeze'),
+            profile.frozen, toggleVariant(profile.frozen))
+        add('wellbeing', 'god', toggleLabel('God Mode', profile.godMode), 'mod', selected('god'),
+            profile.godMode, toggleVariant(profile.godMode))
+        add('wellbeing', 'invisible', toggleLabel('Invisibility', profile.invisible), 'mod', selected('invisible'),
+            profile.invisible, toggleVariant(profile.invisible))
 
         add('moderation', 'warn', 'Warn', 'mod', selected('warn', {
             { id = 'reason', label = 'Reason', type = 'text', required = true },
@@ -1022,7 +1095,8 @@ local function openRoot()
         add('roles', 'setgang', 'Set Gang', 'admin', selected('setgang', function()
             return roleFields('gangs', 'Gang')
         end))
-        add('roles', 'setduty', 'Toggle Duty', 'mod', selected('setduty'))
+        add('roles', 'setduty', profile.onDuty and 'Take Off Duty' or 'Put On Duty', 'mod', selected('setduty'),
+            profile.onDuty, toggleVariant(profile.onDuty))
 
         add('spawning', 'veh', 'Spawn Vehicle', 'admin', selected('veh', function() return { vehicleModelField() } end))
         add('spawning', 'veh_catalogue', 'Spawn Vehicle from Catalogue', 'admin', selected('veh', function()
@@ -1030,11 +1104,8 @@ local function openRoot()
         end))
         add('spawning', 'entityfor', 'Spawn Ped / Prop', 'admin', selected('entityfor', function() return { entityModelField() } end))
 
-        add('development', 'devmode', 'Set Development Mode', 'admin', selected('devmode', {
-            { id = 'state', label = 'State', type = 'select', default = 'true', options = {
-                { value = 'true', label = 'Enable' }, { value = 'false', label = 'Disable' },
-            } },
-        }))
+        add('development', 'devmode', toggleLabel('Development Mode', profile.devMode), 'admin', selected('devmode'),
+            profile.devMode, toggleVariant(profile.devMode))
 
         add('access', 'granttempaccess', 'Grant Temporary Access', Config.permissions.temporaryGrant.managerRole,
             selected('granttempaccess', {
@@ -1123,6 +1194,11 @@ local function openRoot()
         end
         view.defaultTab = 'overview'
         view.tabs = tabs
+        Admin.refreshSelectedPlayerState = function(updatedTarget)
+            if tostring(updatedTarget) ~= target then return end
+            local refreshed = showSelectedPlayer({ id = target })
+            if refreshed.update and QB.nui.updateApp then QB.nui.updateApp('qbadmin:menu', refreshed.update) end
+        end
         return { update = { navigation = navigation }, navigate = { viewId = 'players', tabId = 'overview' } }
     end
 
@@ -1219,6 +1295,10 @@ local function openRoot()
     })
     QB.nui.openApp('qbadmin:menu')
 end
+
+RegisterNetEvent('qbadmin:client:refreshMenuPlayerState', function(targetSrc)
+    if Admin.refreshSelectedPlayerState then Admin.refreshSelectedPlayerState(targetSrc) end
+end)
 
 RegisterNetEvent('qbadmin:client:openMenu', function(level)
     if type(level) == 'string' then Admin.level = level end

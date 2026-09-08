@@ -18,12 +18,13 @@ QB = {
     notify = { send = function() end },
 }
 Admin = {
+    states = { frozen = {}, god = {}, invisible = {} },
     checkLevel = function(_, level) return level ~= 'admin' or adminViewer end,
     resolveTarget = function(_, target)
         if target ~= '12' then return nil, nil, 'player not found' end
         return 12, {
             citizenid = 'CITIZEN12', name = 'Jane Doe',
-            job = { name = 'police', label = 'Police', grade = { name = 'Sergeant', level = 3 } },
+            job = { name = 'police', label = 'Police', onduty = true, grade = { name = 'Sergeant', level = 3 } },
             gang = { name = 'none', label = 'None', grade = { name = 'None', level = 0 } },
             money = { cash = 250, bank = 4000 },
             metadata = { armor = 50, hunger = 80, thirst = 70, isdead = false, ishandcuffed = true },
@@ -40,6 +41,7 @@ exports = { qbcore = {
     getPlayers = function() return { 12 } end,
     getJob = function() return { label = 'Police' } end,
     getIdentifiers = function() return { license = 'license:test', discord = 'discord:test' } end,
+    isDevMode = function() return true end,
 } }
 function GetPlayerName() return 'Jane Doe' end
 function GetPlayerPing() return 24 end
@@ -60,6 +62,9 @@ test('selecting a player returns a complete fresh profile', function()
     equal(profile.health, 175, 'live health')
     equal(profile.armor, 50, 'armor')
     equal(profile.cuffed, true, 'state')
+    equal(profile.onDuty, true, 'duty state')
+    equal(profile.devMode, true, 'development state')
+    equal(profile.frozen, false, 'frozen state defaults off')
     equal(profile.license, nil, 'support must not receive platform identifiers')
 end)
 

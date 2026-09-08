@@ -9,6 +9,7 @@ local function stop()
     if not spectating then return end
     NetworkSetInSpectatorMode(false, PlayerPedId())
     spectating = nil
+    Admin.spectating = false
 end
 
 local function start(targetSrc)
@@ -32,6 +33,7 @@ local function start(targetSrc)
 
     NetworkSetInSpectatorMode(true, ped)
     spectating = targetSrc
+    Admin.spectating = true
 end
 
 RegisterNetEvent('qbadmin:client:spectate', function(targetSrc)
@@ -40,6 +42,7 @@ RegisterNetEvent('qbadmin:client:spectate', function(targetSrc)
         return
     end
     start(targetSrc)
+    if Admin.refreshAppActionStates then Admin.refreshAppActionStates() end
 end)
 
 AddEventHandler('onResourceStop', function(resourceName)

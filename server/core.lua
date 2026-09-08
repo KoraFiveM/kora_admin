@@ -31,6 +31,13 @@ function Admin.resolveToggle(value, current)
     return nil, 'state must be on or off'
 end
 
+---Requests a fresh selected-player profile after an authoritative state change.
+---@param source integer
+---@param targetSrc integer
+function Admin.refreshMenuPlayerState(source, targetSrc)
+    TriggerClientEvent('qbadmin:client:refreshMenuPlayerState', source, targetSrc)
+end
+
 ---@param value any
 ---@param minimum number|nil
 ---@param maximum number|nil

@@ -15,7 +15,11 @@ local function tick()
     local coords = GetEntityCoords(ped)
 
     local speed = Config.noclip.baseSpeed
-    if IsControlPressed(0, 21) then speed = speed * Config.noclip.fastMultiplier end -- sprint = faster
+    if IsControlPressed(0, 21) then -- Shift = faster
+        speed = speed * Config.noclip.fastMultiplier
+    elseif IsControlPressed(0, 19) then -- Alt = precision movement
+        speed = speed * Config.noclip.slowMultiplier
+    end
 
     local headingRad, pitchRad = toRadians(rot.z), toRadians(rot.x)
     local forwardX, forwardY, forwardZ = -math.sin(headingRad) * math.cos(pitchRad), math.cos(headingRad) * math.cos(pitchRad), math.sin(pitchRad)
@@ -38,11 +42,13 @@ end
 
 local function enable()
     active = true
+    Admin.noclipActive = true
     local ped = PlayerPedId()
     FreezeEntityPosition(ped, true)
     SetEntityCollision(ped, false, false)
     SetEntityInvincible(ped, true)
     SetEntityVisible(ped, false, false)
+    QB.nui.send('noclip:hud', { active = true })
 
     CreateThread(function()
         while active do
@@ -54,15 +60,18 @@ end
 
 local function disable()
     active = false
+    Admin.noclipActive = false
     local ped = PlayerPedId()
     FreezeEntityPosition(ped, false)
     SetEntityCollision(ped, true, true)
     SetEntityInvincible(ped, false)
     SetEntityVisible(ped, true, false)
+    QB.nui.send('noclip:hud', nil)
 end
 
 RegisterNetEvent('qbadmin:client:noclip', function()
     if active then disable() else enable() end
+    if Admin.refreshAppActionStates then Admin.refreshAppActionStates() end
 end)
 
 AddEventHandler('onResourceStop', function(resourceName)

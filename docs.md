@@ -209,16 +209,20 @@ own conversation with `/reportstatus <id>` and `/reportreply <id> <message>`.
 ### Development workspace
 
 The **Development → Builders** tab is available at
-`Config.developer.menuLevel` (`admin` by default). It launches
+`Config.developer.menuLevel` (`admin` by default). Its **Inspect Entity** view
+uses qblib's camera raycast and focus-free HUD to identify the prop, ped, or
+vehicle being aimed at. It prefers GTA's own entity archetype name, so map
+props show their actual model name; `H` copies that name and `X` closes the
+picker by default (both are rebindable in FiveM settings). The tab also launches
 `QB.placement.start(model)` and opens the qblib box/sphere/poly zone creator.
 Development mode for yourself or another player is changed from that selected
 player's **Development** group. When
-`Config.developer.requireDevMode` is enabled, the two creator shortcuts remain
+`Config.developer.requireDevMode` is enabled, the builder shortcuts remain
 disabled until the caller enables their own development mode.
 
-The menu executes the permission-checked `/devplacement` and `/devzone`
+The menu executes the permission-checked `/entitypicker`, `/devplacement`, and `/devzone`
 commands. Their server handlers verify both the configured admin tier and the
-qbcore-owned development-mode state before relaying to the client. Both tools
+qbcore-owned development-mode state before relaying to the client. The two creator tools
 are data-capture utilities: placement deletes its preview, and zone creation
 returns/copies a definition without registering a live zone.
 
@@ -274,9 +278,10 @@ clock, the preset already in effect is marked `current`, and Custom opens
 prefilled with that clock, so an admin can see what the server time actually
 is before changing it.
 
-The **Development → Builders** tab adds `/devplacement <model>` for qblib's temporary
-ped/vehicle/object placement creator and `/devzone <box|sphere|poly>` for its
-zone creator. The existing `/devmode [id=me] [true|false]` command delegates to
+The **Development → Builders** tab adds `/entitypicker` for a focus-free entity
+inspector that copies the aimed entity's actual model/archetype name, `/devplacement <model>`
+for qblib's temporary ped/vehicle/object placement creator, and
+`/devzone <box|sphere|poly>` for its zone creator. The existing `/devmode [id=me] [true|false]` command delegates to
 qbcore's `setDevMode` export; its state is per-player and ephemeral.
 
 ## Ban system
@@ -313,7 +318,7 @@ becomes a concern, add a scheduled `DELETE ... WHERE created_at < ...` and a
 
 `config.lua` remains the documented, community-editable baseline for every
 tunable: permission ranks and the ACE principal identifier kind, ban duration
-units, teleport fade/collision timing, noclip speed, weather types, clock
+units, teleport fade/collision timing, noclip speed (including fast and precision multipliers), weather types, clock
 presets and join-sync behavior, vehicle/entity spawn offsets, Developer-menu
 level/dev-mode requirement, Medal events/key/menu level, and audit log page
 size.

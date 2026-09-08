@@ -66,7 +66,8 @@ Config.teleport = {
 
 Config.noclip = {
     baseSpeed = 2.0,       -- metres/tick at normal speed
-    fastMultiplier = 3.0,  -- speed multiplier while sprint is held
+    fastMultiplier = 3.0,  -- speed multiplier while Shift is held
+    slowMultiplier = 0.35, -- precision speed multiplier while Alt is held
 }
 
 Config.world = {
@@ -110,6 +111,14 @@ Config.developer = {
     -- When enabled, the caller must turn on qbcore's per-player development
     -- mode before launching qblib's placement or zone creators.
     requireDevMode = true,
+}
+
+Config.entityPicker = {
+    -- The picker is a client-local inspection tool. Starting it still goes
+    -- through the permission-checked /entitypicker command below.
+    maxDistance = 50.0, -- maximum camera-ray distance when inspecting an entity
+    copyKey = 'H', -- default for copying the aimed entity's actual model/archetype name
+    closeKey = 'X', -- default for closing the active entity picker
 }
 
 Config.medal = {

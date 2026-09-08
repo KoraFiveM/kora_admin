@@ -25,6 +25,7 @@ one implementation.
 ensure qbsql
 ensure qblib
 ensure qbcore
+ensure qbvehiclekeys
 ensure qbadmin
 ```
 qbadmin migrates its own `admin_logs` table (`sql/001_admin_logs.sql`) on
@@ -84,6 +85,14 @@ workspace described below.
 ExecuteCommand('givemoney 3 cash 500 event-reward')
 ExecuteCommand('giveitem 3 water_bottle 5')
 ```
+
+### Give a player vehicle keys
+```
+/givekeys 3             -- player 3 must be in the driver seat
+```
+
+Vehicles created through `/car` and `/veh` automatically grant session keys
+to the player receiving the vehicle.
 
 ### Teleport, noclip, spectate
 ```
@@ -312,6 +321,7 @@ player's token-authenticated clothing request; clients cannot mint it.
 
 ### Developer — configurable, default `admin`
 ```
+/entitypicker                 -- inspect aimed entity; H copies its actual model name, X closes
 /devplacement <model>          -- place any valid ped, vehicle, or object; copy its transform
 /devzone <box|sphere|poly>     -- capture and copy a qblib zone definition
 ```
@@ -376,11 +386,12 @@ ladder), optional `discordRoles`, `temporaryGrant`, and
 default `license`); `Config.ban.durationUnits`/`durationWords` (`30m`, `2h`,
 `7d`, `1w`, or `perm`); `Config.teleport` fade/collision timing and
 `waypointLaunchHeight`/`groundZAttempts`/`groundZRetryDelay` (the ground-snap
-algorithm used by `/tpm`, ported from txAdmin's own); `Config.noclip.baseSpeed`/`fastMultiplier`;
+algorithm used by `/tpm`, ported from txAdmin's own); `Config.noclip.baseSpeed`/`fastMultiplier`/`slowMultiplier`;
 `Config.world.weatherTypes`, `timePresets` (the ordered `/time` preset words
 and their hour/minute -- change these to change what `night` means here) and
 `syncOnPlayerLoaded`; `Config.vehicle.spawnOffset` and
 `Config.entity.spawnOffset`; `Config.developer.menuLevel` and `requireDevMode`;
+`Config.entityPicker.maxDistance`, `copyKey`, and `closeKey`;
 `Config.medal` for the public key, menu permission, timeout, and clip events;
 `Config.audit.pageSize`; `Config.keybind` for the default `/admin` keybind
 (`F7`); and `Config.configEditor.level` for the owner-only configuration

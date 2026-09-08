@@ -59,7 +59,14 @@ QB.callback.register('qbadmin:menuPlayerProfile', function(src, target)
         thirst = metadata.thirst or 100,
         dead = metadata.isdead == true or metadata.inlaststand == true,
         cuffed = metadata.ishandcuffed == true,
+        onDuty = job.onduty == true,
+        frozen = Admin.states and Admin.states.frozen[targetSrc] == true,
+        godMode = Admin.states and Admin.states.god[targetSrc] == true,
+        invisible = Admin.states and Admin.states.invisible[targetSrc] == true,
     }
+
+    local devModeOk, devMode = pcall(function() return exports.qbcore:isDevMode(targetSrc) end)
+    profile.devMode = devModeOk and devMode == true
 
     if Admin.checkLevel(src, 'admin') then
         local identifiers = exports.qbcore:getIdentifiers(targetSrc)
