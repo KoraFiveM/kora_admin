@@ -28,17 +28,10 @@ CreateThread(function()
     end
 
     local resource = GetCurrentResourceName()
-    local logsSql = LoadResourceFile(resource, 'sql/001_admin_logs.sql')
-    local reportsSql = LoadResourceFile(resource, 'sql/002_admin_reports.sql')
-    if not logsSql or not reportsSql then
-        print('^1[qbadmin:migrate]^7 missing a required sql migration')
-        return
-    end
-
-    local applied, err = QB.sql.migrate(resource, {
-        { version = 1, name = 'admin_logs', sql = logsSql, checksum = checksum(logsSql) },
-        { version = 2, name = 'admin_reports', sql = reportsSql, checksum = checksum(reportsSql) },
-    })
+    local applied, err = QB.sql.migrateFiles(resource, {
+        { version = 1, name = 'admin_logs', file = 'sql/001_admin_logs.sql' },
+        { version = 2, name = 'admin_reports', file = 'sql/002_admin_reports.sql' },
+    }, checksum)
     if err then
         print(('^1[qbadmin:migrate]^7 migration failed: %s'):format(tostring(err)))
     else
