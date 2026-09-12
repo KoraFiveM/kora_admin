@@ -20,7 +20,10 @@ local callbacks = {}
 local timers = {}
 
 Admin = {}
-QB = { notify = { send = function(payload) notifications[#notifications + 1] = payload end } }
+QB = {
+    notify = { send = function(payload) notifications[#notifications + 1] = payload end },
+    util = { trim = function(value) return type(value) == 'string' and value:match('^%s*(.-)%s*$') or value end },
+}
 function GetConvar(_, default) return convar ~= '' and convar or default end
 function SendNUIMessage(payload) messages[#messages + 1] = payload end
 function RegisterNUICallback(name, callback) callbacks[name] = callback end

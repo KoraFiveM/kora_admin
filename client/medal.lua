@@ -10,7 +10,7 @@ local function notify(notificationType, message)
 end
 
 local function trim(value)
-    return type(value) == 'string' and value:match('^%s*(.-)%s*$') or ''
+    return type(value) == 'string' and QB.util.trim(value) or ''
 end
 
 local function publicKey()
