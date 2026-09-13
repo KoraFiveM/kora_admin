@@ -185,6 +185,7 @@ function RegisterNetEvent(name, callback)
     if callback then netEvents[name] = callback end
 end
 function CreateThread(fn) fn() end
+function Wait() end
 function TriggerServerEvent() end
 function ExecuteCommand(command) executedCommand = command end
 function GetActivePlayers() return {} end

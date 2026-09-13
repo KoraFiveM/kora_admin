@@ -55,12 +55,22 @@ function Admin.isSpectating()
     return Admin.spectating == true
 end
 
+-- `user` is both the default and a legitimate server answer, so track the
+-- response separately while retrying the initial request.
+local levelAnswered = false
+
 RegisterNetEvent('qbadmin:client:level', function(level)
     Admin.level = level or 'user'
+    levelAnswered = true
 end)
 
 CreateThread(function()
-    TriggerServerEvent('qbadmin:server:requestLevel')
+    for _ = 1, 15 do
+        TriggerServerEvent('qbadmin:server:requestLevel')
+        Wait(2000)
+        if levelAnswered then return end
+    end
+    print('^1[qbadmin]^7 the server never answered the permission-level request; menu items will stay filtered to "user". Every command still re-checks server-side.')
 end)
 
 -- Re-request on the client's own player-loaded signal, so a (re)connect

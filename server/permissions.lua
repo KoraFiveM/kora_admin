@@ -287,3 +287,39 @@ exports('revokePlaygroundTemporaryAccess', function(targetSrc, role)
     Admin.syncLevel(targetSrc)
     return true
 end)
+
+-- Console-only so this diagnostic remains available when the permission
+-- configuration itself is what prevents an administrator from using commands.
+RegisterCommand('qbadmin_whyperms', function(source, args)
+    if source ~= 0 then return end
+
+    local target = tonumber(args[1])
+    if not target then
+        print('^3[qbadmin]^7 usage: qbadmin_whyperms <server id>')
+        return
+    end
+    if GetPlayerName(target) == nil then
+        print(('^1[qbadmin]^7 no player online with server id %d.'):format(target))
+        return
+    end
+
+    print(('^5[qbadmin]^7 permission report for %s (id %d)'):format(GetPlayerName(target), target))
+    print('  identifiers:')
+    for index = 0, GetNumPlayerIdentifiers(target) - 1 do
+        print(('    %s'):format(GetPlayerIdentifier(target, index)))
+    end
+
+    local levels, canonical = Admin.aceLevels()
+    local checks, matchedLevel = QB.permissions.explain(target, levels, OPTIONS)
+    local resolved = canonical[matchedLevel] or 'user'
+    print('  ace checks (object -> raw value returned by IsPlayerAceAllowed):')
+    for _, check in ipairs(checks) do
+        print(('    %-24s -> %s (%s)%s')
+            :format(check.object, check.raw, check.type, check.allowed and '  <= GRANTS ' .. check.level or ''))
+    end
+
+    print(('  resolved level: %s'):format(resolved))
+    if resolved == 'user' then
+        print('^3  no ACE matched. The grant must reach this player as: add_ace <a principal above> qbcore.<level> allow^7')
+    end
+end, true)
