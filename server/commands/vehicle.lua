@@ -1,4 +1,4 @@
--- /car, /veh, /dv, /fix
+-- /car, /veh, /givevehicle, /givekeys, /dv, /fix
 --
 -- Vehicle creation is server-owned so it remains compatible with strict entity
 -- lockdown. The recipient client receives only the resulting network id for
@@ -17,6 +17,13 @@ local function validModel(model)
     local hash = joaat(model)
     if hash == 0 or hash == -1 or not IsModelInCdimage(hash) or not IsModelAVehicle(hash) then return nil end
     return model
+end
+
+local function validPlate(plate)
+    if type(plate) ~= 'string' then return nil end
+    plate = plate:upper()
+    if #plate < 1 or #plate > 15 or not plate:match('^[A-Z0-9]+$') then return nil end
+    return plate
 end
 
 ---@param targetSrc integer
@@ -100,6 +107,25 @@ QB.commands.add('veh', 'Spawn a vehicle for a player', { { name = 'id' }, { name
     if spawnErr then return Admin.respond(source, false, spawnErr) end
     Admin.log(source, 'veh', data, { model = model })
     Admin.respond(source, true, ('Spawned %s for %s'):format(model, data.name))
+end, OPTS_ADMIN)
+
+QB.commands.add('givevehicle', 'Add a personal vehicle to a player garage', {
+    { name = 'id' }, { name = 'model' }, { name = 'plate' },
+}, true, function(source, args)
+    local _, data, err = Admin.resolveTarget(source, args[1])
+    if not data then return Admin.respond(source, false, err) end
+
+    local model = validModel(args[2])
+    if not model then return Admin.respond(source, false, 'unknown vehicle model') end
+
+    local plate = validPlate(args[3])
+    if not plate then return Admin.respond(source, false, 'plate must be 1-15 letters or numbers') end
+
+    local created, createErr = exports.qbcore:createVehicle(data.citizenid, model, plate)
+    if not created then return Admin.respond(source, false, createErr or 'could not save vehicle') end
+
+    Admin.log(source, 'givevehicle', data, { model = model, plate = plate })
+    Admin.respond(source, true, ('Added %s (%s) to %s\'s garage'):format(model, plate, data.name))
 end, OPTS_ADMIN)
 
 QB.commands.add('givekeys', 'Give a player keys to the vehicle they are driving', { { name = 'id' } }, true, function(source, args)

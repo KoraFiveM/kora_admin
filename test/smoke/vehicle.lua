@@ -24,6 +24,7 @@ local existenceChecks = 0
 local networkChecks = 0
 local waits = 0
 local grantedKeys = {}
+local createdVehicles = {}
 
 QB = {
     commands = {
@@ -42,6 +43,14 @@ QB = {
 }
 
 exports = {
+    qbcore = {
+        createVehicle = function(_, citizenid, model, plate, job)
+            createdVehicles[#createdVehicles + 1] = {
+                citizenid = citizenid, model = model, plate = plate, job = job,
+            }
+            return true
+        end,
+    },
     qbvehiclekeys = {
         giveKeys = function(_, target, plate, override)
             grantedKeys[#grantedKeys + 1] = { target = target, plate = plate, override = override }
@@ -57,7 +66,7 @@ Admin = {
     end,
     log = function() end,
     resolveTarget = function(_, id)
-        return tonumber(id), { name = 'Target' }
+        return tonumber(id), { name = 'Target', citizenid = 'CID123' }
     end,
 }
 
@@ -113,6 +122,25 @@ test('givekeys grants the driver keys to their current vehicle', function()
     equal(commands.givekeys.options.permission, 'admin', '/givekeys permission')
     equal(responses[#responses].ok, true, 'key grant must report success')
     equal(grantedKeys[#grantedKeys].target, 7, 'driver receives the keys')
+end)
+
+test('givevehicle creates a persistent personal garage vehicle', function()
+    commands.givevehicle.handler(7, { '12', 'adder', 'staff01' })
+
+    equal(commands.givevehicle.options.permission, 'admin', '/givevehicle permission')
+    equal(createdVehicles[#createdVehicles].citizenid, 'CID123', 'vehicle owner')
+    equal(createdVehicles[#createdVehicles].model, 'adder', 'vehicle model')
+    equal(createdVehicles[#createdVehicles].plate, 'STAFF01', 'normalised plate')
+    equal(createdVehicles[#createdVehicles].job, nil, 'personal vehicles have no job owner')
+    equal(responses[#responses].ok, true, 'persistent grant must report success')
+end)
+
+test('givevehicle rejects invalid plates before persistence', function()
+    local createdBefore = #createdVehicles
+    commands.givevehicle.handler(7, { '12', 'adder', 'BAD-PLATE' })
+
+    equal(#createdVehicles, createdBefore, 'invalid plate must not reach persistence')
+    equal(responses[#responses].ok, false, 'invalid plate must report failure')
 end)
 
 print(('-- %d passed, %d failed --'):format(passed, failed))

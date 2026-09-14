@@ -185,6 +185,20 @@ local function vehicleCatalogueField()
     }
 end
 
+local function personalVehicleFields(catalogue)
+    return {
+        catalogue and vehicleCatalogueField() or vehicleModelField(),
+        {
+            id = 'plate',
+            label = 'License plate',
+            type = 'text',
+            placeholder = 'e.g. STAFF01',
+            required = true,
+            pattern = '^[A-Za-z0-9]{1,15}$',
+        },
+    }
+end
+
 -- AppShell receives its action fields as a snapshot. The qbcore registry
 -- snapshot can arrive just after this resource builds the menu, which would
 -- leave catalogue and role fields permanently empty for that menu session.
@@ -1101,6 +1115,12 @@ local function openRoot()
         add('spawning', 'veh', 'Spawn Vehicle', 'admin', selected('veh', function() return { vehicleModelField() } end))
         add('spawning', 'veh_catalogue', 'Spawn Vehicle from Catalogue', 'admin', selected('veh', function()
             return { vehicleCatalogueField() }
+        end))
+        add('spawning', 'givevehicle', 'Add Personal Vehicle', 'admin', selected('givevehicle', function()
+            return personalVehicleFields(false)
+        end))
+        add('spawning', 'givevehicle_catalogue', 'Add Personal Vehicle from Catalogue', 'admin', selected('givevehicle', function()
+            return personalVehicleFields(true)
         end))
         add('spawning', 'entityfor', 'Spawn Ped / Prop', 'admin', selected('entityfor', function() return { entityModelField() } end))
 

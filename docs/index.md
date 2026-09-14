@@ -128,6 +128,7 @@ end)
 /setgang 3 ballas 1
 /car zentorno          -- spawn a vehicle and get in
 /veh 3 zentorno         -- spawn a vehicle for player 3
+/givevehicle 3 sultan STAFF01 -- add a persistent personal garage vehicle
 /entity a_m_m_skater_01 -- spawn a static local ped in front of you
 /entityfor 3 prop_barrel_02a -- spawn a static local prop for player 3
 /deleteentity           -- delete your last admin-spawned entity
@@ -138,6 +139,12 @@ In the admin menu, **My Tools → Vehicles → Spawn from Code** uses the same
 any valid streamed addon vehicle model. **Browse Vehicle Catalogue** is a
 separate searchable quick-pick list of common vanilla vehicles; it is not an
 allow-list.
+
+For a selected player, **Spawning → Add Personal Vehicle** saves a vehicle to
+their garage database record. Enter a model and a unique plate containing 1-15
+letters or numbers. The catalogue variant provides the same operation with a
+searchable vehicle picker. The chat equivalent is
+`/givevehicle <id> <model> <plate>`; the player must be online.
 
 **Entities → Spawn Ped / Prop** accepts any valid ped or prop model. These
 spawns are local to the recipient and static, which makes them safe for
@@ -304,6 +311,7 @@ player's token-authenticated clothing request; clients cannot mint it.
 ```
 /car <model>            -- spawn and get in
 /veh <id> <model>       -- spawn for a player
+/givevehicle <id> <model> <plate> -- add a persistent personal garage vehicle
 /dv                      -- delete the vehicle you're in
 ```
 
