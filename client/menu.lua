@@ -586,7 +586,7 @@ local SECTIONS = {
         description = 'Edit registered resource settings. Each field states whether it applies now or needs a restart.',
         items = {
             { id = 'open', label = 'Open Configuration Editor', level = Config.configEditor.level, icon = 'settings',
-                run = appAction(function() TriggerEvent('qbadmin:client:configOpened') end, nil, nil, true) },
+                run = appAction(function() QB.config.open() end, nil, nil, true) },
         },
     },
     {

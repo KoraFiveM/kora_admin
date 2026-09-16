@@ -43,7 +43,6 @@ server_scripts {
     'server/target.lua',
     'server/response.lua',
     'server/audit.lua',
-    'server/config_editor.lua',
     'server/reports.lua',
     'server/menu_data.lua',
     'server/migrate.lua',
@@ -74,6 +73,5 @@ client_scripts {
     'client/teleport.lua',
     'client/noclip.lua',
     'client/spectate.lua',
-    'client/config_editor.lua',
     'client/menu.lua'
 }

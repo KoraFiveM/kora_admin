@@ -106,21 +106,13 @@ stay stuck on the death screen with a healthy-looking value underneath it.
 **Revive clears whichever ambulance job is actually running, not just raw
 health.** `/revive`, `/selfrevive`, and Set Health's own dead-to-alive branch
 all funnel through the same client relay (`reviveLocalPed`,
-`client/relay.lua`), which fires both real `qb-ambulancejob`'s
-`hospital:client:Revive` and the qblib-native `qbambulance` rebuild's
-`qbambulance:client:revived` -- whichever resource isn't currently started
-simply has no handler for its own event name, so this is a harmless no-op for
-the inactive one. Without this, raw natives alone leave that job's own
-death-loop thread (the one forcing the death animation/disabled controls)
-running forever even after health reads full.
+`client/relay.lua`), which fires the qblib-native `qbambulance` rebuild's
+`qbambulance:client:revived` event. Without this, raw natives alone leave that
+job's own death-loop thread running forever even after health reads full.
 
 `/selfrevive` (Self / Utility menu: "Revive Me", next to Set Health) is
 deliberately a **different command name** from the existing targeted
-`/revive` (Moderation menu) -- real `qb-ambulancejob` registers its own
-`/revive` too, and qblib's command registry has no collision detection
-(whichever resource registers the name last wins, silently). A dedicated
-name for the self-service case means it can never be shadowed regardless of
-which ambulance resource is active or what it names its own commands.
+`/revive` (Moderation menu), so the self-service case cannot be shadowed.
 
 `/ban` and `/unban` deliberately do **not** support `me` -- they use a
 separate offline-capable resolver (`Admin.resolveOfflineTarget`) since a ban
