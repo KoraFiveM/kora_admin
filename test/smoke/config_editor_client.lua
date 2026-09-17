@@ -92,5 +92,13 @@ test('the editor shows saved and running values, then commits through qbadmin', 
     equal(notifications[#notifications].message, 'Configuration updated live.', 'live confirmation')
 end)
 
+test('restart-required rows distinguish an unapplied saved value', function()
+    entry.configured.interval = 20
+    entry.values.interval = 10
+    definition.onAction('config:resource', { itemId = 'sample' })
+    local rows = definition.onAction('config:resource', { itemId = 'sample' }).update.navigation[2].content.blocks[1].rows
+    equal(rows[2].status.label, 'Saved; restart needed', 'pending restart label')
+end)
+
 print(('qbadmin config editor client: %d passed, %d failed'):format(passed, failed))
 if failed > 0 then os.exit(1) end

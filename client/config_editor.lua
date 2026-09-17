@@ -42,6 +42,18 @@ local function displayValue(value)
     return tostring(value)
 end
 
+local function valuesEqual(left, right)
+    if type(left) ~= type(right) then return false end
+    if type(left) ~= 'table' then return left == right end
+    for key, value in pairs(left) do
+        if not valuesEqual(value, right[key]) then return false end
+    end
+    for key in pairs(right) do
+        if left[key] == nil then return false end
+    end
+    return true
+end
+
 local function fieldFor(setting)
     local schema, value = setting.schema, setting.configured
     if schema.kind == 'boolean' then
@@ -131,9 +143,10 @@ local function addSettingsView(definition, entry)
     table.sort(leaves, function(a, b) return displayPath(a.schema.path) < displayPath(b.schema.path) end)
     local rows = {}
     for _, setting in ipairs(leaves) do
+        local pending = not setting.schema.live and not valuesEqual(setting.configured, setting.running)
         rows[#rows + 1] = {
             id = pathId(setting.schema.path), path = displayPath(setting.schema.path), value = displayValue(setting.configured),
-            status = { label = setting.schema.live and 'Applies now' or 'Restart required', badge = true,
+            status = { label = setting.schema.live and 'Applies now' or pending and 'Saved; restart needed' or 'Restart required', badge = true,
                 tone = setting.schema.live and 'success' or 'warning' },
             scope = setting.schema.scope,
         }
