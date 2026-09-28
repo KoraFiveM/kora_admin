@@ -16,6 +16,10 @@ QB.commands.add('coords', 'Copy your current coordinates to the clipboard', nil,
     TriggerClientEvent('qbadmin:client:coords', source)
 end, OPTS_MOD)
 
+QB.commands.add('vec4', 'Copy your current vector4 coordinates to the clipboard', nil, false, function(source)
+    TriggerClientEvent('qbadmin:client:vec4', source)
+end, OPTS_MOD)
+
 QB.commands.add('health', 'Set your own health percentage (0-100, default: 100)', { { name = 'percentage' } }, false, function(source, args)
     TriggerClientEvent('qbadmin:client:setHealth', source, tonumber(args[1]))
 end, OPTS_MOD)

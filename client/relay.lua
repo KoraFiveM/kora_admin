@@ -137,8 +137,15 @@ end)
 
 RegisterNetEvent('qbadmin:client:coords', function()
     local coords = GetEntityCoords(PlayerPedId())
-    QB.nui.copyToClipboard(('%.2f, %.2f, %.2f'):format(coords.x, coords.y, coords.z))
+    QB.nui.copyToClipboard(('vector3(%.2f, %.2f, %.2f)'):format(coords.x, coords.y, coords.z))
 end)
+
+RegisterNetEvent('qbadmin:client:vec4', function()
+    local coords = GetEntityCoords(PlayerPedId())
+    local heading = GetEntityHeading(PlayerPedId())
+    QB.nui.copyToClipboard(('vector4(%.2f, %.2f, %.2f, %.2f)'):format(coords.x, coords.y, coords.z, heading))
+end)
+
 
 -- GTA health uses 100 as the death floor rather than as a 50% midpoint.
 -- Convert the admin command's human-friendly percentage onto the current
