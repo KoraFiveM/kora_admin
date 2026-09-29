@@ -19,7 +19,7 @@ local function moneyCommand(name, help, exportFn)
     -- argsRequired=false: 'reason' is optional (defaults below), and qblib's
     -- wrapper would otherwise demand every declared arg -- including it --
     -- before the handler ever runs. account/amount are still enforced here.
-    QB.commands.add(name, help, { { name = 'id' }, { name = 'account' }, { name = 'amount' }, { name = 'reason' } }, false,
+    Admin.addCommand(name, help, { { name = 'id' }, { name = 'account' }, { name = 'amount' }, { name = 'reason' } }, false,
         function(source, args)
             local targetSrc, data, err = Admin.resolveTarget(source, args[1])
             if not targetSrc then return Admin.respond(source, false, err) end
@@ -53,7 +53,7 @@ moneyCommand('setmoney', "Set a player's account balance", function(targetSrc, a
 end)
 
 -- argsRequired=false: amount/info both default below; only id/item are truly required.
-QB.commands.add('giveitem', 'Give a player an item', { { name = 'id' }, { name = 'item' }, { name = 'amount' }, { name = 'info' } }, false,
+Admin.addCommand('giveitem', 'Give a player an item', { { name = 'id' }, { name = 'item' }, { name = 'amount' }, { name = 'info' } }, false,
     function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
         if not targetSrc then return Admin.respond(source, false, err) end
@@ -78,7 +78,7 @@ QB.commands.add('giveitem', 'Give a player an item', { { name = 'id' }, { name =
     end, OPTS_ADMIN)
 
 -- argsRequired=false: amount defaults below; only id/item are truly required.
-QB.commands.add('removeitem', 'Remove an item from a player', { { name = 'id' }, { name = 'item' }, { name = 'amount' } }, false,
+Admin.addCommand('removeitem', 'Remove an item from a player', { { name = 'id' }, { name = 'item' }, { name = 'amount' } }, false,
     function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
         if not targetSrc then return Admin.respond(source, false, err) end
@@ -95,7 +95,7 @@ QB.commands.add('removeitem', 'Remove an item from a player', { { name = 'id' },
         Admin.respond(source, true, ('Removed %d x %s from %s'):format(amount, item, data.name))
     end, OPTS_ADMIN)
 
-QB.commands.add('clearinventory', "Clear a player's inventory", { { name = 'id' } }, true, function(source, args)
+Admin.addCommand('clearinventory', "Clear a player's inventory", { { name = 'id' } }, true, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 

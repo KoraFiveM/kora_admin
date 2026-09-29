@@ -8,6 +8,12 @@
 ---@param message? string  -- resolver/action failures may only have an err string some of the time; falls back to a generic message
 ---@param opts table|nil  -- { title?: string }
 function Admin.respond(src, ok, message, opts)
+    local context = Admin.commandContext(src)
+    if context then
+        context.ok = context.ok and ok
+        context.messages[#context.messages + 1] = message or (ok and 'Done' or 'Something went wrong')
+        return
+    end
     QB.notify.send(src, {
         title = ok and (opts and opts.title or 'Admin') or 'Admin — Error',
         message = message or (ok and 'Done' or 'Something went wrong'),
@@ -21,5 +27,10 @@ end
 ---@param src integer
 ---@param message string
 function Admin.chat(src, message)
+    local context = Admin.commandContext(src)
+    if context then
+        context.messages[#context.messages + 1] = message
+        return
+    end
     TriggerClientEvent('chatMessage', src, '[Admin]', { 255, 200, 0 }, message)
 end

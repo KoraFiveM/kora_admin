@@ -2,10 +2,9 @@
 -- callback uses. ACE/Discord resolution remains in qblib; qbadmin adds its
 -- deliberately in-memory temporary grants on top.
 
-local OPTIONS = {
-    prefix = 'qbcore',
-    discordRoles = Config.permissions.discordRoles,
-}
+local function permissionOptions()
+    return { prefix = 'qbcore', discordRoles = Config.permissions.discordRoles }
+end
 
 Admin.temporaryGrants = Admin.temporaryGrants or {}
 
@@ -129,12 +128,32 @@ end
 ---@param src integer
 ---@return string
 function Admin.getLevel(src)
+    local context = Admin.commandContext and Admin.commandContext(src)
+    if context then return context.level end
     local aceLevels, canonical = Admin.aceLevels()
-    local held = canonical[QB.permissions.getLevel(src, aceLevels, OPTIONS)] or 'user'
+    if Config.permissions.mode == 'discord' then
+        for _, level in ipairs(aceLevels) do
+            local roles = Config.permissions.discordRoles[level]
+            if roles and #roles > 0 then
+                local ok, allowed = pcall(QB.discord.hasAnyRole, src, roles)
+                if ok and allowed == true then return canonical[level] end
+            end
+        end
+        return 'user'
+    end
+    local held = canonical[QB.permissions.getLevel(src, aceLevels, permissionOptions())] or 'user'
     local temporary = temporaryLevel(src)
     if temporary and Admin.roleRank(temporary) > Admin.roleRank(held) then return temporary end
     return held
 end
+
+-- The native appshell uses this bridge for Discord owners. Returning nil in
+-- compatible mode retains qblib's existing standalone ACE authorization.
+exports('canEditConfig', function(src)
+    local allowed = Admin.checkLevel(src, Config.configEditor.level)
+    if Config.permissions.mode == 'discord' then return allowed end
+    if allowed then return true end
+end)
 
 ---@param src integer
 ---@param required string -- a configured role or an internal Config.permissions.gates key
@@ -310,7 +329,7 @@ RegisterCommand('qbadmin_whyperms', function(source, args)
     end
 
     local levels, canonical = Admin.aceLevels()
-    local checks, matchedLevel = QB.permissions.explain(target, levels, OPTIONS)
+    local checks, matchedLevel = QB.permissions.explain(target, levels, permissionOptions())
     local resolved = canonical[matchedLevel] or 'user'
     print('  ace checks (object -> raw value returned by IsPlayerAceAllowed):')
     for _, check in ipairs(checks) do

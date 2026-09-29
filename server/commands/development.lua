@@ -18,14 +18,14 @@ local function developmentReady(source)
     return false
 end
 
-QB.commands.add('entitypicker', 'Inspect the entity you are aiming at and copy its model name', nil, true, function(source)
+Admin.addCommand('entitypicker', 'Inspect the entity you are aiming at and copy its model name', nil, true, function(source)
     if not developmentReady(source) then return end
 
     TriggerClientEvent('qbadmin:client:startEntityPicker', source)
     Admin.log(source, 'entitypicker')
 end, OPTS_DEVELOPER)
 
-QB.commands.add('devplacement', 'Open qblib entity placement for a model', {
+Admin.addCommand('devplacement', 'Open qblib entity placement for a model', {
     { name = 'model', help = 'model name or numeric hash' },
 }, true, function(source, args)
     if not developmentReady(source) then return end
@@ -40,7 +40,7 @@ QB.commands.add('devplacement', 'Open qblib entity placement for a model', {
     Admin.log(source, 'devplacement', nil, { model = model })
 end, OPTS_DEVELOPER)
 
-QB.commands.add('devzone', 'Open qblib zone creator (box, sphere, or poly)', {
+Admin.addCommand('devzone', 'Open qblib zone creator (box, sphere, or poly)', {
     { name = 'type', help = 'box, sphere, or poly' },
 }, true, function(source, args)
     if not developmentReady(source) then return end

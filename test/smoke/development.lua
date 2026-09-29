@@ -58,6 +58,7 @@ function TriggerClientEvent(name, target, ...)
     clientEvents[#clientEvents + 1] = { name = name, target = target, args = { ... } }
 end
 
+dofile('server/command_registry.lua')
 dofile('server/commands/development.lua')
 
 test('developer commands use the configured server permission gate', function()

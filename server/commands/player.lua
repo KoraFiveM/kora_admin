@@ -2,7 +2,7 @@
 
 local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
 
-QB.commands.add('admin', 'Open the admin menu', nil, false, function(source)
+Admin.addCommand('admin', 'Open the admin menu', nil, false, function(source)
     -- Refresh the cosmetic client-side filter on every open. Discord roles can
     -- change between heartbeat syncs; the server command gate above remains
     -- authoritative, while this keeps the visible tier in step with it.
@@ -24,7 +24,7 @@ end, {
     },
 })
 
-QB.commands.add('players', 'List online players', { { name = 'search', help = 'optional name filter' } }, false,
+Admin.addCommand('players', 'List online players', { { name = 'search', help = 'optional name filter' } }, false,
     function(source, args)
         local search = args[1] and args[1]:lower() or nil
         local lines = {}
@@ -43,7 +43,7 @@ QB.commands.add('players', 'List online players', { { name = 'search', help = 'o
     end, { permission = 'support', checkPermission = Admin.checkLevel, resource = 'qbadmin' })
 
 local function addSetNeedCommand(commandName, metadataKey, label)
-    QB.commands.add(commandName, ('Set a player\'s %s'):format(label:lower()),
+    Admin.addCommand(commandName, ('Set a player\'s %s'):format(label:lower()),
         { { name = 'id' }, { name = 'value', help = '0-100' } }, true,
         function(source, args)
             local targetSrc, data, err = Admin.resolveTarget(source, args[1])

@@ -18,7 +18,7 @@ if Config.world.syncOnPlayerLoaded then
     end)
 end
 
-QB.commands.add('announce', 'Broadcast a message to every player', { { name = 'message' } }, true, function(source, args)
+Admin.addCommand('announce', 'Broadcast a message to every player', { { name = 'message' } }, true, function(source, args)
     local message = table.concat(args, ' ')
     if message == '' then return Admin.respond(source, false, 'message required') end
 
@@ -27,7 +27,7 @@ QB.commands.add('announce', 'Broadcast a message to every player', { { name = 'm
     Admin.respond(source, true, 'Announcement sent')
 end, OPTS_ADMIN)
 
-QB.commands.add('weather', 'Set the server weather', { { name = 'type' } }, true, function(source, args)
+Admin.addCommand('weather', 'Set the server weather', { { name = 'type' } }, true, function(source, args)
     local weatherType = args[1] and args[1]:upper()
     local valid = false
     for _, w in ipairs(Config.world.weatherTypes) do
@@ -65,7 +65,7 @@ end
 
 -- argsRequired=false: minute defaults to 0 below and a preset carries its own,
 -- so only the first argument is truly required.
-QB.commands.add('time', 'Set the server clock', { { name = 'hour|preset' }, { name = 'minute' } }, false, function(source, args)
+Admin.addCommand('time', 'Set the server clock', { { name = 'hour|preset' }, { name = 'minute' } }, false, function(source, args)
     local preset = findTimePreset(args[1])
     local hour, minute
 
@@ -99,7 +99,7 @@ QB.commands.add('time', 'Set the server clock', { { name = 'hour|preset' }, { na
         or ('Time set to %02d:%02d'):format(hour, minute))
 end, OPTS_ADMIN)
 
-QB.commands.add('serverinfo', 'Show basic server stats', nil, false, function(source)
+Admin.addCommand('serverinfo', 'Show basic server stats', nil, false, function(source)
     local players = exports.qbcore:getPlayers()
     local lines = {
         ('Online players: %d'):format(#players),
@@ -109,7 +109,7 @@ QB.commands.add('serverinfo', 'Show basic server stats', nil, false, function(so
     Admin.chat(source, table.concat(lines, '\n'))
 end, OPTS_MOD)
 
-QB.commands.add('adminlog', 'View the admin audit log', { { name = 'action' }, { name = 'target' }, { name = 'page' } }, false,
+Admin.addCommand('adminlog', 'View the admin audit log', { { name = 'action' }, { name = 'target' }, { name = 'page' } }, false,
     function(source, args)
         local rows = Admin.queryLogs({ action = args[1], target = args[2], page = tonumber(args[3]) })
         if #rows == 0 then return Admin.respond(source, false, 'no matching log entries') end

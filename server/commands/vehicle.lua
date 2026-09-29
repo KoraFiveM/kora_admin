@@ -86,7 +86,7 @@ local function spawnFor(targetSrc, model)
     return netId
 end
 
-QB.commands.add('car', 'Spawn a vehicle and get in', { { name = 'model' } }, true, function(source, args)
+Admin.addCommand('car', 'Spawn a vehicle and get in', { { name = 'model' } }, true, function(source, args)
     local model = validModel(args[1])
     if not model then return Admin.respond(source, false, 'unknown vehicle model') end
 
@@ -96,7 +96,7 @@ QB.commands.add('car', 'Spawn a vehicle and get in', { { name = 'model' } }, tru
     Admin.respond(source, true, ('Spawned %s'):format(model))
 end, OPTS_ADMIN)
 
-QB.commands.add('veh', 'Spawn a vehicle for a player', { { name = 'id' }, { name = 'model' } }, true, function(source, args)
+Admin.addCommand('veh', 'Spawn a vehicle for a player', { { name = 'id' }, { name = 'model' } }, true, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
@@ -109,7 +109,7 @@ QB.commands.add('veh', 'Spawn a vehicle for a player', { { name = 'id' }, { name
     Admin.respond(source, true, ('Spawned %s for %s'):format(model, data.name))
 end, OPTS_ADMIN)
 
-QB.commands.add('givevehicle', 'Add a personal vehicle to a player garage', {
+Admin.addCommand('givevehicle', 'Add a personal vehicle to a player garage', {
     { name = 'id' }, { name = 'model' }, { name = 'plate' },
 }, true, function(source, args)
     local _, data, err = Admin.resolveTarget(source, args[1])
@@ -128,7 +128,7 @@ QB.commands.add('givevehicle', 'Add a personal vehicle to a player garage', {
     Admin.respond(source, true, ('Added %s (%s) to %s\'s garage'):format(model, plate, data.name))
 end, OPTS_ADMIN)
 
-QB.commands.add('givekeys', 'Give a player keys to the vehicle they are driving', { { name = 'id' } }, true, function(source, args)
+Admin.addCommand('givekeys', 'Give a player keys to the vehicle they are driving', { { name = 'id' } }, true, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
@@ -145,7 +145,7 @@ QB.commands.add('givekeys', 'Give a player keys to the vehicle they are driving'
     Admin.respond(source, true, ('Gave %s the keys to their current vehicle'):format(data.name))
 end, OPTS_ADMIN)
 
-QB.commands.add('dv', 'Delete the vehicle you are in', nil, false, function(source)
+Admin.addCommand('dv', 'Delete the vehicle you are in', nil, false, function(source)
     local vehicle = GetVehiclePedIsIn(GetPlayerPed(source))
     if vehicle == 0 or not DoesEntityExist(vehicle) then
         return Admin.respond(source, false, 'you are not in a vehicle')
@@ -155,7 +155,7 @@ QB.commands.add('dv', 'Delete the vehicle you are in', nil, false, function(sour
     Admin.respond(source, true, 'Deleted your current vehicle')
 end, OPTS_ADMIN)
 
-QB.commands.add('fix', 'Repair the vehicle you are in', nil, false, function(source)
+Admin.addCommand('fix', 'Repair the vehicle you are in', nil, false, function(source)
     if GetVehiclePedIsIn(GetPlayerPed(source)) == 0 then
         return Admin.respond(source, false, 'you are not in a vehicle')
     end

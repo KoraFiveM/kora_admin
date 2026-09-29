@@ -62,6 +62,9 @@ This uses qblib's Discord bot role cache, so `qblib_discord_bot_token` and
 `qblib_discord_guild_id` must be configured for role grants. Missing/stale
 role data fails closed for Discord only; ACE grants continue to work.
 
+For slash commands, full txAdmin restarts, appshell setup and optional
+Discord-only staff authorization, see [Discord administration](discord.md).
+
 ### Temporary access
 
 The selected player's **Access & Permissions** group is available to

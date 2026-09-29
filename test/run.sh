@@ -17,5 +17,8 @@ for file in "$dir"/smoke/*.lua; do
     echo
 done
 
+echo "== discord transport =="
+if ! ( cd "$dir/.." && node --test test/discord.test.js ); then status=1; fi
+
 echo "-- ran $suites suite(s) --"
 exit "$status"

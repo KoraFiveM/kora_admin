@@ -1,8 +1,6 @@
 -- Admin (server realm) -- the single namespace every qbadmin server file
--- attaches to. No exports are published from this resource: every action is
--- reached exclusively through the commands registered in server/commands/*.lua
--- (see docs.md's "commands are the only entry point" section), so there is
--- nothing else worth putting on a public export surface.
+-- attaches to. Chat, NUI and signed Discord requests share the registered
+-- command handlers; local Discord exports carry transport data only.
 
 Admin = Admin or {}
 

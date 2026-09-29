@@ -5,7 +5,7 @@
 local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
 
 local function addAppearanceCommand(name, label, service)
-    QB.commands.add(name, ('Open the %s for a player'):format(label:lower()), { { name = 'id' } }, true, function(source, args)
+    Admin.addCommand(name, ('Open the %s for a player'):format(label:lower()), { { name = 'id' } }, true, function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
         if not targetSrc then return Admin.respond(source, false, err) end
         if GetResourceState('qbclothing') ~= 'started' then

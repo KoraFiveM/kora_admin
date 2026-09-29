@@ -23,7 +23,7 @@ local function parseDuration(str)
     return os.time() + amount * seconds
 end
 
-QB.commands.add('warn', 'Warn a player', { { name = 'id' }, { name = 'reason' } }, true, function(source, args)
+Admin.addCommand('warn', 'Warn a player', { { name = 'id' }, { name = 'reason' } }, true, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
     local reason = table.concat(args, ' ', 2)
@@ -34,7 +34,7 @@ QB.commands.add('warn', 'Warn a player', { { name = 'id' }, { name = 'reason' } 
     Admin.respond(source, true, ('Warned %s'):format(data.name))
 end, OPTS_MOD)
 
-QB.commands.add('warnings', "Show a player's warning history", { { name = 'id' } }, true, function(source, args)
+Admin.addCommand('warnings', "Show a player's warning history", { { name = 'id' } }, true, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
@@ -53,7 +53,7 @@ QB.commands.add('warnings', "Show a player's warning history", { { name = 'id' }
     Admin.chat(source, table.concat(lines, '\n'))
 end, OPTS_MOD)
 
-QB.commands.add('kick', 'Kick a player', { { name = 'id', help = 'server id, or "me"/omit for self' }, { name = 'reason' } }, false,
+Admin.addCommand('kick', 'Kick a player', { { name = 'id', help = 'server id, or "me"/omit for self' }, { name = 'reason' } }, false,
     function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
         if not targetSrc then return Admin.respond(source, false, err) end
@@ -65,7 +65,7 @@ QB.commands.add('kick', 'Kick a player', { { name = 'id', help = 'server id, or 
         Admin.respond(source, true, ('Kicked %s'):format(data.name))
     end, OPTS_MOD)
 
-QB.commands.add('ban', 'Ban a player, online or offline', { { name = 'target' }, { name = 'duration' }, { name = 'reason' } }, true,
+Admin.addCommand('ban', 'Ban a player, online or offline', { { name = 'target' }, { name = 'duration' }, { name = 'reason' } }, true,
     function(source, args)
         local citizenid, name, identifiers, resolveErr = Admin.resolveOfflineTarget(args[1])
         if not citizenid then return Admin.respond(source, false, resolveErr) end
@@ -84,9 +84,10 @@ QB.commands.add('ban', 'Ban a player, online or offline', { { name = 'target' },
             end
         end
 
+        local _, actorName = Admin.actorIdentity(source)
         local banId, insertErr = QB.sql.insert(
             'INSERT INTO `bans` (`name`,`license`,`discord`,`ip`,`reason`,`expire`,`bannedby`) VALUES (?,?,?,?,?,?,?)',
-            { name, identifiers.license, identifiers.discord, identifiers.ip, reason, expire, GetPlayerName(source) or 'console' }
+            { name, identifiers.license, identifiers.discord, identifiers.ip, reason, expire, actorName }
         )
         if not banId then return Admin.respond(source, false, insertErr or 'could not persist ban') end
 
@@ -106,7 +107,7 @@ QB.commands.add('ban', 'Ban a player, online or offline', { { name = 'target' },
             name or citizenid, expire and os.date('%Y-%m-%d %H:%M', expire) or 'permanent', altsMsg))
     end, OPTS_ADMIN)
 
-QB.commands.add('unban', 'Lift a ban by license or ban id (preserves history)', { { name = 'licenseOrId' } }, true,
+Admin.addCommand('unban', 'Lift a ban by license or ban id (preserves history)', { { name = 'licenseOrId' } }, true,
     function(source, args)
         local arg = args[1]
         if not arg or arg == '' then return Admin.respond(source, false, 'license or ban id required') end
@@ -128,7 +129,7 @@ QB.commands.add('unban', 'Lift a ban by license or ban id (preserves history)', 
         Admin.respond(source, true, ('Lifted %d ban(s)'):format(rows))
     end, OPTS_ADMIN)
 
-QB.commands.add('freeze', 'Freeze/unfreeze a player', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
+Admin.addCommand('freeze', 'Freeze/unfreeze a player', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
@@ -141,7 +142,7 @@ QB.commands.add('freeze', 'Freeze/unfreeze a player', { { name = 'id' }, { name 
     Admin.respond(source, true, ('%s %s'):format(state and 'Froze' or 'Unfroze', data.name))
 end, OPTS_MOD)
 
-QB.commands.add('kill', 'Kill a player', { { name = 'id' } }, false, function(source, args)
+Admin.addCommand('kill', 'Kill a player', { { name = 'id' } }, false, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
@@ -150,7 +151,7 @@ QB.commands.add('kill', 'Kill a player', { { name = 'id' } }, false, function(so
     Admin.respond(source, true, ('Killed %s'):format(data.name))
 end, OPTS_MOD)
 
-QB.commands.add('heal', 'Fully heal a player', { { name = 'id' } }, false, function(source, args)
+Admin.addCommand('heal', 'Fully heal a player', { { name = 'id' } }, false, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
@@ -159,7 +160,7 @@ QB.commands.add('heal', 'Fully heal a player', { { name = 'id' } }, false, funct
     Admin.respond(source, true, ('Healed %s'):format(data.name))
 end, OPTS_MOD)
 
-QB.commands.add('revive', 'Revive a downed player', { { name = 'id' } }, false, function(source, args)
+Admin.addCommand('revive', 'Revive a downed player', { { name = 'id' } }, false, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
@@ -170,7 +171,7 @@ QB.commands.add('revive', 'Revive a downed player', { { name = 'id' } }, false, 
     Admin.respond(source, true, ('Revived %s'):format(data.name))
 end, OPTS_MOD)
 
-QB.commands.add('god', 'Toggle god mode (invincibility)', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
+Admin.addCommand('god', 'Toggle god mode (invincibility)', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
     if targetSrc ~= source and not Admin.checkLevel(source, 'admin') then
@@ -186,7 +187,7 @@ QB.commands.add('god', 'Toggle god mode (invincibility)', { { name = 'id' }, { n
     Admin.respond(source, true, ('God mode %s for %s'):format(state and 'enabled' or 'disabled', data.name))
 end, OPTS_MOD)
 
-QB.commands.add('devmode', 'Toggle core development mode', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
+Admin.addCommand('devmode', 'Toggle core development mode', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
     if targetSrc ~= source and not Admin.checkLevel(source, 'admin') then
@@ -204,7 +205,7 @@ QB.commands.add('devmode', 'Toggle core development mode', { { name = 'id' }, { 
     Admin.respond(source, true, ('Development mode %s for %s'):format(state and 'enabled' or 'disabled', data.name))
 end, OPTS_MOD)
 
-QB.commands.add('invisible', 'Toggle invisibility', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
+Admin.addCommand('invisible', 'Toggle invisibility', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
     if targetSrc ~= source and not Admin.checkLevel(source, 'admin') then

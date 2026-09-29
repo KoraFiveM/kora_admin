@@ -9,7 +9,7 @@ local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, r
 local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
 
 -- argsRequired=false: grade defaults inside exports.qbcore:setJob itself; only id/job are truly required.
-QB.commands.add('setjob', "Set a player's job and grade", { { name = 'id' }, { name = 'job' }, { name = 'grade' } }, false,
+Admin.addCommand('setjob', "Set a player's job and grade", { { name = 'id' }, { name = 'job' }, { name = 'grade' } }, false,
     function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
         if not targetSrc then return Admin.respond(source, false, err) end
@@ -25,7 +25,7 @@ QB.commands.add('setjob', "Set a player's job and grade", { { name = 'id' }, { n
     end, OPTS_ADMIN)
 
 -- argsRequired=false: grade defaults inside exports.qbcore:setGang itself; only id/gang are truly required.
-QB.commands.add('setgang', "Set a player's gang and grade", { { name = 'id' }, { name = 'gang' }, { name = 'grade' } }, false,
+Admin.addCommand('setgang', "Set a player's gang and grade", { { name = 'id' }, { name = 'gang' }, { name = 'grade' } }, false,
     function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
         if not targetSrc then return Admin.respond(source, false, err) end
@@ -40,7 +40,7 @@ QB.commands.add('setgang', "Set a player's gang and grade", { { name = 'id' }, {
         Admin.respond(source, true, ("Set %s's gang to %s"):format(data.name, gangName))
     end, OPTS_ADMIN)
 
-QB.commands.add('setduty', 'Toggle on/off duty', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
+Admin.addCommand('setduty', 'Toggle on/off duty', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 

@@ -9,7 +9,7 @@ local OPTS_TEMPORARY_ACCESS = {
     resource = 'qbadmin',
 }
 
-QB.commands.add('restartresource', 'Restart a resource', { { name = 'name' } }, true, function(source, args)
+Admin.addCommand('restartresource', 'Restart a resource', { { name = 'name' } }, true, function(source, args)
     local resourceName = args[1]
     if not resourceName or resourceName == '' then return Admin.respond(source, false, 'resource name required') end
     if not resourceName:match('^[%w_-]+$') then return Admin.respond(source, false, 'invalid resource name') end
@@ -20,7 +20,7 @@ QB.commands.add('restartresource', 'Restart a resource', { { name = 'name' } }, 
     Admin.respond(source, true, ('Restarted %s'):format(resourceName))
 end, OPTS_GOD)
 
-QB.commands.add('setpermission', 'Grant a player a permission level (runtime only)', { { name = 'id' }, { name = 'level' } }, true,
+Admin.addCommand('setpermission', 'Grant a player a permission level (runtime only)', { { name = 'id' }, { name = 'level' } }, true,
     function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
         if not targetSrc then return Admin.respond(source, false, err) end
@@ -38,7 +38,7 @@ QB.commands.add('setpermission', 'Grant a player a permission level (runtime onl
         Admin.respond(source, true, ('Granted %s to %s (runtime only -- edit server.cfg to persist)'):format(level, data.name))
     end, OPTS_GOD)
 
-QB.commands.add('revokepermission', "Revoke a player's permission level (runtime only)", { { name = 'id' }, { name = 'level' } }, true,
+Admin.addCommand('revokepermission', "Revoke a player's permission level (runtime only)", { { name = 'id' }, { name = 'level' } }, true,
     function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
         if not targetSrc then return Admin.respond(source, false, err) end
@@ -65,7 +65,7 @@ QB.commands.add('revokepermission', "Revoke a player's permission level (runtime
 -- Timed grants do not use add_principal. They live only in qbadmin memory,
 -- cannot remove a server.cfg ACE on expiry, and follow the player across a
 -- reconnect because they are keyed by qbcore's primary identifier.
-QB.commands.add('granttempaccess', 'Grant a player a temporary admin role',
+Admin.addCommand('granttempaccess', 'Grant a player a temporary admin role',
     { { name = 'id' }, { name = 'role' }, { name = 'minutes' } }, true,
     function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
@@ -92,7 +92,7 @@ QB.commands.add('granttempaccess', 'Grant a player a temporary admin role',
             Admin.roleLabel(role), data.name, minutes, minutes == 1 and '' or 's'))
     end, OPTS_TEMPORARY_ACCESS)
 
-QB.commands.add('revoketempaccess', 'Revoke a player\'s temporary admin role',
+Admin.addCommand('revoketempaccess', 'Revoke a player\'s temporary admin role',
     { { name = 'id' }, { name = 'role' } }, true,
     function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])

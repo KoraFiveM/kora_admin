@@ -11,7 +11,7 @@ local function typeNames()
     return values
 end
 
-QB.commands.add('report', 'Send a report to server staff', {
+Admin.addCommand('report', 'Send a report to server staff', {
     { name = 'type', help = 'report category', values = typeNames() },
     { name = 'message', help = 'what happened and any useful details' },
 }, true, function(source, args)
@@ -20,7 +20,7 @@ QB.commands.add('report', 'Send a report to server staff', {
     Admin.respond(source, true, ('Report #%s submitted. Staff have been notified.'):format(report.id), { title = 'Report sent' })
 end, OPTS_USER)
 
-QB.commands.add('reportstatus', 'View one of your reports and its replies', { { name = 'id' } }, true, function(source, args)
+Admin.addCommand('reportstatus', 'View one of your reports and its replies', { { name = 'id' } }, true, function(source, args)
     local report = Admin.getReport(args[1])
     if not report then return Admin.respond(source, false, 'report not found') end
     local license = source ~= 0 and exports.qbcore:primary(source) or nil
@@ -39,14 +39,14 @@ QB.commands.add('reportstatus', 'View one of your reports and its replies', { { 
     Admin.chat(source, table.concat(lines, '\n'))
 end, OPTS_USER)
 
-QB.commands.add('reportreply', 'Reply to your report (staff may reply to any report)', {
+Admin.addCommand('reportreply', 'Reply to your report (staff may reply to any report)', {
     { name = 'id' }, { name = 'message' },
 }, true, function(source, args)
     local ok, err = Admin.replyToReport(source, args[1], table.concat(args, ' ', 2))
     Admin.respond(source, ok, ok and ('Reply added to report #%s'):format(args[1]) or err)
 end, OPTS_USER)
 
-QB.commands.add('reports', 'List player reports', {
+Admin.addCommand('reports', 'List player reports', {
     { name = 'status', help = 'all, open, claimed, resolved, or dismissed' },
     { name = 'type', help = 'all or a report category' },
     { name = 'page' },
@@ -62,7 +62,7 @@ QB.commands.add('reports', 'List player reports', {
     Admin.chat(source, table.concat(lines, '\n'))
 end, OPTS_STAFF)
 
-QB.commands.add('reportclaim', 'Claim a player report', { { name = 'id' } }, true, function(source, args)
+Admin.addCommand('reportclaim', 'Claim a player report', { { name = 'id' } }, true, function(source, args)
     local ok, err = Admin.claimReport(source, args[1])
     Admin.respond(source, ok, ok and ('Claimed report #%s'):format(args[1]) or err)
 end, OPTS_STAFF)
@@ -72,7 +72,7 @@ local function addStatusCommand(name, help, status)
     -- so leave it false and let setReportStatus validate the id while keeping
     -- the note optional for typed commands. The menu asks for a note when
     -- resolving/dismissing to encourage useful closure context.
-    QB.commands.add(name, help, { { name = 'id' }, { name = 'note' } }, false, function(source, args)
+    Admin.addCommand(name, help, { { name = 'id' }, { name = 'note' } }, false, function(source, args)
         local ok, err = Admin.setReportStatus(source, args[1], status, table.concat(args, ' ', 2))
         Admin.respond(source, ok, ok and ('Report #%s marked %s'):format(args[1], status) or err)
     end, OPTS_STAFF)

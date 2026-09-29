@@ -39,6 +39,7 @@ files {
 server_scripts {
     'server/config.lua',
     'server/core.lua',
+    'server/command_registry.lua',
     'server/permissions.lua',
     'server/target.lua',
     'server/response.lua',
@@ -59,7 +60,9 @@ server_scripts {
     'server/commands/world.lua',
     'server/commands/reports.lua',
     'server/commands/privileged.lua',
-    'server/commands/self.lua'
+    'server/commands/self.lua',
+    'server/discord.lua',
+    'server/discord.js'
 }
 
 -- core.lua before relay/teleport/noclip/spectate (they attach to the Admin

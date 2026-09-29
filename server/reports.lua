@@ -30,6 +30,7 @@ local function reportTarget(row)
 end
 
 local function actorIdentity(src)
+    if Admin.actorIdentity then return Admin.actorIdentity(src) end
     if src == 0 then return nil, 'console' end
     return exports.qbcore:primary(src), GetPlayerName(src) or ('unknown(%d)'):format(src)
 end

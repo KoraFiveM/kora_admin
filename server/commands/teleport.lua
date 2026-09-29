@@ -42,7 +42,7 @@ local function parseCoordinates(args)
     return { x = x, y = y, z = z, heading = heading }
 end
 
-QB.commands.add('goto', 'Teleport to a player', { { name = 'id' } }, true, function(source, args)
+Admin.addCommand('goto', 'Teleport to a player', { { name = 'id' } }, true, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
     if targetSrc == source then return Admin.respond(source, false, 'cannot goto yourself') end
@@ -53,7 +53,7 @@ QB.commands.add('goto', 'Teleport to a player', { { name = 'id' } }, true, funct
     Admin.respond(source, true, ('Teleported to %s'):format(data.name))
 end, OPTS_MOD)
 
-QB.commands.add('bring', 'Teleport a player to you', { { name = 'id' } }, true, function(source, args)
+Admin.addCommand('bring', 'Teleport a player to you', { { name = 'id' } }, true, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
     if targetSrc == source then return Admin.respond(source, false, 'cannot bring yourself') end
@@ -67,7 +67,7 @@ end, OPTS_MOD)
 -- Every qbadmin teleport is recorded by the destination client's own bounded
 -- history. Sending a brought player back therefore uses the exact same undo
 -- primitive as /tpback, but relays it to the selected player instead.
-QB.commands.add('sendback', 'Return a player to their position before the last admin teleport', { { name = 'id' } }, true, function(source, args)
+Admin.addCommand('sendback', 'Return a player to their position before the last admin teleport', { { name = 'id' } }, true, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
@@ -76,11 +76,11 @@ QB.commands.add('sendback', 'Return a player to their position before the last a
     Admin.respond(source, true, ('Sent %s back'):format(data.name))
 end, OPTS_MOD)
 
-QB.commands.add('tpm', 'Teleport to your waypoint', nil, false, function(source)
+Admin.addCommand('tpm', 'Teleport to your waypoint', nil, false, function(source)
     TriggerClientEvent('qbadmin:client:tpm', source)
 end, OPTS_MOD)
 
-QB.commands.add('tpcoords', 'Teleport to coordinates or vec3/vector3/vec4/vector4', { { name = 'coordinates' } }, true,
+Admin.addCommand('tpcoords', 'Teleport to coordinates or vec3/vector3/vec4/vector4', { { name = 'coordinates' } }, true,
     function(source, args)
         local coords = parseCoordinates(args)
         if not coords then
@@ -89,11 +89,11 @@ QB.commands.add('tpcoords', 'Teleport to coordinates or vec3/vector3/vec4/vector
         TriggerClientEvent('qbadmin:client:teleportTo', source, coords)
     end, OPTS_MOD)
 
-QB.commands.add('tpback', 'Return to your position before the last teleport', nil, false, function(source)
+Admin.addCommand('tpback', 'Return to your position before the last teleport', nil, false, function(source)
     TriggerClientEvent('qbadmin:client:tpback', source)
 end, OPTS_MOD)
 
-QB.commands.add('spectate', 'Spectate a player; omit id to stop', { { name = 'id' } }, false, function(source, args)
+Admin.addCommand('spectate', 'Spectate a player; omit id to stop', { { name = 'id' } }, false, function(source, args)
     if not args[1] or args[1] == '' then
         TriggerClientEvent('qbadmin:client:spectate', source, nil)
         Admin.respond(source, true, 'Stopped spectating')
@@ -109,7 +109,7 @@ QB.commands.add('spectate', 'Spectate a player; omit id to stop', { { name = 'id
     Admin.respond(source, true, ('Spectating %s'):format(data.name))
 end, OPTS_MOD)
 
-QB.commands.add('noclip', 'Toggle a free-fly camera', nil, false, function(source)
+Admin.addCommand('noclip', 'Toggle a free-fly camera', nil, false, function(source)
     TriggerClientEvent('qbadmin:client:noclip', source)
     Admin.log(source, 'noclip')
 end, OPTS_ADMIN)

@@ -50,6 +50,7 @@ function GetEntityHealth() return 175 end
 function TriggerClientEvent() end
 
 dofile('server/menu_data.lua')
+dofile('server/command_registry.lua')
 dofile('server/commands/player.lua')
 
 test('selecting a player returns a complete fresh profile', function()

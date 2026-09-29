@@ -71,6 +71,7 @@ function GetPlayerName() return 'Staff' end
 function GetPlayerPed() return 1 end
 function GetEntityCoords() return { x = 1, y = 2, z = 3 } end
 
+dofile('server/command_registry.lua')
 dofile('server/commands/reports.lua')
 dofile('server/commands/teleport.lua')
 dofile('server/commands/appearance.lua')

@@ -97,6 +97,7 @@ function TriggerClientEvent(name, target, ...)
     events[#events + 1] = { name = name, target = target, args = { ... } }
 end
 
+dofile('server/command_registry.lua')
 dofile('server/commands/vehicle.lua')
 
 test('car waits for server entity and network registration before succeeding', function()

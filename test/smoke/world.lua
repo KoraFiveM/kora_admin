@@ -54,6 +54,7 @@ Admin.log = function(source, action, _, details)
     logs[#logs + 1] = { source = source, action = action, details = details }
 end
 
+dofile('server/command_registry.lua')
 dofile('server/commands/world.lua')
 
 ---Runs /time with the given args and reports the applied clock (nil when the

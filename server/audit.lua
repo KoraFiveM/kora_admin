@@ -9,8 +9,7 @@
 ---@param target table|nil  -- { citizenid?, license?, name? }
 ---@param details table|nil -- action-specific, JSON-encoded
 function Admin.log(actorSrc, action, target, details)
-    local actorLicense = actorSrc ~= 0 and exports.qbcore:primary(actorSrc) or nil
-    local actorName = actorSrc ~= 0 and (GetPlayerName(actorSrc) or ('unknown(%d)'):format(actorSrc)) or 'console'
+    local actorLicense, actorName = Admin.actorIdentity(actorSrc)
 
     QB.sql.insert(
         'INSERT INTO `admin_logs` (`action`,`actor_license`,`actor_name`,`target_citizenid`,`target_license`,`target_name`,`details`) '

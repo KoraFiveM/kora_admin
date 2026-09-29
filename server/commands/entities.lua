@@ -17,7 +17,7 @@ local function validEntityModel(model)
     return model
 end
 
-QB.commands.add('entity', 'Spawn a static ped or prop in front of you', { { name = 'model' } }, true, function(source, args)
+Admin.addCommand('entity', 'Spawn a static ped or prop in front of you', { { name = 'model' } }, true, function(source, args)
     local model, err = validEntityModel(args[1])
     if not model then return Admin.respond(source, false, err or 'unknown ped or prop model') end
 
@@ -26,7 +26,7 @@ QB.commands.add('entity', 'Spawn a static ped or prop in front of you', { { name
     Admin.respond(source, true, ('Spawning %s'):format(model))
 end, OPTS_ADMIN)
 
-QB.commands.add('entityfor', 'Spawn a static ped or prop for a player', { { name = 'id' }, { name = 'model' } }, true, function(source, args)
+Admin.addCommand('entityfor', 'Spawn a static ped or prop for a player', { { name = 'id' }, { name = 'model' } }, true, function(source, args)
     local targetSrc, data, targetErr = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, targetErr) end
 
@@ -38,7 +38,7 @@ QB.commands.add('entityfor', 'Spawn a static ped or prop for a player', { { name
     Admin.respond(source, true, ('Spawning %s for %s'):format(model, data.name))
 end, OPTS_ADMIN)
 
-QB.commands.add('deleteentity', 'Delete your last admin-spawned entity', nil, false, function(source)
+Admin.addCommand('deleteentity', 'Delete your last admin-spawned entity', nil, false, function(source)
     TriggerClientEvent('qbadmin:client:deleteLastEntity', source)
     Admin.log(source, 'deleteentity')
     Admin.respond(source, true, 'Deleting your last admin-spawned entity')
