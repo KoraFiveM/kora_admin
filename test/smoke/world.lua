@@ -31,6 +31,10 @@ local commands = {}
 local responses = {}
 local clientEvents = {}
 local logs = {}
+local serverEvents = {}
+local weatherResourceState = 'missing'
+
+function GetResourceState() return weatherResourceState end
 
 QB = {
     commands = {
@@ -39,7 +43,7 @@ QB = {
         end,
     },
 }
-function AddEventHandler() end
+function AddEventHandler(name, handler) serverEvents[name] = handler end
 function RegisterNetEvent() end
 function TriggerClientEvent(name, target, ...)
     clientEvents[#clientEvents + 1] = { name = name, target = target, args = { ... } }
@@ -126,6 +130,88 @@ test('a valid custom hour and minute still applies', function()
     hour, minute = setTime('23', '59')
     equal(hour, 23, 'hour 23 is valid')
     equal(minute, 59, 'minute 59 is valid')
+end)
+
+local providerCalls = {}
+local providerError
+exports = {
+    qbweathersync = {
+        setWeather = function(_, weatherType)
+            providerCalls[#providerCalls + 1] = { 'weather', weatherType }
+            return providerError == nil, providerError
+        end,
+        setTime = function(_, hour, minute)
+            providerCalls[#providerCalls + 1] = { 'time', hour, minute }
+            return providerError == nil, providerError
+        end,
+    },
+}
+
+test('standalone weather and time retain broadcasts and late-join synchronization', function()
+    for _, state in ipairs({ 'missing', 'stopped', 'starting', 'stopping' }) do
+        weatherResourceState = state
+        commands.weather.handler(7, { 'rain' })
+        equal(clientEvents[#clientEvents].name, 'qbadmin:client:setWeather', 'standalone weather relay')
+        equal(clientEvents[#clientEvents].args[1], 'RAIN', 'normalized weather')
+        setTime('3', '45')
+        local before = #clientEvents
+        serverEvents['qbcore:server:playerLoaded'](12)
+        equal(#clientEvents, before + 2, 'standalone join retains both overrides')
+        equal(clientEvents[before + 1].target, 12, 'join weather targets the joining player')
+        equal(clientEvents[before + 2].args[1], 3, 'join hour')
+        equal(clientEvents[before + 2].args[2], 45, 'join minute')
+    end
+    commands.weather.handler(7, { 'unknown' })
+    equal(responses[#responses].ok, false, 'standalone weather keeps its configured catalogue')
+    equal(#providerCalls, 0, 'non-running resource states must not invoke exports')
+end)
+
+test('running weather sync receives custom times, presets and its own weather catalogue', function()
+    weatherResourceState = 'started'
+    local before = #clientEvents
+    commands.time.handler(7, { '4', '15' })
+    truthy(providerCalls[#providerCalls], 'time must reach the authoritative provider')
+    equal(providerCalls[#providerCalls][1], 'time', 'time uses the authoritative setter')
+    equal(providerCalls[#providerCalls][2], 4, 'custom hour')
+    equal(providerCalls[#providerCalls][3], 15, 'custom minute')
+    for _, preset in ipairs(Config.world.timePresets) do
+        commands.time.handler(7, { preset.id:upper() })
+        equal(providerCalls[#providerCalls][2], preset.hour, 'qbadmin retains its configured preset hour')
+        equal(providerCalls[#providerCalls][3], preset.minute or 0, 'preset minute')
+        equal(logs[#logs].details.preset, preset.id, 'presets remain audited')
+    end
+    commands.weather.handler(7, { 'halloween' })
+    equal(providerCalls[#providerCalls][1], 'weather', 'provider validates its own catalogue')
+    equal(providerCalls[#providerCalls][2], 'HALLOWEEN', 'normalized provider weather')
+    equal(responses[#responses].ok, true, 'successful provider call notifies the admin')
+    equal(commands.weather.options.permission, 'admin', 'weather permission unchanged')
+    equal(commands.time.options.permission, 'admin', 'time permission unchanged')
+    equal(#clientEvents, before, 'provider-backed commands must not issue competing local relays')
+    local calls = #providerCalls
+    commands.time.handler(7, { '24' })
+    commands.time.handler(7, { '12', '30.5' })
+    equal(#providerCalls, calls, 'invalid times are still refused before the export')
+end)
+
+test('provider rejection does not fall back, audit success or replace standalone join state', function()
+    local events, audits = #clientEvents, #logs
+    providerError = 'provider refused the change'
+    commands.weather.handler(7, { 'unknown' })
+    equal(responses[#responses].ok, false, 'weather failure reported')
+    equal(responses[#responses].message, providerError, 'weather failure reason')
+    commands.time.handler(7, { '8', '20' })
+    equal(responses[#responses].ok, false, 'time failure reported')
+    equal(responses[#responses].message, providerError, 'time failure reason')
+    equal(#clientEvents, events, 'failed provider must not fall back to client overrides')
+    equal(#logs, audits, 'rejected changes must not be logged as successful')
+    serverEvents['qbcore:server:playerLoaded'](12)
+    equal(#clientEvents, events, 'active provider suppresses cached standalone overrides on join')
+    providerError = nil
+    weatherResourceState = 'stopped'
+    serverEvents['qbcore:server:playerLoaded'](12)
+    equal(clientEvents[#clientEvents - 1].args[1], 'RAIN', 'standalone weather remains intact')
+    equal(clientEvents[#clientEvents].args[1], 3, 'standalone hour remains intact')
+    equal(clientEvents[#clientEvents].args[2], 45, 'standalone minute remains intact')
 end)
 
 test('authoritative player state changes request a live selected-profile refresh', function()

@@ -1,9 +1,7 @@
 -- /announce, /weather, /time, /serverinfo, /adminlog
 --
--- Weather/time sync has no qbcore/qblib export to build on -- this is a small
--- new state+broadcast module, kept local to this file since nothing else
--- needs it. Late joiners get the current state re-applied on their own
--- qbcore:server:playerLoaded, not a fresh default.
+-- qbweathersync owns world state while running. Keep the local relays for
+-- standalone servers and for joins while the optional sync resource is stopped.
 
 local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
 local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
@@ -13,6 +11,7 @@ local currentTime = nil -- { hour, minute }
 
 if Config.world.syncOnPlayerLoaded then
     AddEventHandler('qbcore:server:playerLoaded', function(src)
+        if GetResourceState('qbweathersync') == 'started' then return end
         if currentWeather then TriggerClientEvent('qbadmin:client:setWeather', src, currentWeather) end
         if currentTime then TriggerClientEvent('qbadmin:client:setTime', src, currentTime.hour, currentTime.minute) end
     end)
@@ -29,16 +28,21 @@ end, OPTS_ADMIN)
 
 Admin.addCommand('weather', 'Set the server weather', { { name = 'type' } }, true, function(source, args)
     local weatherType = args[1] and args[1]:upper()
-    local valid = false
-    for _, w in ipairs(Config.world.weatherTypes) do
-        if w == weatherType then valid = true; break end
-    end
-    if not valid then
-        return Admin.respond(source, false, ('unknown weather type (options: %s)'):format(table.concat(Config.world.weatherTypes, ', ')))
-    end
+    if GetResourceState('qbweathersync') == 'started' then
+        local ok, err = exports['qbweathersync']:setWeather(weatherType)
+        if not ok then return Admin.respond(source, false, err) end
+    else
+        local valid = false
+        for _, w in ipairs(Config.world.weatherTypes) do
+            if w == weatherType then valid = true; break end
+        end
+        if not valid then
+            return Admin.respond(source, false, ('unknown weather type (options: %s)'):format(table.concat(Config.world.weatherTypes, ', ')))
+        end
 
-    currentWeather = weatherType
-    TriggerClientEvent('qbadmin:client:setWeather', -1, weatherType)
+        currentWeather = weatherType
+        TriggerClientEvent('qbadmin:client:setWeather', -1, weatherType)
+    end
     Admin.log(source, 'weather', nil, { type = weatherType })
     Admin.respond(source, true, ('Weather set to %s'):format(weatherType))
 end, OPTS_ADMIN)
@@ -91,8 +95,13 @@ Admin.addCommand('time', 'Set the server clock', { { name = 'hour|preset' }, { n
         if minute == nil then return Admin.respond(source, false, 'minute must be a whole number from 0-59') end
     end
 
-    currentTime = { hour = hour, minute = minute }
-    TriggerClientEvent('qbadmin:client:setTime', -1, hour, minute)
+    if GetResourceState('qbweathersync') == 'started' then
+        local ok, err = exports['qbweathersync']:setTime(hour, minute)
+        if not ok then return Admin.respond(source, false, err) end
+    else
+        currentTime = { hour = hour, minute = minute }
+        TriggerClientEvent('qbadmin:client:setTime', -1, hour, minute)
+    end
     Admin.log(source, 'time', nil, { hour = hour, minute = minute, preset = preset and preset.id or nil })
     Admin.respond(source, true, preset
         and ('Time set to %s (%02d:%02d)'):format(preset.label, hour, minute)
