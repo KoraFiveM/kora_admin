@@ -11,11 +11,10 @@ local function validModel(model)
     if type(model) ~= 'string' or not model:match('^[%w_]+$') then return nil end
     model = model:lower()
 
-    -- Prefer the canonical shared registry.  Keeping the native hash check as
-    -- a fallback preserves support for deliberately registered addon vehicles.
+    -- The shared lookup also includes streamed addon vehicles.
     if QB.shared.get('vehicles', model) then return model end
     local hash = joaat(model)
-    if hash == 0 or hash == -1 or not IsModelInCdimage(hash) or not IsModelAVehicle(hash) then return nil end
+    if hash == 0 or hash == -1 or not QB.lookup.vehicle(hash) then return nil end
     return model
 end
 

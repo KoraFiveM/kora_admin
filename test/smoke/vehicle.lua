@@ -27,6 +27,13 @@ local grantedKeys = {}
 local createdVehicles = {}
 
 QB = {
+    lookup = {
+        vehicle = function(hash) return hash == 123 and {} or nil end,
+        model = function(hash)
+            if hash == 123 then return { namespace = 'vehicle' } end
+            if hash == 456 then return { namespace = 'ped' } end
+        end,
+    },
     commands = {
         add = function(name, description, arguments, required, handler, options)
             commands[name] = {
@@ -75,7 +82,12 @@ function GetEntityCoords() return { x = 10, y = 20, z = 30 } end
 function GetEntityHeading() return 90 end
 function GetPlayerRoutingBucket() return 0 end
 function GetHashKey() return 123 end
-function joaat() return 123 end
+function joaat(model)
+    if model == 'ped_model' then return 456 end
+    if model == 'invalid_model' then return 789 end
+    return 123
+end
+IsModelInCdimage, IsModelAVehicle = nil, nil
 function CreateVehicle() return 201 end
 function DoesEntityExist()
     existenceChecks = existenceChecks + 1
@@ -99,6 +111,7 @@ end
 
 dofile('server/command_registry.lua')
 dofile('server/commands/vehicle.lua')
+dofile('server/commands/entities.lua')
 
 test('car waits for server entity and network registration before succeeding', function()
     equal(commands.car.required, true, '/car should require a model')
@@ -142,6 +155,23 @@ test('givevehicle rejects invalid plates before persistence', function()
 
     equal(#createdVehicles, createdBefore, 'invalid plate must not reach persistence')
     equal(responses[#responses].ok, false, 'invalid plate must report failure')
+end)
+
+test('model lookup supports addon vehicles and rejects unknown models', function()
+    commands.givevehicle.handler(7, { '12', 'addon_car', 'ADDON1' })
+    equal(responses[#responses].ok, true, 'addon model succeeds without client natives')
+    equal(createdVehicles[#createdVehicles].model, 'addon_car', 'addon model is retained')
+    local before = #createdVehicles
+    commands.givevehicle.handler(7, { '12', 'invalid_model', 'BAD1' })
+    equal(responses[#responses].ok, false, 'unknown models fail')
+    equal(#createdVehicles, before, 'unknown models are not persisted')
+    commands.entity.handler(7, { 'ped_model' })
+    equal(responses[#responses].ok, true, 'ped models are supported')
+    equal(events[#events].name, 'qbadmin:client:spawnEntity', 'entity creation stays on the recipient')
+    commands.entity.handler(7, { 'addon_car' })
+    equal(responses[#responses].ok, false, 'vehicle models use vehicle commands')
+    commands.entity.handler(7, { 'invalid_model' })
+    equal(responses[#responses].ok, false, 'unknown entity models fail')
 end)
 
 print(('-- %d passed, %d failed --'):format(passed, failed))

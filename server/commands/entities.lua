@@ -12,8 +12,10 @@ local function validEntityModel(model)
     model = model:lower()
 
     local hash = joaat(model)
-    if hash == 0 or hash == -1 or not IsModelInCdimage(hash) then return nil end
-    if IsModelAVehicle(hash) then return nil, 'use /car or /veh for vehicle models' end
+    if hash == 0 or hash == -1 then return nil end
+    local record = QB.lookup.model(hash)
+    if not record then return nil end
+    if record.namespace == 'vehicle' then return nil, 'use /car or /veh for vehicle models' end
     return model
 end
 
