@@ -2,11 +2,11 @@
 -- here can either take the server offline or mint an unrestricted runtime
 -- account, which is exactly the blast radius this tier exists to contain.
 
-local OPTS_GOD = { permission = 'god', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
+local OPTS_GOD = { permission = 'god', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
 local OPTS_TEMPORARY_ACCESS = {
     permission = Config.permissions.temporaryGrant.managerRole,
     checkPermission = Admin.checkLevel,
-    resource = 'qbadmin',
+    resource = 'kora_admin',
 }
 
 Admin.addCommand('restartresource', 'Restart a resource', { { name = 'name' } }, true, function(source, args)
@@ -30,10 +30,10 @@ Admin.addCommand('setpermission', 'Grant a player a permission level (runtime on
             return Admin.respond(source, false, 'invalid permission level')
         end
 
-        -- exports.qbcore:addPermission is a runtime add_principal grant only --
+        -- exports.kora_core:addPermission is a runtime add_principal grant only --
         -- it does not persist past a restart unless server.cfg is also
-        -- edited. That is qbcore's own documented behavior, not a bug here.
-        exports.qbcore:addPermission(targetSrc, level)
+        -- edited. That is kora_core's own documented behavior, not a bug here.
+        exports.kora_core:addPermission(targetSrc, level)
         Admin.log(source, 'setpermission', data, { level = level })
         Admin.respond(source, true, ('Granted %s to %s (runtime only -- edit server.cfg to persist)'):format(level, data.name))
     end, OPTS_GOD)
@@ -48,12 +48,12 @@ Admin.addCommand('revokepermission', "Revoke a player's permission level (runtim
             return Admin.respond(source, false, 'invalid permission level')
         end
 
-        -- No removePermission counterpart exists in qbcore/modules/permissions
-        -- -- this mirrors exports.qbcore:addPermission's own identifier
-        -- formatting by hand (candidate to upstream into qbcore itself later,
+        -- No removePermission counterpart exists in kora_core/modules/permissions
+        -- -- this mirrors exports.kora_core:addPermission's own identifier
+        -- formatting by hand (candidate to upstream into kora_core itself later,
         -- see docs.md). Config.permissions.principalIdentifier must be kept in
-        -- sync with qbcore's own Config.identity.primaryIdentifier.
-        local license = exports.qbcore:primary(targetSrc)
+        -- sync with kora_core's own Config.identity.primaryIdentifier.
+        local license = exports.kora_core:primary(targetSrc)
         if not license then return Admin.respond(source, false, 'could not resolve target identifier') end
 
         ExecuteCommand(('remove_principal identifier.%s:%s qbcore.%s'):format(
@@ -62,9 +62,9 @@ Admin.addCommand('revokepermission', "Revoke a player's permission level (runtim
         Admin.respond(source, true, ('Revoked %s from %s (runtime only)'):format(level, data.name))
     end, OPTS_GOD)
 
--- Timed grants do not use add_principal. They live only in qbadmin memory,
+-- Timed grants do not use add_principal. They live only in kora_admin memory,
 -- cannot remove a server.cfg ACE on expiry, and follow the player across a
--- reconnect because they are keyed by qbcore's primary identifier.
+-- reconnect because they are keyed by kora_core's primary identifier.
 Admin.addCommand('granttempaccess', 'Grant a player a temporary admin role',
     { { name = 'id' }, { name = 'role' }, { name = 'minutes' } }, true,
     function(source, args)

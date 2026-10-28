@@ -47,7 +47,7 @@ Admin = {
     end,
 }
 exports = {
-    qbcore = {
+    kora_core = {
         isDevMode = function(_, source)
             equal(source, 7, 'server dev-mode lookup should use the command source')
             return devMode
@@ -175,7 +175,7 @@ QB = {
     },
 }
 exports = {
-    qbcore = {
+    kora_core = {
         isDevMode = function() return localDevMode end,
     },
 }
@@ -194,7 +194,7 @@ function ExecuteCommand(command) executedCommand = command end
 function GetActivePlayers() return {} end
 function GetResourceState() return 'missing' end
 function AddEventHandler() end
-function GetCurrentResourceName() return 'qbadmin' end
+function GetCurrentResourceName() return 'kora_admin' end
 function DoesEntityExist(entity) return entity == 99 end
 function GetEntityType() return 3 end
 function GetEntityModel() return 123456 end

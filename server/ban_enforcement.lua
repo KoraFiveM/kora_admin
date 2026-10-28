@@ -1,7 +1,7 @@
 -- playerConnecting deferral -- the enforcement half of the ban system. The
--- `bans` table (qbcore/sql/002_identifiers.sql) already exists but nothing in
--- qbcore checks it on connect (confirmed by search); this is genuinely new
--- ground, and qbcore has no playerConnecting hook of its own to order against.
+-- `bans` table (kora_core/sql/002_identifiers.sql) already exists but nothing in
+-- kora_core checks it on connect (confirmed by search); this is genuinely new
+-- ground, and kora_core has no playerConnecting hook of its own to order against.
 
 AddEventHandler('playerConnecting', function(_name, _setKickReason, deferrals)
     local src = source
@@ -10,7 +10,7 @@ AddEventHandler('playerConnecting', function(_name, _setKickReason, deferrals)
 
     deferrals.update('Checking ban status...')
 
-    local ids = exports.qbcore:getIdentifiers(src)
+    local ids = exports.kora_core:getIdentifiers(src)
     -- ip matching is inherently less reliable this early in the handshake than
     -- license/discord (see docs.md); still included since a repeat offender's
     -- IP is still worth catching even if occasionally missed here.

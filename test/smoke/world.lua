@@ -135,7 +135,7 @@ end)
 local providerCalls = {}
 local providerError
 exports = {
-    qbweathersync = {
+    kora_weathersync = {
         setWeather = function(_, weatherType)
             providerCalls[#providerCalls + 1] = { 'weather', weatherType }
             return providerError == nil, providerError
@@ -257,7 +257,7 @@ QB = {
     },
 }
 exports = {
-    qbcore = {
+    kora_core = {
         isDevMode = function() return false end,
         getPlayerData = function(_, path)
             if path[1] == 'metadata' and path[2] == 'adminDuty' then return adminDuty end

@@ -1,4 +1,4 @@
--- Admin (server realm) -- the single namespace every qbadmin server file
+-- Admin (server realm) -- the single namespace every kora_admin server file
 -- attaches to. Chat, NUI and signed Discord requests share the registered
 -- command handlers; local Discord exports carry transport data only.
 
@@ -7,8 +7,8 @@ Admin = Admin or {}
 -- Client-native states do not have a reliable server getter.  Keep track of
 -- the values this resource has applied so commands with an omitted state can
 -- actually toggle rather than silently enabling the feature every time.
--- These are intentionally ephemeral: they represent qbadmin's own relays,
--- not player data that belongs in qbcore persistence.
+-- These are intentionally ephemeral: they represent kora_admin's own relays,
+-- not player data that belongs in kora_core persistence.
 Admin.states = Admin.states or {
     frozen = {},
     god = {},
@@ -61,5 +61,11 @@ end)
 -- resolver as every command, including optional Discord roles.
 RegisterNetEvent('qbadmin:server:requestLevel', function()
     local src = source
+    Admin.syncLevel(src)
+end)
+
+AddEventHandler('qbcore:server:txAdminPermissionChanged', function(src)
+    if GetInvokingResource() ~= 'kora_core' or GetResourceState('kora_core') ~= 'started'
+        or not GetPlayerName(src) then return end
     Admin.syncLevel(src)
 end)

@@ -50,7 +50,7 @@ QB = {
 }
 
 exports = {
-    qbcore = {
+    kora_core = {
         createVehicle = function(_, citizenid, model, plate, job)
             createdVehicles[#createdVehicles + 1] = {
                 citizenid = citizenid, model = model, plate = plate, job = job,
@@ -58,7 +58,7 @@ exports = {
             return true
         end,
     },
-    qbvehiclekeys = {
+    kora_vehiclekeys = {
         giveKeys = function(_, target, plate, override)
             grantedKeys[#grantedKeys + 1] = { target = target, plate = plate, override = override }
             return true

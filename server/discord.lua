@@ -81,7 +81,7 @@ local function freshLevel(userId)
 end
 
 local function playerSource(userId)
-    for _, src in ipairs(exports.qbcore:getPlayers()) do
+    for _, src in ipairs(exports.kora_core:getPlayers()) do
         if GetPlayerIdentifierByType(src, 'discord') == 'discord:' .. userId then return src end
     end
     return 0
@@ -102,7 +102,7 @@ local function runCommand(context, name, args, confirmed)
     if not Admin.accessCommandAllowed(name) then
         return Admin.respond(context.source, false, 'Manage access through Discord roles while Discord-only mode is active')
     end
-    if name == 'restartresource' and (args[1] == 'qbadmin' or args[1] == 'qblib' or args[1] == 'monitor') then
+    if name == 'restartresource' and (args[1] == 'kora_admin' or args[1] == 'kora_lib' or args[1] == 'monitor') then
         return Admin.respond(context.source, false, 'Restart this resource from txAdmin so the Discord response can complete')
     end
     if PLAYER_COMMANDS[name] and context.source == 0 then
@@ -137,7 +137,7 @@ local function scheduleRestart(context, reason, confirmed)
         return Admin.respond(context.source, false, 'Provide a restart reason (3-256 characters)')
     end
     if restartPending then return Admin.respond(context.source, false, 'A Discord restart is already pending') end
-    local ready = exports.qbadmin:discordRestartReady()
+    local ready = exports.kora_admin:discordRestartReady()
     if ready ~= true then return Admin.respond(context.source, false, 'Configure the txAdmin restart credentials first') end
     local delay = Config.discord.restartDelaySeconds
     Admin.log(context.source, 'discord.restart.scheduled', nil, {
@@ -161,7 +161,7 @@ local function scheduleRestart(context, reason, confirmed)
             Admin.commandContexts[coroutine.running()] = context
             Admin.log(context.source, 'discord.restart.executing', nil, { discord_id = context.userId, reason = reason })
             Admin.commandContexts[coroutine.running()] = nil
-            exports.qbadmin:discordRestart(function(ok, message)
+            exports.kora_admin:discordRestart(function(ok, message)
                 restartPending = false
                 if ok then return end
                 -- SQL may yield; keep it outside the JavaScript callback stack.
@@ -237,7 +237,7 @@ function Admin.handleDiscordInteraction(interaction)
             Admin.chat(context.source, table.concat(names, ', '))
         elseif action == 'status' then
             Admin.chat(context.source, ('Online players: %d\nUptime: %d minutes\nYour tier: %s\nRestart pending: %s')
-                :format(#exports.qbcore:getPlayers(), math.floor(GetGameTimer() / 60000), Admin.roleLabel(level), tostring(restartPending)))
+                :format(#exports.kora_core:getPlayers(), math.floor(GetGameTimer() / 60000), Admin.roleLabel(level), tostring(restartPending)))
         elseif action == 'restart' then
             scheduleRestart(context, values.reason, values.confirm)
         else
@@ -337,12 +337,12 @@ QB.config.onApply(function(_, _, path)
         if path[1] == 'discord' and (path[2] == 'enabled' or path[2] == 'applicationId' or path[2] == 'guildId' or path[2] == 'publicKey') then
             configureDiscord()
         end
-        for _, src in ipairs(exports.qbcore:getPlayers()) do Admin.syncLevel(src) end
+        for _, src in ipairs(exports.kora_core:getPlayers()) do Admin.syncLevel(src) end
     end)
 end)
 
 Admin.addCommand('config', 'Open the configuration appshell', nil, false, function(src)
-    TriggerClientEvent('qblib:client:configOpened', src, 'qbadmin')
-end, { permission = Config.configEditor.level, checkPermission = Admin.checkLevel, resource = 'qbadmin' })
+    TriggerClientEvent('qblib:client:configOpened', src, 'kora_admin')
+end, { permission = Config.configEditor.level, checkPermission = Admin.checkLevel, resource = 'kora_admin' })
 
 SetTimeout(0, configureDiscord)

@@ -1,7 +1,7 @@
--- Admin.log / Admin.queryLogs -- the durable audit trail. exports.qbcore's own
+-- Admin.log / Admin.queryLogs -- the durable audit trail. exports.kora_core's own
 -- logEvent is an in-memory 500-entry ring buffer only (confirmed in
--- qbcore/modules/logging/server.lua) -- not durable, not queryable later, so
--- "who banned/kicked/teleported whom, when" needs qbadmin's own table.
+-- kora_core/modules/logging/server.lua) -- not durable, not queryable later, so
+-- "who banned/kicked/teleported whom, when" needs kora_admin's own table.
 -- Migrated via server/migrate.lua.
 
 ---@param actorSrc integer  -- 0 for console

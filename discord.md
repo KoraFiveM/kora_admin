@@ -23,7 +23,7 @@ exports and database schemas retain their compatible defaults.
    set qblib_discord_bot_token "YOUR_BOT_TOKEN"
    ```
 
-3. Open `/config`, or **Admin → Server → Configuration**, and select `qbadmin`.
+3. Open `/config`, or **Admin → Server → Configuration**, and select `kora_admin`.
    Enter the Discord application ID, server ID, application public key, and
    allowed staff channel IDs. Leave administration disabled while entering
    these values. The public key is safe to display. Bot tokens and txAdmin
@@ -40,7 +40,7 @@ exports and database schemas retain their compatible defaults.
    ```nginx
    location = /discord/interactions {
        client_max_body_size 64k;
-       proxy_pass http://127.0.0.1:30120/qbadmin/discord/interactions;
+       proxy_pass http://127.0.0.1:30120/kora_admin/discord/interactions;
        proxy_set_header Host $host;
    }
    ```
@@ -54,7 +54,7 @@ exports and database schemas retain their compatible defaults.
    guild slash command without overwriting other commands. Check
    `/qbadmin status`, then `/qbadmin commands`, in an allowed staff channel.
 7. Select **Discord roles only** under `permissions.mode` when Discord should
-   be the sole authority for qbadmin and the configuration editor. Map the
+   be the sole authority for kora_admin and the configuration editor. Map the
    editor tier (`owner` by default) first. This mode ignores ACE and temporary
    grants and disables commands that mint/revoke separate permissions.
    Compatible mode keeps existing ACE authorization and adds Discord roles.
@@ -81,9 +81,9 @@ connected to the game. Targeted commands need an explicit target while staff
 are offline. Client actions are reported as dispatched when their existing
 handler has no completion result.
 
-The registered qbadmin handlers form the catalog; third-party console
-commands are not automatically granted remote access. Restarting `qbadmin`,
-`qblib` or `monitor` through Discord is refused because it interrupts the
+The registered kora_admin handlers form the catalog; third-party console
+commands are not automatically granted remote access. Restarting `kora_admin`,
+`kora_lib` or `monitor` through Discord is refused because it interrupts the
 transport or txAdmin. Use txAdmin for those maintenance actions.
 
 ## Full server restarts
@@ -129,7 +129,7 @@ License columns retain real player licenses, or NULL for offline actors.
 
 The local `discordDispatch` and `discordRestart` exports accept calls only
 from this resource. `discordSettings` exposes non-secret transport settings.
-`canEditConfig(source)` lets qblib's native appshell honor Discord owners and
+`canEditConfig(source)` lets kora_lib's native appshell honor Discord owners and
 role-only policy while retaining the compatible ACE editor path.
 
 Run `test/run.sh` for Lua and transport checks (standalone JavaScript tests use

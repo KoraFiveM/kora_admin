@@ -2,23 +2,25 @@ fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 
-name 'qbadmin'
+name 'kora_admin'
+-- Keep the legacy resource name resolvable for exports['qbadmin'] callers.
+provide 'qbadmin'
 author 'Jamie'
 version '1.0.0'
 description 'Command-driven admin menu -- every action is a command, the NUI just calls ExecuteCommand'
 
-dependency 'qblib'
-dependency 'qbcore'
-dependency 'qbsql'
-dependency 'qbvehiclekeys'
+dependency 'kora_lib'
+dependency 'kora_core'
+dependency 'kora_sql'
+dependency 'kora_vehiclekeys'
 
--- qblib strictly before qbcore/qbsql: both extend the QB table qblib's own
--- init.lua creates. qbcore's mirror is what gives us QB.shared.get/.all for
--- job/gang/vehicle/item picker lists; qbsql's init.lua is what gives us
+-- kora_lib strictly before kora_core/qbsql: both extend the QB table kora_lib's own
+-- init.lua creates. kora_core's mirror is what gives us QB.shared.get/.all for
+-- job/gang/vehicle/item picker lists; kora_sql's init.lua is what gives us
 -- QB.sql.* directly for the bans table and admin_logs.
-shared_script '@qblib/init.lua'
-shared_script '@qbcore/init.lua'
-shared_script '@qbsql/init.lua'
+shared_script '@kora_lib/init.lua'
+shared_script '@kora_core/init.lua'
+shared_script '@kora_sql/init.lua'
 
 shared_scripts {
     'config.lua'

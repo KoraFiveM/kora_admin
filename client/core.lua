@@ -25,22 +25,22 @@ function Admin.hasLevel(required)
     return roleRank(Admin.level) >= roleRank(required)
 end
 
----Reads qbcore's server-controlled development mode mirrored on this client.
+---Reads kora_core's server-controlled development mode mirrored on this client.
 ---A failed export call is treated as disabled so the menu fails closed while
 ---qbcore is starting or restarting.
 ---@return boolean
 function Admin.isDevMode()
-    local ok, enabled = pcall(function() return exports.qbcore:isDevMode() end)
+    local ok, enabled = pcall(function() return exports.kora_core:isDevMode() end)
     return ok and enabled == true
 end
 
 ---Returns the current server-replicated admin-duty state for this character.
 ---The server remains authoritative; a missing player snapshot is treated as
----off until qbcore has finished loading it.
+---off until kora_core has finished loading it.
 ---@return boolean
 function Admin.isAdminDuty()
     local ok, state = pcall(function()
-        return exports.qbcore:getPlayerData({ 'metadata', 'adminDuty' })
+        return exports.kora_core:getPlayerData({ 'metadata', 'adminDuty' })
     end)
     return ok and state == true
 end

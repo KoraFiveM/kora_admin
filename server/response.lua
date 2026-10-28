@@ -1,7 +1,7 @@
 -- Admin.respond -- the one user-facing feedback call site, used by every
 -- command right after it finishes, so success/error toasts look identical
 -- whether the command was typed or fired by the NUI via ExecuteCommand. Built
--- directly on qblib's QB.notify.send -- no bespoke toast/UI invented.
+-- directly on kora_lib's QB.notify.send -- no bespoke toast/UI invented.
 
 ---@param src integer
 ---@param ok boolean

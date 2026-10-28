@@ -53,8 +53,8 @@ QB = {
 local convars = { qblib_discord_guild_id = '900' }
 function GetConvar(name, fallback) return convars[name] or fallback end
 function SetConvar(name, value) convars[name] = value end
-function GetCurrentResourceName() return 'qbadmin' end
-function GetInvokingResource() return 'qbadmin' end
+function GetCurrentResourceName() return 'kora_admin' end
+function GetInvokingResource() return 'kora_admin' end
 function GetPlayerName(src) return src == 12 and 'Target' or nil end
 function GetPlayerIdentifierByType() return linkedUser and 'discord:' .. linkedUser or nil end
 function GetGameTimer() return 60000 end
@@ -72,16 +72,16 @@ Citizen = { Await = function(result)
     return result.value
 end }
 json = { encode = function(value) return value end, decode = function(value) return value end }
-exports = setmetatable({ qbcore = {
+exports = setmetatable({ kora_core = {
     getPlayers = function() return { 12 } end,
     getPlayer = function(_, src) return src == 12 and { citizenid = 'CID12', name = 'Target', license = 'license:target' } or nil end,
     primary = function() return 'license:target' end,
     getIdentifiers = function() return { license = 'license:target', discord = 'discord:target', ip = '127.0.0.1' } end,
     findByIdentifier = function() return {} end,
-}, qbadmin = {
+}, kora_admin = {
     discordRestartReady = function() return true end,
     discordRestart = function(_, callback) restarted = restarted + 1; callback(true, 'accepted') end,
-} }, { __call = function(_, name, callback) exports.qbadmin[name] = callback end })
+} }, { __call = function(_, name, callback) exports.kora_admin[name] = callback end })
 
 dofile('server/config.lua')
 dofile('server/core.lua')
@@ -158,7 +158,7 @@ test('Discord-only mode ignores ACE/temporary grants, blocks access mutations, a
     Admin.temporaryGrants['license:target'] = { owner = clock + 1000 }
     equal(Admin.getLevel(12), 'moderator')
     equal(Admin.accessCommandAllowed('setpermission'), false)
-    equal(exports.qbadmin.canEditConfig(12), false)
+    equal(exports.kora_admin.canEditConfig(12), false)
     Config.permissions.mode = 'ace_discord'
     Admin.temporaryGrants = {}
     Config.permissions.discordRoles = { moderator = { 'new' }, owner = { '400' } }
@@ -170,7 +170,7 @@ test('yielding commands keep actor context separate from another request and nor
     Admin.addCommand('yielding', 'test', nil, false, function(src)
         coroutine.yield()
         Admin.respond(src, true, Admin.getLevel(src))
-    end, { permission = 'admin', resource = 'qbadmin' })
+    end, { permission = 'admin', resource = 'kora_admin' })
     local value = interaction('run', { command = 'yielding' })
     local response, thread = execute(value)
     equal(response, nil); equal(coroutine.status(thread), 'suspended')

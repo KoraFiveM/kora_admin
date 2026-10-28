@@ -1,4 +1,4 @@
--- Client launchers for qbadmin's Developer submenu. The corresponding server
+-- Client launchers for kora_admin's Developer submenu. The corresponding server
 -- commands authenticate every request before either event can be sent.
 
 local function notify(kind, message)

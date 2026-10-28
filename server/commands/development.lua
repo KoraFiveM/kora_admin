@@ -1,18 +1,18 @@
--- /devplacement, /devzone -- permission-checked entry points for the qblib
--- data-capture creators exposed in qbadmin's Developer submenu. Both tools
+-- /devplacement, /devzone -- permission-checked entry points for the kora_lib
+-- data-capture creators exposed in kora_admin's Developer submenu. Both tools
 -- remain client-local and never persist an entity or register a live zone.
 
 local OPTS_DEVELOPER = {
     permission = Config.developer.menuLevel,
     checkPermission = Admin.checkLevel,
-    resource = 'qbadmin',
+    resource = 'kora_admin',
 }
 
 local ZONE_TYPES = { box = true, sphere = true, poly = true }
 
 local function developmentReady(source)
     if not Config.developer.requireDevMode then return true end
-    if exports.qbcore:isDevMode(source) then return true end
+    if exports.kora_core:isDevMode(source) then return true end
 
     Admin.respond(source, false, 'enable qbcore development mode before using creator tools')
     return false

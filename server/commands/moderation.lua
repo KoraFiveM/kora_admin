@@ -1,7 +1,7 @@
 -- /warn, /warnings, /kick, /ban, /unban, /freeze, /kill, /heal, /revive, /god, /invisible
 
-local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
-local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
+local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
+local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
 
 ---Parse a ban duration string. 'perm'/'permanent' -> nil expire, nil error
 ---(permanent ban). '<n><m|h|d|w>' -> unix expire timestamp. Anything else is
@@ -79,7 +79,7 @@ Admin.addCommand('ban', 'Ban a player, online or offline', { { name = 'target' }
         -- Advisory alt detection only -- never auto-banned, just surfaced.
         local possibleAlts = {}
         if identifiers.license then
-            for _, cid in ipairs(exports.qbcore:findByIdentifier('license', identifiers.license)) do
+            for _, cid in ipairs(exports.kora_core:findByIdentifier('license', identifiers.license)) do
                 if cid ~= citizenid then possibleAlts[#possibleAlts + 1] = cid end
             end
         end
@@ -94,8 +94,8 @@ Admin.addCommand('ban', 'Ban a player, online or offline', { { name = 'target' }
         Admin.log(source, 'ban', { citizenid = citizenid, license = identifiers.license, name = name },
             { banId = banId, reason = reason, expire = expire, possibleAlts = possibleAlts })
 
-        for _, onlineSrc in ipairs(exports.qbcore:getPlayers()) do
-            local onlineData = exports.qbcore:getPlayer(onlineSrc)
+        for _, onlineSrc in ipairs(exports.kora_core:getPlayers()) do
+            local onlineData = exports.kora_core:getPlayer(onlineSrc)
             if onlineData and onlineData.citizenid == citizenid then
                 DropPlayer(onlineSrc, ('Banned: %s'):format(reason))
                 break
@@ -165,8 +165,8 @@ Admin.addCommand('revive', 'Revive a downed player', { { name = 'id' } }, false,
     if not targetSrc then return Admin.respond(source, false, err) end
 
     TriggerClientEvent('qbadmin:client:revive', targetSrc)
-    exports.qbcore:setMetaData(targetSrc, 'isdead', false)
-    exports.qbcore:setMetaData(targetSrc, 'inlaststand', false)
+    exports.kora_core:setMetaData(targetSrc, 'isdead', false)
+    exports.kora_core:setMetaData(targetSrc, 'inlaststand', false)
     Admin.log(source, 'revive', data)
     Admin.respond(source, true, ('Revived %s'):format(data.name))
 end, OPTS_MOD)
@@ -194,10 +194,10 @@ Admin.addCommand('devmode', 'Toggle core development mode', { { name = 'id' }, {
         return Admin.respond(source, false, 'admin level required to toggle development mode on another player')
     end
 
-    local state, stateErr = Admin.resolveToggle(args[2], exports.qbcore:isDevMode(targetSrc))
+    local state, stateErr = Admin.resolveToggle(args[2], exports.kora_core:isDevMode(targetSrc))
     if state == nil then return Admin.respond(source, false, stateErr) end
 
-    local ok, setErr = exports.qbcore:setDevMode(targetSrc, state)
+    local ok, setErr = exports.kora_core:setDevMode(targetSrc, state)
     if not ok then return Admin.respond(source, false, setErr or 'could not update development mode') end
 
     Admin.refreshMenuPlayerState(source, targetSrc)

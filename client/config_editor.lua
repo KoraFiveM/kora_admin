@@ -1,5 +1,5 @@
--- qblib owns configuration data and persistence; this AppShell workspace is
--- qbadmin's permission-gated, in-game presentation layer.
+-- kora_lib owns configuration data and persistence; this AppShell workspace is
+-- kora_admin's permission-gated, in-game presentation layer.
 
 local catalog = {}
 local selected

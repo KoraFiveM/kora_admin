@@ -2,8 +2,8 @@
 -- The admin menu executes these same commands, keeping one authorization and
 -- audit path for both interfaces.
 
-local OPTS_USER = { permission = 'user', resource = 'qbadmin' }
-local OPTS_STAFF = { permission = Config.reports.staffLevel, checkPermission = Admin.checkLevel, resource = 'qbadmin' }
+local OPTS_USER = { permission = 'user', resource = 'kora_admin' }
+local OPTS_STAFF = { permission = Config.reports.staffLevel, checkPermission = Admin.checkLevel, resource = 'kora_admin' }
 
 local function typeNames()
     local values = {}
@@ -23,7 +23,7 @@ end, OPTS_USER)
 Admin.addCommand('reportstatus', 'View one of your reports and its replies', { { name = 'id' } }, true, function(source, args)
     local report = Admin.getReport(args[1])
     if not report then return Admin.respond(source, false, 'report not found') end
-    local license = source ~= 0 and exports.qbcore:primary(source) or nil
+    local license = source ~= 0 and exports.kora_core:primary(source) or nil
     if source ~= 0 and not Admin.checkLevel(source, Config.reports.staffLevel) and report.reporter_license ~= license then
         return Admin.respond(source, false, 'you cannot view that report')
     end
@@ -68,7 +68,7 @@ Admin.addCommand('reportclaim', 'Claim a player report', { { name = 'id' } }, tr
 end, OPTS_STAFF)
 
 local function addStatusCommand(name, help, status)
-    -- Only the id is mandatory; qblib's argsRequired flag is all-or-nothing,
+    -- Only the id is mandatory; kora_lib's argsRequired flag is all-or-nothing,
     -- so leave it false and let setReportStatus validate the id while keeping
     -- the note optional for typed commands. The menu asks for a note when
     -- resolving/dismissing to encourage useful closure context.

@@ -1,5 +1,5 @@
 -- Admin.checkLevel -- the one permission check every command and menu-data
--- callback uses. ACE/Discord resolution remains in qblib; qbadmin adds its
+-- callback uses. ACE/Discord resolution remains in kora_lib; kora_admin adds its
 -- deliberately in-memory temporary grants on top.
 
 local function permissionOptions()
@@ -18,7 +18,7 @@ function Admin.resolveRole(role)
     return Config.permissions.gates[role] or role
 end
 
----@return string[] -- highest rank first; qblib requires `user` as its floor
+---@return string[] -- highest rank first; kora_lib requires `user` as its floor
 function Admin.levels()
     local levels = {}
     local ranks = {}
@@ -96,12 +96,12 @@ function Admin.roleLabel(role)
 end
 
 local function primaryKey(src)
-    local primary = exports.qbcore:primary(src)
+    local primary = exports.kora_core:primary(src)
     return primary and primary:lower() or nil
 end
 
 local function syncIdentifier(key)
-    for _, src in ipairs(exports.qbcore:getPlayers()) do
+    for _, src in ipairs(exports.kora_core:getPlayers()) do
         if primaryKey(src) == key then Admin.syncLevel(src) end
     end
 end
@@ -148,7 +148,7 @@ function Admin.getLevel(src)
 end
 
 -- The native appshell uses this bridge for Discord owners. Returning nil in
--- compatible mode retains qblib's existing standalone ACE authorization.
+-- compatible mode retains kora_lib's existing standalone ACE authorization.
 exports('canEditConfig', function(src)
     local allowed = Admin.checkLevel(src, Config.configEditor.level)
     if Config.permissions.mode == 'discord' then return allowed end
@@ -263,7 +263,7 @@ end
 -- way to mint owner access or mutate durable ACE configuration.  Its own
 -- server callback supplies the player-facing ACE gate; this export confines
 -- the cross-resource contract to the two explicitly testable staff tiers.
-local PLAYGROUND_RESOURCE = 'qblib-playground'
+local PLAYGROUND_RESOURCE = 'kora_lib-playground'
 local PLAYGROUND_ROLES = { moderator = true, admin = true }
 
 ---@param targetSrc integer

@@ -32,7 +32,7 @@ end
 local function actorIdentity(src)
     if Admin.actorIdentity then return Admin.actorIdentity(src) end
     if src == 0 then return nil, 'console' end
-    return exports.qbcore:primary(src), GetPlayerName(src) or ('unknown(%d)'):format(src)
+    return exports.kora_core:primary(src), GetPlayerName(src) or ('unknown(%d)'):format(src)
 end
 
 ---Find the report's author in the current player list without trusting the
@@ -40,15 +40,15 @@ end
 ---@param row table
 ---@return integer|nil
 function Admin.reporterSource(row)
-    for _, playerSrc in ipairs(exports.qbcore:getPlayers()) do
-        local data = exports.qbcore:getPlayer(playerSrc)
+    for _, playerSrc in ipairs(exports.kora_core:getPlayers()) do
+        local data = exports.kora_core:getPlayer(playerSrc)
         if data and row.reporter_citizenid and data.citizenid == row.reporter_citizenid then return playerSrc end
-        if row.reporter_license and exports.qbcore:primary(playerSrc) == row.reporter_license then return playerSrc end
+        if row.reporter_license and exports.kora_core:primary(playerSrc) == row.reporter_license then return playerSrc end
     end
 end
 
 local function notifyStaff(payload)
-    for _, playerSrc in ipairs(exports.qbcore:getPlayers()) do
+    for _, playerSrc in ipairs(exports.kora_core:getPlayers()) do
         if Admin.checkLevel(playerSrc, Config.reports.staffLevel) then QB.notify.send(playerSrc, payload) end
     end
 end
@@ -76,14 +76,14 @@ function Admin.createReport(src, typeId, message)
         return nil, ('wait %d seconds before opening another report'):format(retryAt - now)
     end
 
-    local data = exports.qbcore:getPlayer(src)
+    local data = exports.kora_core:getPlayer(src)
     if not data then return nil, 'you are not logged in' end
     local reporterName = data.name or GetPlayerName(src) or ('unknown(%d)'):format(src)
     local id, dbErr = QB.sql.insert(
         'INSERT INTO `admin_reports` (`type`,`reporter_source`,`reporter_citizenid`,`reporter_license`,`reporter_name`,`message`) VALUES (?,?,?,?,?,?)',
         {
             definition.id, src, data.citizenid or QB.sql.NULL,
-            exports.qbcore:primary(src) or QB.sql.NULL, reporterName, message,
+            exports.kora_core:primary(src) or QB.sql.NULL, reporterName, message,
         }
     )
     if not id then return nil, dbErr or 'could not save report' end
@@ -150,7 +150,7 @@ end
 
 local function canRead(src, row)
     if src == 0 or Admin.checkLevel(src, Config.reports.staffLevel) then return true, 'staff' end
-    local license = exports.qbcore:primary(src)
+    local license = exports.kora_core:primary(src)
     if license and row.reporter_license == license then return true, 'player' end
     return false
 end

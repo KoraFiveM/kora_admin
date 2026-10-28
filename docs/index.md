@@ -1,9 +1,9 @@
 ---
 layout: default
-title: qbadmin
+title: kora_admin
 ---
 
-Command-driven admin menu for qbcore/qblib. There is exactly one entry point
+Command-driven admin menu for kora_core/qblib. There is exactly one entry point
 for every privileged action: a chat command. The NUI menu (`/admin`) is not a
 parallel code path — after collecting a target and some parameters, it builds
 the exact command string a human would type and runs it with
@@ -14,22 +14,22 @@ one implementation.
 
 ## Requirements
 
-- [qblib](https://qbcore2.github.io/qblib/) — must load before qbcore/qbsql
-- [qbcore](https://qbcore2.github.io/qbcore/)
-- [qbsql](https://qbcore2.github.io/qbsql/)
+- [qblib](https://qbcore2.github.io/kora_lib/) — must load before kora_core/qbsql
+- [qbcore](https://qbcore2.github.io/kora_core/)
+- [qbsql](https://qbcore2.github.io/kora_sql/)
 
 ## Installation
 
 `server.cfg`, in dependency order:
 ```
-ensure qbsql
-ensure qblib
-ensure qbcore
-ensure qbvehiclekeys
-ensure qbadmin
+ensure kora_sql
+ensure kora_lib
+ensure kora_core
+ensure kora_vehiclekeys
+ensure kora_admin
 ```
-qbadmin migrates its own `admin_logs` table (`sql/001_admin_logs.sql`) on
-first boot via qbsql's migration runner — no manual schema import needed.
+kora_admin migrates its own `admin_logs` table (`sql/001_admin_logs.sql`) on
+first boot via kora_sql's migration runner — no manual schema import needed.
 
 Grant permission roles with ACE principals in `server.cfg` (`Support <
 Moderator < Admin < Owner`, cascading):
@@ -42,7 +42,7 @@ add_principal identifier.license:YYYY group.admin
 add_principal identifier.license:ZZZZ group.owner
 ```
 
-All checks go through qblib's central permission gateway. ACEs are always
+All checks go through kora_lib's central permission gateway. ACEs are always
 active, including the `group.admin` ACE. Discord roles can optionally add a
 tier through `Config.permissions.discordRoles`:
 
@@ -54,7 +54,7 @@ discordRoles = {
 }
 ```
 
-Discord grants require qblib's Discord bot and guild convars. Missing or stale
+Discord grants require kora_lib's Discord bot and guild convars. Missing or stale
 role data fails closed without affecting ACE authorization.
 
 ## Usage examples
@@ -71,7 +71,7 @@ Selecting an online player replaces the list with tabbed profile, player-tool,
 moderation, economy/item, role/access, and advanced views; Back returns to the
 live player browser. **Copy Player Info** copies the visible profile fields;
 platform identifiers and permission level are included only for admins.
-The owner-only **Server → Configuration** tab opens the qblib configuration
+The owner-only **Server → Configuration** tab opens the kora_lib configuration
 workspace described below.
 
 ### Give a player money and an item
@@ -105,7 +105,7 @@ to the player receiving the vehicle.
 
 ### Kick or ban a player from a moderation script
 ```lua
--- server, e.g. an anti-cheat resource flags a player and hands off to qbadmin
+-- server, e.g. an anti-cheat resource flags a player and hands off to kora_admin
 RegisterNetEvent('anticheat:flagged', function(targetSrc, reason)
     ExecuteCommand(('kick %d %s'):format(targetSrc, reason))
     -- or, for a persistent, offline-capable ban:
@@ -180,7 +180,7 @@ in `/admin`, or directly with:
 ```
 
 The workspace lists only first-party or third-party resources that explicitly
-registered a qblib schema. It shows each setting’s scope, saved value, running
+registered a kora_lib schema. It shows each setting’s scope, saved value, running
 value, and either **Applies now** or **Restart required**. Saving writes the
 owning resource’s `config.local.lua`; it never reformats or reorders that
 resource’s authored `config.lua`. Reset removes the in-game override and
@@ -192,13 +192,13 @@ records, runtime state, or executable values. Successful saves and resets are
 recorded in `admin_logs` as `config.commit` and `config.reset`. The permission
 is `Config.configEditor.level`, which defaults to `owner`.
 
-See qblib’s [configuration guide](https://qbcore2.github.io/qblib/modules/config/docs.html)
+See kora_lib’s [configuration guide](https://qbcore2.github.io/kora_lib/modules/config/docs.html)
 to add schemas, client/server scopes, live handlers, or a migration bridge to
 another resource.
 
 ### Read the audit trail from another resource
 ```lua
--- server, e.g. a staff-dashboard resource querying qbadmin's own table via qbsql
+-- server, e.g. a staff-dashboard resource querying kora_admin's own table via kora_sql
 local rows = QB.sql.query(
     'SELECT * FROM `admin_logs` WHERE `action` = ? ORDER BY `created_at` DESC LIMIT 20', { 'ban' })
 for _, row in ipairs(rows) do
@@ -208,7 +208,7 @@ end
 
 ## API reference
 
-qbadmin has no `exports` — the whole surface is chat commands registered
+kora_admin has no `exports` — the whole surface is chat commands registered
 through `QB.commands.add`, plus internal `qbadmin:client:*`/`qbadmin:server:*`
 events used to relay a command's effect to the right client. Most commands
 accept an `[id]` argument that defaults to the caller, or the literal word
@@ -282,7 +282,7 @@ online, staff also get teleport, bring, send-back, and spectate shortcuts.
 /tattoomenu <id>
 ```
 
-These commands open a free, one-use qbclothing session for the selected
+These commands open a free, one-use kora_clothing session for the selected
 player. The authorization is created server-to-server and consumed by that
 player's token-authenticated clothing request; clients cannot mint it.
 
@@ -331,9 +331,9 @@ player's token-authenticated clothing request; clients cannot mint it.
 ```
 /entitypicker                 -- inspect aimed entity; H copies its actual model name, X closes
 /devplacement <model>          -- place any valid ped, vehicle, or object; copy its transform
-/devzone <box|sphere|poly>     -- capture and copy a qblib zone definition
+/devzone <box|sphere|poly>     -- capture and copy a kora_lib zone definition
 ```
-The selected player's **Development** group toggles qbcore development mode
+The selected player's **Development** group toggles kora_core development mode
 for yourself or another player through `/devmode`. With the default
 `Config.developer.requireDevMode = true`, creator commands reject until the
 caller enables their own development mode. Neither creator persists its
@@ -390,7 +390,7 @@ Temporary grants are memory-only, expire automatically, and are configured by
 
 `Config.permissions.roles` (the default `Support < Moderator < Admin < Owner`
 ladder), optional `discordRoles`, `temporaryGrant`, and
-`principalIdentifier` (must match qbcore's own `Config.identity.primaryIdentifier`,
+`principalIdentifier` (must match kora_core's own `Config.identity.primaryIdentifier`,
 default `license`); `Config.ban.durationUnits`/`durationWords` (`30m`, `2h`,
 `7d`, `1w`, or `perm`); `Config.teleport` fade/collision timing and
 `waypointLaunchHeight`/`groundZAttempts`/`groundZRetryDelay` (the ground-snap
@@ -412,10 +412,10 @@ owner through the workspace.
 
 Part of the [qbcore2](https://github.com/qbcore2) resource set:
 
-- [qblib](https://qbcore2.github.io/qblib/) — shared helper library
-- [qbsql](https://qbcore2.github.io/qbsql/) — database driver
-- [qbcore](https://qbcore2.github.io/qbcore/) — framework core
-- [qbinventory](https://qbcore2.github.io/qbinventory/) — headless inventory
-- [qbtarget](https://qbcore2.github.io/qbtarget/) — targeting/interaction
-- [qbclothing](https://qbcore2.github.io/qbclothing/) — clothing/wardrobe
+- [qblib](https://qbcore2.github.io/kora_lib/) — shared helper library
+- [qbsql](https://qbcore2.github.io/kora_sql/) — database driver
+- [qbcore](https://qbcore2.github.io/kora_core/) — framework core
+- [qbinventory](https://qbcore2.github.io/kora_inventory/) — headless inventory
+- [qbtarget](https://qbcore2.github.io/kora_target/) — targeting/interaction
+- [qbclothing](https://qbcore2.github.io/kora_clothing/) — clothing/wardrobe
 - [full resource list ↗](https://github.com/orgs/qbcore2/repositories)

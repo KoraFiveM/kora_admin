@@ -1,14 +1,14 @@
 -- /setjob, /setgang, /setduty
 --
--- Grade validation is NOT duplicated here: exports.qbcore:setJob/setGang
+-- Grade validation is NOT duplicated here: exports.kora_core:setJob/setGang
 -- already validate the job/gang name against the live registry and return
 -- 'unknown job'/'unknown gang' on failure, and already parse/clamp the grade
 -- argument themselves -- this file just passes the raw string through.
 
-local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
-local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
+local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
+local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
 
--- argsRequired=false: grade defaults inside exports.qbcore:setJob itself; only id/job are truly required.
+-- argsRequired=false: grade defaults inside exports.kora_core:setJob itself; only id/job are truly required.
 Admin.addCommand('setjob', "Set a player's job and grade", { { name = 'id' }, { name = 'job' }, { name = 'grade' } }, false,
     function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
@@ -17,14 +17,14 @@ Admin.addCommand('setjob', "Set a player's job and grade", { { name = 'id' }, { 
         local jobName = args[2]
         if not jobName then return Admin.respond(source, false, 'job name required') end
 
-        local ok, actionErr = exports.qbcore:setJob(targetSrc, jobName, args[3])
+        local ok, actionErr = exports.kora_core:setJob(targetSrc, jobName, args[3])
         if not ok then return Admin.respond(source, false, actionErr or 'could not set job') end
 
         Admin.log(source, 'setjob', data, { job = jobName, grade = args[3] })
         Admin.respond(source, true, ("Set %s's job to %s"):format(data.name, jobName))
     end, OPTS_ADMIN)
 
--- argsRequired=false: grade defaults inside exports.qbcore:setGang itself; only id/gang are truly required.
+-- argsRequired=false: grade defaults inside exports.kora_core:setGang itself; only id/gang are truly required.
 Admin.addCommand('setgang', "Set a player's gang and grade", { { name = 'id' }, { name = 'gang' }, { name = 'grade' } }, false,
     function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
@@ -33,7 +33,7 @@ Admin.addCommand('setgang', "Set a player's gang and grade", { { name = 'id' }, 
         local gangName = args[2]
         if not gangName then return Admin.respond(source, false, 'gang name required') end
 
-        local ok, actionErr = exports.qbcore:setGang(targetSrc, gangName, args[3])
+        local ok, actionErr = exports.kora_core:setGang(targetSrc, gangName, args[3])
         if not ok then return Admin.respond(source, false, actionErr or 'could not set gang') end
 
         Admin.log(source, 'setgang', data, { gang = gangName, grade = args[3] })
@@ -48,7 +48,7 @@ Admin.addCommand('setduty', 'Toggle on/off duty', { { name = 'id' }, { name = 's
     local state, stateErr = Admin.resolveToggle(args[2], current)
     if state == nil then return Admin.respond(source, false, stateErr) end
 
-    local ok, actionErr = exports.qbcore:setJobDuty(targetSrc, state)
+    local ok, actionErr = exports.kora_core:setJobDuty(targetSrc, state)
     if not ok then return Admin.respond(source, false, actionErr or 'could not set duty state') end
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'setduty', data, { state = state })

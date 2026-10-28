@@ -1,10 +1,10 @@
 -- Single flat Config table, per-module sub-tables, a trailing comment on every
--- value -- matches qblib/qbcore's config.lua convention.
+-- value -- matches kora_lib/qbcore's config.lua convention.
 
 Config = Config or {}
 
 Config.permissions = {
-    -- Every role used by qbadmin. Add roles here (with a unique rank) to make
+    -- Every role used by kora_admin. Add roles here (with a unique rank) to make
     -- them available to ACE/Discord and the temporary-access picker. `user`
     -- is the non-staff floor and can never be granted.
     roles = {
@@ -25,14 +25,14 @@ Config.permissions = {
         admin = 'admin',
         god = 'owner',
     },
-    -- Must match qbcore's own Config.identity.primaryIdentifier (default
-    -- 'license', not readable from this resource's VM). exports.qbcore's own
-    -- addPermission reads qbcore's copy directly when GRANTING; qbadmin's
+    -- Must match kora_core's own Config.identity.primaryIdentifier (default
+    -- 'license', not readable from this resource's VM). exports.kora_core's own
+    -- addPermission reads kora_core's copy directly when GRANTING; kora_admin's
     -- /revokepermission has to mirror the same identifier kind by hand since
     -- there is no removePermission export to delegate to (see docs.md).
     principalIdentifier = 'license',
-    -- Temporary access exists only in qbadmin memory: it survives reconnects
-    -- during the timer but is intentionally cleared by a qbadmin/server
+    -- Temporary access exists only in kora_admin memory: it survives reconnects
+    -- during the timer but is intentionally cleared by a kora_admin/server
     -- restart. The manager may grant any grantable role at or below maxRole.
     temporaryGrant = {
         managerRole = 'admin',
@@ -99,17 +99,17 @@ Config.vehicle = {
 
 Config.entity = {
     -- /entity spawns this far in front of the target. Entity spawns are
-    -- intentionally local, static qblib entities for safe admin testing.
+    -- intentionally local, static kora_lib entities for safe admin testing.
     spawnOffset = 2.0,
 }
 
 Config.developer = {
-    -- Minimum qbadmin permission tier allowed to open the Developer submenu
+    -- Minimum kora_admin permission tier allowed to open the Developer submenu
     -- and run its creator commands. The commands still re-check this on the
     -- server; the client-side menu gate is only presentation.
     menuLevel = 'admin',
-    -- When enabled, the caller must turn on qbcore's per-player development
-    -- mode before launching qblib's placement or zone creators.
+    -- When enabled, the caller must turn on kora_core's per-player development
+    -- mode before launching kora_lib's placement or zone creators.
     requireDevMode = true,
 }
 
@@ -128,7 +128,7 @@ Config.medal = {
     -- and register the matching event IDs at https://medal.tv/developer/auto-clipping.
     publicKey = '',
     publicKeyConvar = 'qbadmin_medal_public_key',
-    menuLevel = 'admin', -- minimum qbadmin permission tier that sees Medal Clips
+    menuLevel = 'admin', -- minimum kora_admin permission tier that sees Medal Clips
     requestTimeoutMs = 5000, -- fail promptly when Medal is closed/not installed
     events = {
         -- IDs, names, durations, and delays must match the events submitted to
@@ -144,7 +144,7 @@ Config.audit = {
 Config.configEditor = {
     -- Editing server configuration can change gameplay, economy, and access
     -- policy. Keep it above normal administration by default; each request is
-    -- checked again on the server before it reaches qblib.
+    -- checked again on the server before it reaches kora_lib.
     level = 'owner',
 }
 
@@ -168,12 +168,12 @@ Config.reports = {
 
 Config.keybind = {
     -- Attached directly to the server-owned /admin registration. Binding a
-    -- key grants nothing: qblib dispatches it through /admin's normal support gate.
+    -- key grants nothing: kora_lib dispatches it through /admin's normal support gate.
     -- Players rebind this freely in Settings > Key Bindings > FiveM; the value
     -- here is only the default. Empty string = registered but unbound.
     label = 'Open the admin menu (qbadmin)',
-    defaultKey = 'F7', -- HOME/F6 are qblib-playground's palette, TAB is qbinventory
+    defaultKey = 'F7', -- HOME/F6 are kora_lib-playground's palette, TAB is kora_inventory
 }
 
--- Registers this resource-owned configuration with qblib without changing its public Config table.
+-- Registers this resource-owned configuration with kora_lib without changing its public Config table.
 if QB and QB.config and QB.config.adopt then Config = QB.config.adopt(Config) end

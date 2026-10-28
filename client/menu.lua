@@ -13,7 +13,7 @@ end
 ---Fields may be a plain list or a function returning one, resolved right
 ---before the form opens rather than when SECTIONS is built (see below):
 ---a field using registry-backed job/item/vehicle options needs QB.shared to have
----already received its mirror snapshot from qbcore, which may not have
+---already received its mirror snapshot from kora_core, which may not have
 ---happened yet at resource-start when SECTIONS itself is constructed.
 ---@param fields? table[]|fun():table[]
 ---@return table[]|nil
@@ -106,7 +106,7 @@ end, function()
 end)
 
 local function openClothing(mode, service)
-    if GetResourceState('qbclothing') ~= 'started' then
+    if GetResourceState('kora_clothing') ~= 'started' then
         QB.notify.send({ type = 'error', message = 'qbclothing is not running' })
         return
     end
@@ -199,7 +199,7 @@ local function personalVehicleFields(catalogue)
     }
 end
 
--- AppShell receives its action fields as a snapshot. The qbcore registry
+-- AppShell receives its action fields as a snapshot. The kora_core registry
 -- snapshot can arrive just after this resource builds the menu, which would
 -- leave catalogue and role fields permanently empty for that menu session.
 -- Keep the active navigation so registry sync/delta events can replace those
@@ -283,7 +283,7 @@ local function refreshAppActionStates()
 end
 Admin.refreshAppActionStates = refreshAppActionStates
 
--- `@qbcore/init.lua` re-seeds its local mirror before later event handlers
+-- `@kora_core/init.lua` re-seeds its local mirror before later event handlers
 -- run, so the snapshot event is the reliable initial-load hook. Changes after
 -- that point arrive through the shared-list subscription.
 RegisterNetEvent('qbcore:registry:snapshotAll', updateActiveRegistryFields)
@@ -293,11 +293,11 @@ if QB.shared.onChange then
     QB.shared.onChange('gangs', updateActiveRegistryFields)
 end
 
--- Admin duty is replicated by qbcore after the server accepts /aduty. Refresh
+-- Admin duty is replicated by kora_core after the server accepts /aduty. Refresh
 -- an already-open shell from that authoritative update instead of guessing at
 -- the post-click state locally.
 pcall(function()
-    exports.qbcore:onPlayerDataChange({ 'metadata', 'adminDuty' }, refreshAppActionStates)
+    exports.kora_core:onPlayerDataChange({ 'metadata', 'adminDuty' }, refreshAppActionStates)
 end)
 
 local function entityModelField()
@@ -345,11 +345,11 @@ end
 
 local function weatherOptions()
     local out = {}
-    -- qbweathersync owns the accepted weather list.  qbadmin intentionally
+    -- kora_weathersync owns the accepted weather list.  kora_admin intentionally
     -- has no manifest dependency on it (the sync resource starts after this
     -- one so it can own /weather), therefore retain the local list only as a
     -- graceful fallback while that resource is stopped/restarting.
-    local ok, weatherTypes = pcall(function() return exports['qbweathersync']:getWeatherTypes() end)
+    local ok, weatherTypes = pcall(function() return exports['kora_weathersync']:getWeatherTypes() end)
     for _, w in ipairs(ok and weatherTypes or Config.world.weatherTypes) do
         out[#out + 1] = { value = w, label = w }
     end
@@ -663,7 +663,7 @@ local function playerProfileClipboard(profile)
     return table.concat(lines, '\n')
 end
 
--- qbsql follows mysql2 and returns DATETIME/TIMESTAMP columns as epoch
+-- kora_sql follows mysql2 and returns DATETIME/TIMESTAMP columns as epoch
 -- numbers, while oxmysql returns strings. AppShell timelines deliberately
 -- require strings, so normalise both drivers' shapes at this UI boundary.
 local function formatTimestamp(value)

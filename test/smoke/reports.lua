@@ -57,8 +57,8 @@ Admin = {
     end,
 }
 exports = {
-    qbcore = { primary = function() return 'license:test' end },
-    qbclothing = { OpenAdminSession = function(_, target, service)
+    kora_core = { primary = function() return 'license:test' end },
+    kora_clothing = { OpenAdminSession = function(_, target, service)
         events[#events + 1] = { name = 'appearance', target = target, service = service }
         return true
     end },
@@ -66,7 +66,7 @@ exports = {
 function TriggerClientEvent(name, target, ...)
     events[#events + 1] = { name = name, target = target, args = { ... } }
 end
-function GetResourceState(name) return name == 'qbclothing' and 'started' or 'missing' end
+function GetResourceState(name) return name == 'kora_clothing' and 'started' or 'missing' end
 function GetPlayerName() return 'Staff' end
 function GetPlayerPed() return 1 end
 function GetEntityCoords() return { x = 1, y = 2, z = 3 } end

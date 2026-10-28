@@ -36,8 +36,8 @@ function Admin.actorIdentity(src)
     if context then
         -- Preserve the license columns' meaning; offline Discord actors are
         -- identified by name and the Discord request audit details.
-        return src ~= 0 and exports.qbcore:primary(src) or nil, context.name
+        return src ~= 0 and exports.kora_core:primary(src) or nil, context.name
     end
     if src == 0 then return nil, 'console' end
-    return exports.qbcore:primary(src), GetPlayerName(src) or ('unknown(%d)'):format(src)
+    return exports.kora_core:primary(src), GetPlayerName(src) or ('unknown(%d)'):format(src)
 end

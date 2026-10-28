@@ -1,7 +1,7 @@
--- Runs qbadmin's own SQL migration at boot via qbsql's migration runner.
--- Mirrors qbcore/modules/persistence/migrate.lua's pattern exactly, including
--- the checksum function -- no shared checksum utility exists in qblib/qbcore
--- to reuse (qbcore's own copy is private too), so this is consistent
+-- Runs kora_admin's own SQL migration at boot via kora_sql's migration runner.
+-- Mirrors kora_core/modules/persistence/migrate.lua's pattern exactly, including
+-- the checksum function -- no shared checksum utility exists in kora_lib/qbcore
+-- to reuse (kora_core's own copy is private too), so this is consistent
 -- duplication, not an oversight.
 
 local function fnv1a(str)

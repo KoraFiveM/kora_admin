@@ -4,8 +4,8 @@
 -- lockdown. The recipient client receives only the resulting network id for
 -- the local warp after this permission-checked command succeeds.
 
-local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
-local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
+local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
+local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
 
 local function validModel(model)
     if type(model) ~= 'string' or not model:match('^[%w_]+$') then return nil end
@@ -34,9 +34,9 @@ local function giveVehicleKeys(targetSrc, vehicle)
     if type(plate) ~= 'string' or plate:match('^%s*$') then return false end
 
     -- Administrative grants must work on servers that have disabled ordinary
-    -- temporary keys. qbvehiclekeys still owns plate normalisation and access
+    -- temporary keys. kora_vehiclekeys still owns plate normalisation and access
     -- state; this flag marks the grant as an intentional privileged override.
-    return exports.qbvehiclekeys:giveKeys(targetSrc, plate, true) == true
+    return exports.kora_vehiclekeys:giveKeys(targetSrc, plate, true) == true
 end
 
 local function spawnFor(targetSrc, model)
@@ -120,7 +120,7 @@ Admin.addCommand('givevehicle', 'Add a personal vehicle to a player garage', {
     local plate = validPlate(args[3])
     if not plate then return Admin.respond(source, false, 'plate must be 1-15 letters or numbers') end
 
-    local created, createErr = exports.qbcore:createVehicle(data.citizenid, model, plate)
+    local created, createErr = exports.kora_core:createVehicle(data.citizenid, model, plate)
     if not created then return Admin.respond(source, false, createErr or 'could not save vehicle') end
 
     Admin.log(source, 'givevehicle', data, { model = model, plate = plate })

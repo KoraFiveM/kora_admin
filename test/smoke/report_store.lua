@@ -74,7 +74,7 @@ QB = {
     },
     notify = { send = function(target, payload) notices[#notices + 1] = { target = target, payload = payload } end },
 }
-exports = { qbcore = {
+exports = { kora_core = {
     getPlayers = function() return { 7, 9, 10 } end,
     getPlayer = function(_, src) return players[src] end,
     primary = function(_, src) return 'license:' .. tostring(src) end,

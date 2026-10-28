@@ -37,7 +37,7 @@ Admin = {
     getReport = function() return nil end,
     getReportMessages = function() return {} end,
 }
-exports = { qbcore = {
+exports = { kora_core = {
     getPlayers = function() return { 12 } end,
     getJob = function() return { label = 'Police' } end,
     getIdentifiers = function() return { license = 'license:test', discord = 'discord:test' } end,

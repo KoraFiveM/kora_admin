@@ -1,6 +1,6 @@
 -- /admin, /players, /sethunger, /setthirst
 
-local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
+local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
 
 Admin.addCommand('admin', 'Open the admin menu', nil, false, function(source)
     -- Refresh the cosmetic client-side filter on every open. Discord roles can
@@ -10,7 +10,7 @@ Admin.addCommand('admin', 'Open the admin menu', nil, false, function(source)
 end, {
     permission = 'support',
     checkPermission = Admin.checkLevel,
-    resource = 'qbadmin',
+    resource = 'kora_admin',
     -- The command dispatcher invokes this only after its server-side gate
     -- denies access. Give the player the exact requirement and their resolved
     -- role tiers instead of its generic permission error.
@@ -28,10 +28,10 @@ Admin.addCommand('players', 'List online players', { { name = 'search', help = '
     function(source, args)
         local search = args[1] and args[1]:lower() or nil
         local lines = {}
-        for _, src in ipairs(exports.qbcore:getPlayers()) do
+        for _, src in ipairs(exports.kora_core:getPlayers()) do
             local name = GetPlayerName(src) or 'unknown'
             if not search or name:lower():find(search, 1, true) then
-                local job = exports.qbcore:getJob(src)
+                local job = exports.kora_core:getJob(src)
                 lines[#lines + 1] = ('#%d  %s  [%s]  %dms'):format(src, name, job and job.label or '?', GetPlayerPing(src))
             end
         end
@@ -40,7 +40,7 @@ Admin.addCommand('players', 'List online players', { { name = 'search', help = '
             return
         end
         Admin.chat(source, table.concat(lines, '\n'))
-    end, { permission = 'support', checkPermission = Admin.checkLevel, resource = 'qbadmin' })
+    end, { permission = 'support', checkPermission = Admin.checkLevel, resource = 'kora_admin' })
 
 local function addSetNeedCommand(commandName, metadataKey, label)
     Admin.addCommand(commandName, ('Set a player\'s %s'):format(label:lower()),
@@ -54,7 +54,7 @@ local function addSetNeedCommand(commandName, metadataKey, label)
                 return Admin.respond(source, false, ('%s must be between 0 and 100'):format(label))
             end
 
-            local ok, setErr = exports.qbcore:setMetaData(targetSrc, metadataKey, value)
+            local ok, setErr = exports.kora_core:setMetaData(targetSrc, metadataKey, value)
             if not ok then return Admin.respond(source, false, setErr or ('could not set %s'):format(label:lower())) end
 
             Admin.log(source, commandName, data, { value = value })

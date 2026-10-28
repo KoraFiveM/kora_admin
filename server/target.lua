@@ -14,21 +14,21 @@
 ---@return string|nil err
 function Admin.resolveTarget(actorSrc, arg)
     if arg == nil or arg == '' or arg:lower() == 'me' then
-        local data = exports.qbcore:getPlayer(actorSrc)
+        local data = exports.kora_core:getPlayer(actorSrc)
         if not data then return nil, nil, 'you are not logged in' end
         return actorSrc, data
     end
 
     local id = tonumber(arg)
     if id then
-        local data = exports.qbcore:getPlayer(id)
+        local data = exports.kora_core:getPlayer(id)
         if not data then return nil, nil, 'that player is not online' end
         return id, data
     end
 
     local needle = arg:lower()
     local matches = {}
-    for _, src in ipairs(exports.qbcore:getPlayers()) do
+    for _, src in ipairs(exports.kora_core:getPlayers()) do
         local name = GetPlayerName(src)
         if name and name:lower():find(needle, 1, true) then
             matches[#matches + 1] = src
@@ -43,7 +43,7 @@ function Admin.resolveTarget(actorSrc, arg)
     end
 
     local src = matches[1]
-    return src, exports.qbcore:getPlayer(src)
+    return src, exports.kora_core:getPlayer(src)
 end
 
 ---Resolve a player for offline-capable actions (ban/unban). Tries an online
@@ -60,13 +60,13 @@ function Admin.resolveOfflineTarget(arg)
 
     local id = tonumber(arg)
     if id then
-        local data = exports.qbcore:getPlayer(id)
+        local data = exports.kora_core:getPlayer(id)
         if data then
-            return data.citizenid, data.name, exports.qbcore:getIdentifiers(id)
+            return data.citizenid, data.name, exports.kora_core:getIdentifiers(id)
         end
     end
 
-    local byCid = exports.qbcore:getPlayerByCitizenId(arg)
+    local byCid = exports.kora_core:getPlayerByCitizenId(arg)
     if byCid then
         return byCid.citizenid, byCid.name, { license = byCid.license }
     end

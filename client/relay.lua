@@ -20,7 +20,7 @@ end)
 
 -- Raw natives alone (NetworkResurrectLocalPlayer/SetEntityHealth) only clear
 -- GTA's own death state -- they say nothing to whichever ambulance job is
--- actually running. Both real qb-ambulancejob and the qblib-native qbambulance
+-- actually running. Both real qb-ambulancejob and the qblib-native kora_ambulance
 -- rebuild track their OWN client-local "is this player dead/downed" flags
 -- (plain module locals in one, a QB.notify-driven state table in the other)
 -- that gate a persistent per-frame thread forcing the death animation/ragdoll/
@@ -30,13 +30,13 @@ end)
 -- actually started: a RegisterNetEvent name with no registered handler is a
 -- harmless no-op, so this never needs to detect which job is active. Event
 -- names and required args confirmed against each resource's own source
--- (qb-ambulancejob's client/main.lua takes none; qbambulance's client/death.lua
+-- (qb-ambulancejob's client/main.lua takes none; kora_ambulance's client/death.lua
 -- takes a 0-100 health percentage).
 local function reviveLocalPed()
     local ped = PlayerPedId()
     -- NetworkResurrectLocalPlayer places its subject at world coordinates.  If
     -- that subject is seated, GTA resolves those coordinates outside the
-    -- vehicle and can launch the player upward.  qbambulance already prevents
+    -- vehicle and can launch the player upward.  kora_ambulance already prevents
     -- the native wasted flow, so restoring health is sufficient here; preserve
     -- the current seat instead of trying to resurrect onto the vehicle.
     local inVehicle = IsPedInAnyVehicle(ped, false)
@@ -70,7 +70,7 @@ RegisterNetEvent('qbadmin:client:fix', function()
     SetVehicleBodyHealth(veh, 1000.0)
 end)
 
--- qblib entities are local and resource-tracked by design, which makes them
+-- kora_lib entities are local and resource-tracked by design, which makes them
 -- useful for admin/testing props and peds without turning this command into a
 -- networked-world cleanup problem. Keep the one most recently spawned by this
 -- client so the matching admin command can remove it explicitly.
@@ -83,7 +83,7 @@ RegisterNetEvent('qbadmin:client:spawnEntity', function(model)
     local coords = GetOffsetFromEntityInWorldCoords(ped, 0.0, Config.entity.spawnOffset, 0.0)
     -- The entities module owns model hashing, streaming, type detection, and
     -- creation. Vehicle commands are rejected server-side before this relay
-    -- so they keep qbadmin's existing networked vehicle path.
+    -- so they keep kora_admin's existing networked vehicle path.
     local entity, err = QB.entities.create(model, {
         x = coords.x,
         y = coords.y,

@@ -1,5 +1,5 @@
--- Permission boundary and audit adapter for qblib's configuration catalog.
--- qblib validates and persists the data; qbadmin decides which players may
+-- Permission boundary and audit adapter for kora_lib's configuration catalog.
+-- kora_lib validates and persists the data; kora_admin decides which players may
 -- see/edit it and records the resulting administrative action.
 
 local function allowed(source)
@@ -83,7 +83,7 @@ QB.commands.add('config', 'Open the configuration editor', nil, false, function(
 end, {
     permission = Config.configEditor.level,
     checkPermission = Admin.checkLevel,
-    resource = 'qbadmin',
+    resource = 'kora_admin',
 })
 
 local function validRequest(request)

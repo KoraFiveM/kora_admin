@@ -1,11 +1,11 @@
 -- /entity, /entityfor, /deleteentity
 --
--- qblib's entities module deliberately creates local, non-networked entities.
+-- kora_lib's entities module deliberately creates local, non-networked entities.
 -- This command therefore asks the recipient client to create its own static
 -- ped or prop after the server has authenticated and validated the request.
 -- Networked vehicles continue through vehicle.lua instead.
 
-local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
+local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
 
 local function validEntityModel(model)
     if type(model) ~= 'string' or not model:match('^[%w_]+$') then return nil end

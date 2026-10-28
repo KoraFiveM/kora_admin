@@ -1,17 +1,17 @@
 -- /announce, /weather, /time, /serverinfo, /adminlog
 --
--- qbweathersync owns world state while running. Keep the local relays for
+-- kora_weathersync owns world state while running. Keep the local relays for
 -- standalone servers and for joins while the optional sync resource is stopped.
 
-local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
-local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
+local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
+local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
 
 local currentWeather = nil
 local currentTime = nil -- { hour, minute }
 
 if Config.world.syncOnPlayerLoaded then
     AddEventHandler('qbcore:server:playerLoaded', function(src)
-        if GetResourceState('qbweathersync') == 'started' then return end
+        if GetResourceState('kora_weathersync') == 'started' then return end
         if currentWeather then TriggerClientEvent('qbadmin:client:setWeather', src, currentWeather) end
         if currentTime then TriggerClientEvent('qbadmin:client:setTime', src, currentTime.hour, currentTime.minute) end
     end)
@@ -28,8 +28,8 @@ end, OPTS_ADMIN)
 
 Admin.addCommand('weather', 'Set the server weather', { { name = 'type' } }, true, function(source, args)
     local weatherType = args[1] and args[1]:upper()
-    if GetResourceState('qbweathersync') == 'started' then
-        local ok, err = exports['qbweathersync']:setWeather(weatherType)
+    if GetResourceState('kora_weathersync') == 'started' then
+        local ok, err = exports['kora_weathersync']:setWeather(weatherType)
         if not ok then return Admin.respond(source, false, err) end
     else
         local valid = false
@@ -95,8 +95,8 @@ Admin.addCommand('time', 'Set the server clock', { { name = 'hour|preset' }, { n
         if minute == nil then return Admin.respond(source, false, 'minute must be a whole number from 0-59') end
     end
 
-    if GetResourceState('qbweathersync') == 'started' then
-        local ok, err = exports['qbweathersync']:setTime(hour, minute)
+    if GetResourceState('kora_weathersync') == 'started' then
+        local ok, err = exports['kora_weathersync']:setTime(hour, minute)
         if not ok then return Admin.respond(source, false, err) end
     else
         currentTime = { hour = hour, minute = minute }
@@ -109,7 +109,7 @@ Admin.addCommand('time', 'Set the server clock', { { name = 'hour|preset' }, { n
 end, OPTS_ADMIN)
 
 Admin.addCommand('serverinfo', 'Show basic server stats', nil, false, function(source)
-    local players = exports.qbcore:getPlayers()
+    local players = exports.kora_core:getPlayers()
     local lines = {
         ('Online players: %d'):format(#players),
         ('Uptime: %d minutes'):format(math.floor(GetGameTimer() / 60000)),

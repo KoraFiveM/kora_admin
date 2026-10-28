@@ -1,4 +1,4 @@
--- A focus-free entity inspector for builders. qblib owns every reusable part:
+-- A focus-free entity inspector for builders. kora_lib owns every reusable part:
 -- raycasting resolves what the camera hits, lookup enriches model hashes,
 -- textui renders the HUD, keybind keeps controls rebindable, and nui performs
 -- the clipboard write. Native archetype names remain the primary source for
@@ -55,7 +55,7 @@ local function inspectEntity(entity, hitCoords)
     local catalogueName, record = lookupModelName(model, kind)
     -- GetEntityArchetypeName is the game's own name for the *specific* object
     -- instance. Prefer it over a lookup result so map props retain their real
-    -- archetype even when they are not creatable/catalogued by qblib.
+    -- archetype even when they are not creatable/catalogued by kora_lib.
     local modelName = actualArchetypeName(entity) or catalogueName
     local coords = GetEntityCoords(entity)
 

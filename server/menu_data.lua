@@ -14,8 +14,8 @@ QB.callback.register('qbadmin:menuPlayers', function(src)
     if not ok then return nil, err end
 
     local players = {}
-    for _, playerSrc in ipairs(exports.qbcore:getPlayers()) do
-        local job = exports.qbcore:getJob(playerSrc)
+    for _, playerSrc in ipairs(exports.kora_core:getPlayers()) do
+        local job = exports.kora_core:getJob(playerSrc)
         players[#players + 1] = {
             id = tostring(playerSrc),
             name = GetPlayerName(playerSrc) or ('unknown(%d)'):format(playerSrc),
@@ -65,11 +65,11 @@ QB.callback.register('qbadmin:menuPlayerProfile', function(src, target)
         invisible = Admin.states and Admin.states.invisible[targetSrc] == true,
     }
 
-    local devModeOk, devMode = pcall(function() return exports.qbcore:isDevMode(targetSrc) end)
+    local devModeOk, devMode = pcall(function() return exports.kora_core:isDevMode(targetSrc) end)
     profile.devMode = devModeOk and devMode == true
 
     if Admin.checkLevel(src, 'admin') then
-        local identifiers = exports.qbcore:getIdentifiers(targetSrc)
+        local identifiers = exports.kora_core:getIdentifiers(targetSrc)
         profile.license = identifiers.license
         profile.discord = identifiers.discord
         profile.permission = Admin.getLevel(targetSrc)

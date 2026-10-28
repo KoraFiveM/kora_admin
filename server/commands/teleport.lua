@@ -8,8 +8,8 @@
 -- and the undo history are client-local state -- so those two are a bare
 -- relay with no payload.
 
-local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
-local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'qbadmin' }
+local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
+local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
 
 ---Parses the normal chat-coordinate form plus common FiveM/Lua literals:
 ---`x y z`, `x, y, z`, `vec3(x, y, z)`, `vector3(x, y, z)`, and the vec4 /
@@ -64,7 +64,7 @@ Admin.addCommand('bring', 'Teleport a player to you', { { name = 'id' } }, true,
     Admin.respond(source, true, ('Brought %s to you'):format(data.name))
 end, OPTS_MOD)
 
--- Every qbadmin teleport is recorded by the destination client's own bounded
+-- Every kora_admin teleport is recorded by the destination client's own bounded
 -- history. Sending a brought player back therefore uses the exact same undo
 -- primitive as /tpback, but relays it to the selected player instead.
 Admin.addCommand('sendback', 'Return a player to their position before the last admin teleport', { { name = 'id' } }, true, function(source, args)

@@ -1,6 +1,6 @@
-# qbadmin
+# kora_admin
 
-A comprehensive admin menu for this server's qbcore/qblib framework. There is
+A comprehensive admin menu for this server's kora_core/qblib framework. There is
 exactly one entry point for every privileged action: a chat command. The NUI
 menu (`/admin`) is not a parallel code path -- after collecting a target and
 some parameters, it builds the exact command string a human would type and
@@ -23,14 +23,14 @@ ranked, so a higher role automatically receives every lower role's access.
 | `admin` | Persistent-state, economic, or identity-affecting actions, or projecting power onto another player's world: ban/unban, money, items, job/gang, vehicle/entity spawn/delete, noclip, god/dev mode/invisible **on another player**, announce, weather/time, audit log. |
 | `owner` | Server-wide or unrestricted privilege changes: configuration editor, permanent runtime grants/revokes, and resource restart. |
 
-Commands register through **qblib's** `QB.commands.add` and all use
+Commands register through **kora_lib's** `QB.commands.add` and all use
 `Admin.checkLevel` (`server/permissions.lua`). That is a thin adapter over the
 central `QB.permissions.hasLevel` gateway, so command execution, menu data,
 and the level sent to the client menu all resolve permissions identically.
 Rank checks cascade: a resolved `owner` satisfies `admin`, `moderator`, and
 `support` without manual principal chaining.
 
-ACE authorization is always active. qblib checks `qbcore.<role>` and
+ACE authorization is always active. kora_lib checks `kora_core.<role>` and
 `group.<role>`; in particular, a `group.admin` ACE grants the admin tier even
 if Discord is disabled or unavailable. Examples:
 
@@ -58,12 +58,18 @@ discordRoles = {
 }
 ```
 
-This uses qblib's Discord bot role cache, so `qblib_discord_bot_token` and
+This uses kora_lib's Discord bot role cache, so `qblib_discord_bot_token` and
 `qblib_discord_guild_id` must be configured for role grants. Missing/stale
 role data fails closed for Discord only; ACE grants continue to work.
 
 For slash commands, full txAdmin restarts, appshell setup and optional
 Discord-only staff authorization, see [Discord administration](discord.md).
+
+With kora_core's txAdmin bridge installed, txAdmin master/full-access accounts
+automatically inherit `group.admin`; limited txAdmin accounts do not. Grants and
+removals refresh the menu through the same `Admin.getLevel` resolver. Explicit
+Discord-only mode still uses Discord roles for kora_admin access. See kora_core's
+permissions module documentation for bridge installation and lifecycle details.
 
 ### Temporary access
 
@@ -73,7 +79,7 @@ number of minutes and can revoke that grant early. The default manager may
 grant through `admin`; set `maxRole` lower if you do not want peer-level
 delegation. Grants are memory-only, expire automatically, are audited, follow
 the recipient through a reconnect during their timer, and are cleared if
-`qbadmin` or the server restarts. They do not call `add_principal`, so expiry
+`kora_admin` or the server restarts. They do not call `add_principal`, so expiry
 can never remove a permanent ACE from `server.cfg`.
 
 Use `/granttempaccess <id> <role> <minutes>` and
@@ -93,7 +99,7 @@ setduty/sethunger/setthirst/permission. Commands that operate purely on the call
 coords, aduty, health, armor, fix, dv, tpm/tpcoords/tpback, selfrevive) take no id
 argument at all -- there's nothing to resolve.
 
-`/devmode [id=me] [true|false]` calls qbcore's per-player
+`/devmode [id=me] [true|false]` calls kora_core's per-player
 `setDevMode` export. It combines god mode, paused passive hunger/thirst, and
 fast walking; omitting the state toggles the current core-owned state. Mods may
 use it on themselves, while targeting another player requires `admin`.
@@ -109,7 +115,7 @@ stay stuck on the death screen with a healthy-looking value underneath it.
 **Revive clears whichever ambulance job is actually running, not just raw
 health.** `/revive`, `/selfrevive`, and Set Health's own dead-to-alive branch
 all funnel through the same client relay (`reviveLocalPed`,
-`client/relay.lua`), which fires the qblib-native `qbambulance` rebuild's
+`client/relay.lua`), which fires the qblib-native `kora_ambulance` rebuild's
 `qbambulance:client:revived` event. Without this, raw natives alone leave that
 job's own death-loop thread running forever even after health reads full.
 
@@ -154,7 +160,7 @@ the main player-first workflow: click any online player (including yourself)
 and the list becomes a tabbed profile with player tools, moderation,
 economy/items, roles/access, and advanced actions.
 Movement includes **Send Back**, which returns the player to their position
-before the last qbadmin teleport. Appearance includes server-authorized free
+before the last kora_admin teleport. Appearance includes server-authorized free
 clothing, barber/hairdresser, and tattoo sessions for the selected player.
 **My Tools** contains General, Movement, Vehicles, and Appearance tabs.
 **Server** contains Environment, Server, Offline Bans, Audit Log, and the
@@ -192,7 +198,7 @@ Players submit `/report <type> <message>` using the configured `player`, `bug`,
 `exploit`, `gameplay`, `question`, or `other` types. Reports persist in
 `admin_reports` with their full conversation in `admin_report_messages`; the
 `Config.reports.cooldownSeconds` submission delay limits spam without losing
-reports when qbadmin restarts.
+reports when kora_admin restarts.
 
 Staff at `Config.reports.staffLevel` see the **Reports** workspace in `/admin`.
 Reports can be filtered by status, type, reporter, and page. Selecting one
@@ -205,11 +211,11 @@ own conversation with `/reportstatus <id>` and `/reportreply <id> <message>`.
 
 The **Development → Builders** tab is available at
 `Config.developer.menuLevel` (`admin` by default). Its **Inspect Entity** view
-uses qblib's camera raycast and focus-free HUD to identify the prop, ped, or
+uses kora_lib's camera raycast and focus-free HUD to identify the prop, ped, or
 vehicle being aimed at. It prefers GTA's own entity archetype name, so map
 props show their actual model name; `H` copies that name and `X` closes the
 picker by default (both are rebindable in FiveM settings). The tab also launches
-`QB.placement.start(model)` and opens the qblib box/sphere/poly zone creator.
+`QB.placement.start(model)` and opens the kora_lib box/sphere/poly zone creator.
 Development mode for yourself or another player is changed from that selected
 player's **Development** group. When
 `Config.developer.requireDevMode` is enabled, the builder shortcuts remain
@@ -225,7 +231,7 @@ returns/copies a definition without registering a live zone.
 
 The **Development → Medal Clips** tab captures a highlight from the admin who
 clicks it. Medal listens on that player's `localhost`, so `client/medal.lua` sends the
-request through qbadmin's invisible NUI bridge rather than relaying it through
+request through kora_admin's invisible NUI bridge rather than relaying it through
 FXServer. A successful response means Medal accepted the event; processing the
 clip remains asynchronous in the Medal desktop app.
 
@@ -257,7 +263,7 @@ whether an entered code can spawn.
 
 The selected player's **Advanced** tab spawns any valid **ped or prop** model,
 such as `a_m_m_skater_01` or `prop_barrel_02a`, for yourself or a selected player. It
-uses qblib's local, static entity API, so an entity is visible only to the
+uses kora_lib's local, static entity API, so an entity is visible only to the
 client it was spawned for and is cleaned up on resource restart. **Delete My
 Last Spawned Entity** removes that client's most recent admin entity. Vehicle
 models deliberately stay on the Vehicle flow so they remain networked.
@@ -275,21 +281,21 @@ is before changing it.
 
 The **Development → Builders** tab adds `/entitypicker` for a focus-free entity
 inspector that copies the aimed entity's actual model/archetype name, `/devplacement <model>`
-for qblib's temporary ped/vehicle/object placement creator, and
+for kora_lib's temporary ped/vehicle/object placement creator, and
 `/devzone <box|sphere|poly>` for its zone creator. The existing `/devmode [id=me] [true|false]` command delegates to
-qbcore's `setDevMode` export; its state is per-player and ephemeral.
+kora_core's `setDevMode` export; its state is per-player and ephemeral.
 
 ## Ban system
 
 `server/ban_enforcement.lua` adds a `playerConnecting` deferral that checks
-the existing `bans` table (`qbcore/sql/002_identifiers.sql`) by license,
-discord, and IP. qbcore itself has no `playerConnecting` hook, so there is no
+the existing `bans` table (`kora_core/sql/002_identifiers.sql`) by license,
+discord, and IP. kora_core itself has no `playerConnecting` hook, so there is no
 load-order dependency to worry about. IP matching is inherently less reliable
 this early in the connection handshake than license/discord -- those two are
 the primary, trustworthy match keys.
 
 `/ban` records alt-account candidates (other citizenids sharing the banned
-player's license, via `exports.qbcore:findByIdentifier`) in the audit log and
+player's license, via `exports.kora_core:findByIdentifier`) in the audit log and
 surfaces them in the response message, but **never auto-bans them** -- that's
 advisory information for the human admin, not an automated action, since a
 shared identifier (a household Discord, for instance) is not proof of
@@ -301,7 +307,7 @@ its history (reason, who banned, original date) survives for `/adminlog`.
 ## Audit log
 
 `admin_logs` (migrated by `server/migrate.lua`, `sql/001_admin_logs.sql`) is
-the durable audit trail -- qbcore's own `logEvent` is an in-memory 500-entry
+the durable audit trail -- kora_core's own `logEvent` is an in-memory 500-entry
 ring buffer only, unsuitable for "who banned whom, when" lookups later.
 `/adminlog [action] [target] [page]` and the **Server → Audit Log** tab both
 read from it via `Admin.queryLogs`. No auto-pruning in v1 -- if retention
@@ -324,7 +330,7 @@ schema, shows each setting’s saved and running values, and labels it **Applies
 now** or **Restart required**. A save writes only the changed values to the
 owning resource’s `config.local.lua`; it never rearranges or reformats
 `config.lua`. Reset removes that setting’s override. The backup
-`config.local.lua.bak` lets qblib recover if a generated override becomes
+`config.local.lua.bak` lets kora_lib recover if a generated override becomes
 invalid.
 
 The editor permission is `Config.configEditor.level` (`owner` by default).
@@ -334,18 +340,18 @@ executable configuration are intentionally absent. `Config.permissions.discordRo
 lives in `server/config.lua`, is server-only, and remains hidden from clients.
 
 Resources choose `shared`, `client`, or `server` scope and explicitly opt in
-to live application through qblib. Most settings are saved for the next
-resource restart. Refer to [qblib’s configuration guide](https://qbcore2.github.io/qblib/modules/config/docs.html)
+to live application through kora_lib. Most settings are saved for the next
+resource restart. Refer to [qblib’s configuration guide](https://qbcore2.github.io/kora_lib/modules/config/docs.html)
 for field types, validation, local overrides, migration, scopes, and safe
 live handlers.
 
 ## Known gaps (out of scope for v1)
 
-- **Separate-resource NUI compositing in screenshots** -- qblib’s screenshot
+- **Separate-resource NUI compositing in screenshots** -- kora_lib’s screenshot
   module can capture the game view and supports screenshot-basic-compatible
   call sites, but it cannot composite another resource’s CEF layer into that
   frame.
-- **Freeform SQL console** -- deliberately not built. `qbsql` already ships
+- **Freeform SQL console** -- deliberately not built. `kora_sql` already ships
   read-only `/qbsql ping|stats|slow|queue` gated by the `command.qbsql` ACE;
   point admins at those instead of adding a second, riskier query surface.
 - **Character deletion/wipe** -- too destructive for a quick-action menu.
@@ -353,7 +359,7 @@ live handlers.
 ## Upstreaming candidate
 
 `/revokepermission` (`server/commands/privileged.lua`) hand-builds a
-`remove_principal` command mirroring `exports.qbcore:addPermission`'s own
+`remove_principal` command mirroring `exports.kora_core:addPermission`'s own
 identifier formatting, because no `removePermission` counterpart exists in
-`qbcore/modules/permissions/server.lua`. Worth adding there directly so other
+`kora_core/modules/permissions/server.lua`. Worth adding there directly so other
 resources don't have to repeat this.
