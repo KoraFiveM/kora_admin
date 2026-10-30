@@ -312,7 +312,7 @@ player's token-authenticated clothing request; clients cannot mint it.
 /car <model>            -- spawn and get in
 /veh <id> <model>       -- spawn for a player
 /givevehicle <id> <model> <plate> -- add a persistent personal garage vehicle
-/dv                      -- delete the vehicle you're in
+/dv [radius]             -- delete the vehicle you're in, else the nearest one (Config.dv); [radius] deletes all in range, capped
 ```
 
 ### Vehicle — `moderator`

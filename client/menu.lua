@@ -509,9 +509,10 @@ local SECTIONS = {
             { id = 'car_catalogue', label = 'Browse Vehicle Catalogue', level = 'admin', icon = 'search',
                 run = withFields('car', function() return { vehicleCatalogueField() } end, 'Spawn vehicle from catalogue') },
             { id = 'fix', label = 'Repair Current Vehicle', level = 'mod', icon = 'wrench', run = withFields('fix') },
-            { id = 'dv', label = 'Delete Current Vehicle', level = 'admin', icon = 'trash-2', variant = 'destructive',
-                visible = function() return QB.cache.vehicle() ~= false end,
-                run = withConfirm('Delete the vehicle you are in?', withFields('dv')) },
+            { id = 'dv', label = 'Delete Vehicle', level = 'admin', icon = 'trash-2', variant = 'destructive',
+                description = 'Delete the vehicle you are in, or the nearest vehicle when on foot',
+                visible = function() return QB.cache.vehicle() ~= false or (tonumber(Config.dv.nearestRadius) or 0) > 0 end,
+                run = withConfirm('Delete your vehicle, or the nearest one if you are on foot?', withFields('dv')) },
         },
     },
     {

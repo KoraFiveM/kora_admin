@@ -144,14 +144,85 @@ Admin.addCommand('givekeys', 'Give a player keys to the vehicle they are driving
     Admin.respond(source, true, ('Gave %s the keys to their current vehicle'):format(data.name))
 end, OPTS_ADMIN)
 
-Admin.addCommand('dv', 'Delete the vehicle you are in', nil, false, function(source)
-    local vehicle = GetVehiclePedIsIn(GetPlayerPed(source))
-    if vehicle == 0 or not DoesEntityExist(vehicle) then
-        return Admin.respond(source, false, 'you are not in a vehicle')
+-- True when another player is sitting in the vehicle; /dv never deletes those
+-- out from under their driver.
+local function occupiedByOther(vehicle, source)
+    local own = GetPlayerPed(source)
+    for seat = -1, 6 do
+        local ped = GetPedInVehicleSeat(vehicle, seat)
+        if ped and ped ~= 0 and ped ~= own and IsPedAPlayer(ped) then return true end
     end
-    DeleteEntity(vehicle)
-    Admin.log(source, 'dv')
-    Admin.respond(source, true, 'Deleted your current vehicle')
+    return false
+end
+
+-- Vehicles within `radius` of the admin, nearest first. Enumerated server-side
+-- so wrecks owned by other clients are found and can be deleted without
+-- requesting network control.
+local function vehiclesNear(source, radius)
+    local origin = GetEntityCoords(GetPlayerPed(source))
+    local bucket = GetPlayerRoutingBucket(source)
+    local found = {}
+    for _, vehicle in ipairs(GetAllVehicles()) do
+        if DoesEntityExist(vehicle) and GetEntityRoutingBucket(vehicle) == bucket then
+            local coords = GetEntityCoords(vehicle)
+            local dx, dy, dz = coords.x - origin.x, coords.y - origin.y, coords.z - origin.z
+            local distance = math.sqrt(dx * dx + dy * dy + dz * dz)
+            if distance <= radius then found[#found + 1] = { entity = vehicle, distance = distance } end
+        end
+    end
+    table.sort(found, function(a, b) return a.distance < b.distance end)
+    return found
+end
+
+Admin.addCommand('dv', 'Delete the vehicle you are in, else the nearest one (or all within [radius])', { { name = 'radius' } }, false, function(source, args)
+    local nearest = tonumber(Config.dv.nearestRadius) or 0
+    local maxRadius = tonumber(Config.dv.maxRadius) or 0
+    local vehicle = GetVehiclePedIsIn(GetPlayerPed(source))
+    local inVehicle = vehicle ~= 0 and DoesEntityExist(vehicle)
+
+    -- nearestRadius = 0 keeps the original in-vehicle-only behaviour.
+    if nearest <= 0 then
+        if not inVehicle then return Admin.respond(source, false, 'you are not in a vehicle') end
+        DeleteEntity(vehicle)
+        Admin.log(source, 'dv')
+        return Admin.respond(source, true, 'Deleted your current vehicle')
+    end
+
+    local radius
+    if args and args[1] ~= nil and args[1] ~= '' then
+        radius = tonumber(args[1])
+        if not radius or radius ~= radius or radius <= 0 or radius == math.huge then
+            return Admin.respond(source, false, 'radius must be a positive number')
+        end
+        radius = math.min(radius, maxRadius > 0 and maxRadius or nearest)
+    elseif inVehicle then
+        local plate = GetVehicleNumberPlateText(vehicle)
+        DeleteEntity(vehicle)
+        Admin.log(source, 'dv', nil, { mode = 'current', plate = plate })
+        return Admin.respond(source, true, 'Deleted your current vehicle')
+    end
+
+    local candidates = {}
+    for _, found in ipairs(vehiclesNear(source, radius or nearest)) do
+        if not occupiedByOther(found.entity, source) then candidates[#candidates + 1] = found.entity end
+    end
+    if #candidates == 0 then
+        return Admin.respond(source, false, ('no vehicle within %.1f m'):format(radius or nearest))
+    end
+    if not radius then candidates = { candidates[1] } end
+
+    local plates = {}
+    for _, entity in ipairs(candidates) do
+        plates[#plates + 1] = tostring(GetVehicleNumberPlateText(entity))
+        DeleteEntity(entity) -- server-side delete works whichever client owns the entity
+    end
+    Admin.log(source, 'dv', nil, {
+        mode = radius and 'radius' or 'nearest', radius = radius or nearest,
+        count = #candidates, plates = table.concat(plates, ','),
+    })
+    Admin.respond(source, true, #candidates == 1
+        and ('Deleted nearby vehicle %s'):format(plates[1])
+        or ('Deleted %d vehicles within %.1f m'):format(#candidates, radius))
 end, OPTS_ADMIN)
 
 Admin.addCommand('fix', 'Repair the vehicle you are in', nil, false, function(source)

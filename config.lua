@@ -97,6 +97,14 @@ Config.vehicle = {
     spawnOffset = 3.0,
 }
 
+Config.dv = {
+    -- /dv deletes the vehicle you are in; otherwise the closest vehicle within
+    -- this many metres. 0 = old behaviour (only the vehicle you are in).
+    nearestRadius = 5.0,
+    -- Largest radius accepted by '/dv <radius>' (deletes every vehicle in range).
+    maxRadius = 50.0,
+}
+
 Config.entity = {
     -- /entity spawns this far in front of the target. Entity spawns are
     -- intentionally local, static kora_lib entities for safe admin testing.
