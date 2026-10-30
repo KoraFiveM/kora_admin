@@ -20,7 +20,7 @@ exports and database schemas retain their compatible defaults.
    convar. Use `set`, never `setr` or `sets`:
 
    ```cfg
-   set qblib_discord_bot_token "YOUR_BOT_TOKEN"
+   set kora_lib_discord_bot_token "YOUR_BOT_TOKEN"
    ```
 
 3. Open `/config`, or **Admin → Server → Configuration**, and select `kora_admin`.

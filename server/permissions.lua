@@ -273,7 +273,7 @@ local PLAYGROUND_ROLES = { moderator = true, admin = true }
 ---@return string|nil err
 exports('grantPlaygroundTemporaryAccess', function(targetSrc, role, minutes)
     if GetInvokingResource() ~= PLAYGROUND_RESOURCE then
-        return nil, 'this temporary-access bridge is reserved for qblib-playground'
+        return nil, 'this temporary-access bridge is reserved for kora_lib-playground'
     end
     if not PLAYGROUND_ROLES[role] then
         return nil, 'playground may grant only moderator or admin'
@@ -294,7 +294,7 @@ end)
 ---@return string|nil err
 exports('revokePlaygroundTemporaryAccess', function(targetSrc, role)
     if GetInvokingResource() ~= PLAYGROUND_RESOURCE then
-        return false, 'this temporary-access bridge is reserved for qblib-playground'
+        return false, 'this temporary-access bridge is reserved for kora_lib-playground'
     end
     if not PLAYGROUND_ROLES[role] then
         return false, 'playground may revoke only moderator or admin'

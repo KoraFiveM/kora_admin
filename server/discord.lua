@@ -16,9 +16,17 @@ local function contains(values, wanted)
     return false
 end
 
+-- kora_lib_discord_guild_id supersedes the deprecated qblib_discord_guild_id,
+-- which stays readable for servers that configured it before the rename.
+local function guildConvar()
+    local value = GetConvar('kora_lib_discord_guild_id', '')
+    if value ~= '' then return value end
+    return GetConvar('qblib_discord_guild_id', '')
+end
+
 local function guildId()
     local configured = Config.discord.guildId
-    return configured ~= '' and configured or GetConvar('qblib_discord_guild_id', '')
+    return configured ~= '' and configured or guildConvar()
 end
 
 function Admin.parseDiscordArgs(text)
@@ -293,7 +301,11 @@ end
 local function configureDiscord()
     registrationGeneration = registrationGeneration + 1
     local generation = registrationGeneration
-    if Config.discord.guildId ~= '' then SetConvar('qblib_discord_guild_id', Config.discord.guildId) end
+    if Config.discord.guildId ~= '' then
+        SetConvar('kora_lib_discord_guild_id', Config.discord.guildId)
+        -- Keep a kora_lib that predates the rename able to resolve the guild.
+        SetConvar('qblib_discord_guild_id', Config.discord.guildId)
+    end
     if not Config.discord.enabled then return end
     local application, guild = Config.discord.applicationId, guildId()
     if not application:match('^%d+$') or not guild:match('^%d+$') or not Config.discord.publicKey:match('^%x+$')
@@ -312,17 +324,17 @@ QB.config.onValidate(function(proposed)
     local settings = proposed.discord
     if settings.enabled then
         if not settings.applicationId:match('^%d+$') or not settings.publicKey:match('^%x+$') or #settings.publicKey ~= 64
-            or not (settings.guildId ~= '' and settings.guildId or GetConvar('qblib_discord_guild_id', '')):match('^%d+$') then
+            or not (settings.guildId ~= '' and settings.guildId or guildConvar()):match('^%d+$') then
             return false, 'Set a valid Discord application ID, server ID and public key before enabling administration.'
         end
-        if not QB.discord.botEnabled() then return false, 'Set the server-only qblib_discord_bot_token first.' end
+        if not QB.discord.botEnabled() then return false, 'Set the server-only kora_lib_discord_bot_token first.' end
     end
     if not proposed.permissions.roles[settings.restartRole] then return false, 'Restart tier must be a configured staff role.' end
     for _, id in ipairs(settings.channels) do
         if not id:match('^%d+$') then return false, 'Staff channels must be Discord channel IDs.' end
     end
     if proposed.permissions.mode == 'discord' then
-        if not QB.discord.botEnabled() or not (settings.guildId ~= '' and settings.guildId or GetConvar('qblib_discord_guild_id', '')):match('^%d+$') then
+        if not QB.discord.botEnabled() or not (settings.guildId ~= '' and settings.guildId or guildConvar()):match('^%d+$') then
             return false, 'Configure the Discord bot and server before enabling Discord-only access.'
         end
         local owner = proposed.permissions.discordRoles[proposed.configEditor.level]
@@ -342,7 +354,7 @@ QB.config.onApply(function(_, _, path)
 end)
 
 Admin.addCommand('config', 'Open the configuration appshell', nil, false, function(src)
-    TriggerClientEvent('qblib:client:configOpened', src, 'kora_admin')
+    TriggerClientEvent('kora_lib:client:configOpened', src, 'kora_admin')
 end, { permission = Config.configEditor.level, checkPermission = Admin.checkLevel, resource = 'kora_admin' })
 
 SetTimeout(0, configureDiscord)

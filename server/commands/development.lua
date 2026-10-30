@@ -25,7 +25,7 @@ Admin.addCommand('entitypicker', 'Inspect the entity you are aiming at and copy 
     Admin.log(source, 'entitypicker')
 end, OPTS_DEVELOPER)
 
-Admin.addCommand('devplacement', 'Open qblib entity placement for a model', {
+Admin.addCommand('devplacement', 'Open kora_lib entity placement for a model', {
     { name = 'model', help = 'model name or numeric hash' },
 }, true, function(source, args)
     if not developmentReady(source) then return end
@@ -40,7 +40,7 @@ Admin.addCommand('devplacement', 'Open qblib entity placement for a model', {
     Admin.log(source, 'devplacement', nil, { model = model })
 end, OPTS_DEVELOPER)
 
-Admin.addCommand('devzone', 'Open qblib zone creator (box, sphere, or poly)', {
+Admin.addCommand('devzone', 'Open kora_lib zone creator (box, sphere, or poly)', {
     { name = 'type', help = 'box, sphere, or poly' },
 }, true, function(source, args)
     if not developmentReady(source) then return end

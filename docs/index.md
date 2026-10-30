@@ -3,7 +3,7 @@ layout: default
 title: kora_admin
 ---
 
-Command-driven admin menu for kora_core/qblib. There is exactly one entry point
+Command-driven admin menu for kora_core/kora_lib. There is exactly one entry point
 for every privileged action: a chat command. The NUI menu (`/admin`) is not a
 parallel code path — after collecting a target and some parameters, it builds
 the exact command string a human would type and runs it with
@@ -14,7 +14,7 @@ one implementation.
 
 ## Requirements
 
-- [qblib](https://qbcore2.github.io/kora_lib/) — must load before kora_core/qbsql
+- [kora_lib](https://qbcore2.github.io/kora_lib/) — must load before kora_core/qbsql
 - [qbcore](https://qbcore2.github.io/kora_core/)
 - [qbsql](https://qbcore2.github.io/kora_sql/)
 
@@ -403,7 +403,7 @@ and their hour/minute -- change these to change what `night` means here) and
 `Config.medal` for the public key, menu permission, timeout, and clip events;
 `Config.audit.pageSize`; `Config.keybind` for the default `/admin` keybind
 (`F7`); and `Config.configEditor.level` for the owner-only configuration
-workspace. qblib-managed edits are server-specific `config.local.lua`
+workspace. kora_lib-managed edits are server-specific `config.local.lua`
 overrides, not edits to this documented file. The optional Discord role map is
 declared in `server/config.lua`, is server-only, and can be edited only by an
 owner through the workspace.
@@ -412,7 +412,7 @@ owner through the workspace.
 
 Part of the [qbcore2](https://github.com/qbcore2) resource set:
 
-- [qblib](https://qbcore2.github.io/kora_lib/) — shared helper library
+- [kora_lib](https://qbcore2.github.io/kora_lib/) — shared helper library
 - [qbsql](https://qbcore2.github.io/kora_sql/) — database driver
 - [qbcore](https://qbcore2.github.io/kora_core/) — framework core
 - [qbinventory](https://qbcore2.github.io/kora_inventory/) — headless inventory

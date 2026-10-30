@@ -20,7 +20,7 @@ end)
 
 -- Raw natives alone (NetworkResurrectLocalPlayer/SetEntityHealth) only clear
 -- GTA's own death state -- they say nothing to whichever ambulance job is
--- actually running. Both real qb-ambulancejob and the qblib-native kora_ambulance
+-- actually running. Both real qb-ambulancejob and the kora_lib-native kora_ambulance
 -- rebuild track their OWN client-local "is this player dead/downed" flags
 -- (plain module locals in one, a QB.notify-driven state table in the other)
 -- that gate a persistent per-frame thread forcing the death animation/ragdoll/

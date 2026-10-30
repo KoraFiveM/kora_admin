@@ -50,7 +50,7 @@ QB = {
         onValidate = function(fn) validate = fn end, onApply = function(fn) apply = fn end,
     },
 }
-local convars = { qblib_discord_guild_id = '900' }
+local convars = { kora_lib_discord_guild_id = '900' }
 function GetConvar(name, fallback) return convars[name] or fallback end
 function SetConvar(name, value) convars[name] = value end
 function GetCurrentResourceName() return 'kora_admin' end
@@ -205,6 +205,15 @@ test('configuration validation prevents a role-only lockout and invalid channel 
     Config.discord.channels = { '902' }; Config.permissions.mode = 'discord'
     Config.permissions.discordRoles.owner = {}; equal(validate(Config), false)
     Config.permissions.discordRoles.owner = { '400' }; equal(validate(Config), true)
+end)
+
+test('the deprecated qblib_discord_guild_id convar is still honoured', function()
+    local saved = convars
+    convars = { qblib_discord_guild_id = '900' }
+    equal(execute(interaction('status')).ok, true)
+    local wrongGuild = interaction('status'); wrongGuild.guild_id = '999'
+    equal(execute(wrongGuild).ok, false)
+    convars = saved
 end)
 
 os.time = savedTime

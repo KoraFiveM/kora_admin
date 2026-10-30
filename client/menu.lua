@@ -610,7 +610,7 @@ local SECTIONS = {
             },
             {
                 id = 'devzone', label = 'Create Zone', icon = 'map',
-                description = 'Open qblib’s box, sphere, or polygon creator',
+                description = 'Open kora_lib’s box, sphere, or polygon creator',
                 level = Config.developer.menuLevel,
                 disabled = function() return Config.developer.requireDevMode and not Admin.isDevMode() end,
                 run = withFields('devzone', function() return { zoneTypeField() } end, 'Zone Creator', true),

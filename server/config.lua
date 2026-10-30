@@ -33,7 +33,7 @@ if QB and QB.config and QB.config.extend then
             enabled = QB.config.boolean(false, { live = true, label = 'Enable Discord administration' }),
             applicationId = QB.config.string('', { live = true, label = 'Discord application ID' }),
             guildId = QB.config.string('', { live = true, label = 'Discord server ID',
-                description = 'Uses qblib_discord_guild_id when blank. This is also the guild used for in-game role checks.' }),
+                description = 'Uses kora_lib_discord_guild_id (or the deprecated qblib_discord_guild_id) when blank. This is also the guild used for in-game role checks.' }),
             publicKey = QB.config.string('', { live = true, label = 'Discord application public key',
                 description = 'The public key from the Developer Portal verifies signed slash command requests. This is safe to display.' }),
             channels = QB.config.list({}, QB.config.string('', { minLength = 1 }), {

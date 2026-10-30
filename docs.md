@@ -1,6 +1,6 @@
 # kora_admin
 
-A comprehensive admin menu for this server's kora_core/qblib framework. There is
+A comprehensive admin menu for this server's kora_core/kora_lib framework. There is
 exactly one entry point for every privileged action: a chat command. The NUI
 menu (`/admin`) is not a parallel code path -- after collecting a target and
 some parameters, it builds the exact command string a human would type and
@@ -58,8 +58,9 @@ discordRoles = {
 }
 ```
 
-This uses kora_lib's Discord bot role cache, so `qblib_discord_bot_token` and
-`qblib_discord_guild_id` must be configured for role grants. Missing/stale
+This uses kora_lib's Discord bot role cache, so `kora_lib_discord_bot_token` and
+`kora_lib_discord_guild_id` must be configured for role grants (the deprecated
+`qblib_discord_bot_token` / `qblib_discord_guild_id` names are still read as fallbacks). Missing/stale
 role data fails closed for Discord only; ACE grants continue to work.
 
 For slash commands, full txAdmin restarts, appshell setup and optional
@@ -115,7 +116,7 @@ stay stuck on the death screen with a healthy-looking value underneath it.
 **Revive clears whichever ambulance job is actually running, not just raw
 health.** `/revive`, `/selfrevive`, and Set Health's own dead-to-alive branch
 all funnel through the same client relay (`reviveLocalPed`,
-`client/relay.lua`), which fires the qblib-native `kora_ambulance` rebuild's
+`client/relay.lua`), which fires the kora_lib-native `kora_ambulance` rebuild's
 `qbambulance:client:revived` event. Without this, raw natives alone leave that
 job's own death-loop thread running forever even after health reads full.
 
@@ -325,7 +326,7 @@ level/dev-mode requirement, Medal events/key/menu level, and audit log page
 size.
 
 The owner-only **Server → Configuration** tab and `/config` command open the
-qblib-backed configuration editor. It lists only resources that register a
+kora_lib-backed configuration editor. It lists only resources that register a
 schema, shows each setting’s saved and running values, and labels it **Applies
 now** or **Restart required**. A save writes only the changed values to the
 owning resource’s `config.local.lua`; it never rearranges or reformats
@@ -341,7 +342,7 @@ lives in `server/config.lua`, is server-only, and remains hidden from clients.
 
 Resources choose `shared`, `client`, or `server` scope and explicitly opt in
 to live application through kora_lib. Most settings are saved for the next
-resource restart. Refer to [qblib’s configuration guide](https://qbcore2.github.io/kora_lib/modules/config/docs.html)
+resource restart. Refer to [kora_lib’s configuration guide](https://qbcore2.github.io/kora_lib/modules/config/docs.html)
 for field types, validation, local overrides, migration, scopes, and safe
 live handlers.
 

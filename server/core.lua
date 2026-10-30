@@ -57,7 +57,7 @@ end)
 
 -- Read-only self-info plumbing for the NUI's cosmetic menu filtering (see
 -- client/core.lua) -- not a privileged action, just lets a client know its
--- own already-server-known permission level. This uses the same qblib-backed
+-- own already-server-known permission level. This uses the same kora_lib-backed
 -- resolver as every command, including optional Discord roles.
 RegisterNetEvent('qbadmin:server:requestLevel', function()
     local src = source

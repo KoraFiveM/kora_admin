@@ -213,7 +213,7 @@ dofile('client/development.lua')
 dofile('client/entity_picker.lua')
 dofile('client/menu.lua')
 
-test('client launch events call qblib creators and report completion', function()
+test('client launch events call kora_lib creators and report completion', function()
     netEvents['qbadmin:client:startPlacement']('prop_test')
     equal(notifications[#notifications].type, 'success', 'placement completion notification')
 

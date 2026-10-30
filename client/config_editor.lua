@@ -125,7 +125,7 @@ local function baseDefinition()
                 id = 'resources', label = 'Resources', icon = 'boxes',
                 content = {
                     title = 'Registered Resources',
-                    description = 'Only qblib-registered, resource-owned settings appear here.',
+                    description = 'Only kora_lib-registered, resource-owned settings appear here.',
                     blocks = {
                         { id = 'config-resources', type = 'table', searchable = true, pageSize = 18,
                             columns = { { key = 'resource', label = 'Resource', sortable = true }, { key = 'fields', label = 'Configuration' } },
