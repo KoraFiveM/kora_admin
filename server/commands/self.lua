@@ -39,6 +39,7 @@ Admin.addCommand('selfrevive', 'Revive yourself, clearing whichever ambulance jo
     exports.kora_core:setMetaData(source, 'isdead', false)
     exports.kora_core:setMetaData(source, 'inlaststand', false)
     TriggerClientEvent('qbadmin:client:revive', source)
+    Admin.fullReviveAmbulance(source)
     Admin.respond(source, true, 'Revived')
 end, OPTS_MOD)
 

@@ -50,6 +50,18 @@ function Admin.finiteNumber(value, minimum, maximum, integer)
     return number
 end
 
+-- A revive from staff means a full one: when kora_ambulance is running, also
+-- clear its bleeding, wounds and bleed-out clock (otherwise the bleeding pill
+-- can linger a few seconds). Servers without kora_ambulance are unaffected.
+---@param target integer
+---@return boolean cleared
+function Admin.fullReviveAmbulance(target)
+    if GetResourceState('kora_ambulance') ~= 'started' then return false end
+    local ok, err = pcall(function() return exports.kora_ambulance:fullRevive(target) end)
+    if not ok then print(('[qbadmin] kora_ambulance fullRevive failed for %s: %s'):format(tostring(target), tostring(err))) end
+    return ok
+end
+
 AddEventHandler('playerDropped', function()
     local src = source
     for _, states in pairs(Admin.states) do states[src] = nil end

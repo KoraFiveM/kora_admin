@@ -167,6 +167,7 @@ Admin.addCommand('revive', 'Revive a downed player', { { name = 'id' } }, false,
     TriggerClientEvent('qbadmin:client:revive', targetSrc)
     exports.kora_core:setMetaData(targetSrc, 'isdead', false)
     exports.kora_core:setMetaData(targetSrc, 'inlaststand', false)
+    Admin.fullReviveAmbulance(targetSrc)
     Admin.log(source, 'revive', data)
     Admin.respond(source, true, ('Revived %s'):format(data.name))
 end, OPTS_MOD)
