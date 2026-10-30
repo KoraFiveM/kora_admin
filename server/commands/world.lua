@@ -26,6 +26,17 @@ Admin.addCommand('announce', 'Broadcast a message to every player', { { name = '
     Admin.respond(source, true, 'Announcement sent')
 end, OPTS_ADMIN)
 
+-- Console/RCON only: lets the Discord bot put restart warnings on every player's screen.
+-- Usage: kora_broadcast <message>
+RegisterCommand('kora_broadcast', function(source, _, raw)
+    if source ~= 0 then return end
+
+    local message = raw:match('^%S+%s+(.+)$')
+    if not message then return end
+
+    QB.notify.sendToAll({ title = 'Server', message = message:sub(1, 200), type = 'warning', duration = 60000 })
+end, true)
+
 Admin.addCommand('weather', 'Set the server weather', { { name = 'type' } }, true, function(source, args)
     local weatherType = args[1] and args[1]:upper()
     if GetResourceState('kora_weathersync') == 'started' then

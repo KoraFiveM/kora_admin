@@ -58,6 +58,12 @@ Admin.log = function(source, action, _, details)
     logs[#logs + 1] = { source = source, action = action, details = details }
 end
 
+local consoleCommands = {}
+local broadcasts = {}
+function RegisterCommand(name, handler, restricted)
+    consoleCommands[name] = { handler = handler, restricted = restricted }
+end
+
 dofile('server/command_registry.lua')
 dofile('server/commands/world.lua')
 
@@ -605,6 +611,23 @@ test('Reports list, detail, conversation, and management stay in the app shell',
     local queue = findTab(reportWorkspace, 'reports').content.blocks[#findTab(reportWorkspace, 'reports').content.blocks]
     truthy(queue.searchable and queue.pageSize == 12, 'the restored report queue is searchable and paged')
     truthy(queue.rows[1].status.badge, 'report status uses a rich AppShell badge cell')
+end)
+
+test('kora_broadcast notifies every player, but only from the console', function()
+    QB.notify = { sendToAll = function(payload) broadcasts[#broadcasts + 1] = payload end }
+    local command = consoleCommands.kora_broadcast
+    truthy(command and command.restricted, 'kora_broadcast should be a restricted command')
+
+    command.handler(7, {}, 'kora_broadcast hello')
+    equal(#broadcasts, 0, 'a player must not be able to broadcast')
+
+    command.handler(0, {}, 'kora_broadcast')
+    equal(#broadcasts, 0, 'an empty message is ignored')
+
+    command.handler(0, {}, 'kora_broadcast The server will restart in 5 minutes.')
+    equal(#broadcasts, 1, 'the console broadcast reaches sendToAll')
+    equal(broadcasts[1].message, 'The server will restart in 5 minutes.', 'broadcast message')
+    equal(broadcasts[1].duration, 60000, 'restart warnings stay up long enough to notice')
 end)
 
 print(('qbadmin world: %d passed, %d failed'):format(passed, failed))
