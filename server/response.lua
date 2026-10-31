@@ -1,7 +1,7 @@
 -- Admin.respond -- the one user-facing feedback call site, used by every
 -- command right after it finishes, so success/error toasts look identical
 -- whether the command was typed or fired by the NUI via ExecuteCommand. Built
--- directly on kora_lib's QB.notify.send -- no bespoke toast/UI invented.
+-- directly on kora_lib's Kora.notify.send -- no bespoke toast/UI invented.
 
 ---@param src integer
 ---@param ok boolean
@@ -14,7 +14,7 @@ function Admin.respond(src, ok, message, opts)
         context.messages[#context.messages + 1] = message or (ok and 'Done' or 'Something went wrong')
         return
     end
-    QB.notify.send(src, {
+    Kora.notify.send(src, {
         title = ok and (opts and opts.title or 'Admin') or 'Admin — Error',
         message = message or (ok and 'Done' or 'Something went wrong'),
         type = ok and 'success' or 'error',

@@ -9,7 +9,7 @@ local function allowed(src, level)
     return true
 end
 
-QB.callback.register('qbadmin:menuPlayers', function(src)
+Kora.callback.register('qbadmin:menuPlayers', function(src)
     local ok, err = allowed(src, 'support')
     if not ok then return nil, err end
 
@@ -31,7 +31,7 @@ end)
 -- A row selection opens a fresh, server-authenticated profile rather than
 -- trusting the summary values that were rendered in the player list. Sensitive
 -- identifiers remain admin-only.
-QB.callback.register('qbadmin:menuPlayerProfile', function(src, target)
+Kora.callback.register('qbadmin:menuPlayerProfile', function(src, target)
     local ok, err = allowed(src, 'support')
     if not ok then return nil, err end
 
@@ -77,7 +77,7 @@ QB.callback.register('qbadmin:menuPlayerProfile', function(src, target)
     return profile
 end)
 
-QB.callback.register('qbadmin:menuAuditLog', function(src, filters)
+Kora.callback.register('qbadmin:menuAuditLog', function(src, filters)
     local ok, err = allowed(src, 'admin')
     if not ok then return nil, err end
 
@@ -91,7 +91,7 @@ QB.callback.register('qbadmin:menuAuditLog', function(src, filters)
     })
 end)
 
-QB.callback.register('qbadmin:menuReports', function(src, filters)
+Kora.callback.register('qbadmin:menuReports', function(src, filters)
     local ok, err = allowed(src, Config.reports.staffLevel)
     if not ok then return nil, err end
 
@@ -104,7 +104,7 @@ QB.callback.register('qbadmin:menuReports', function(src, filters)
     })
 end)
 
-QB.callback.register('qbadmin:menuReport', function(src, id)
+Kora.callback.register('qbadmin:menuReport', function(src, id)
     local ok, err = allowed(src, Config.reports.staffLevel)
     if not ok then return nil, err end
 

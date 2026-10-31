@@ -71,17 +71,17 @@ function Admin.resolveOfflineTarget(arg)
         return byCid.citizenid, byCid.name, { license = byCid.license }
     end
 
-    local row = QB.sql.single(
+    local row = Kora.sql.single(
         'SELECT `citizenid`, `license`, `name` FROM `players` WHERE `deleted_at` IS NULL AND `name` LIKE ? ORDER BY `last_updated` DESC LIMIT 1',
         { '%' .. arg .. '%' }
     )
     if not row then return nil, nil, nil, 'no matching player found (online, citizenid, or name)' end
 
     local identifiers = { license = row.license }
-    local discordRow = QB.sql.single(
+    local discordRow = Kora.sql.single(
         'SELECT `value` FROM `player_identifiers` WHERE `citizenid` = ? AND `kind` = ? LIMIT 1', { row.citizenid, 'discord' })
     if discordRow then identifiers.discord = discordRow.value end
-    local ipRow = QB.sql.single(
+    local ipRow = Kora.sql.single(
         'SELECT `value` FROM `player_identifiers` WHERE `citizenid` = ? AND `kind` = ? LIMIT 1', { row.citizenid, 'ip' })
     if ipRow then identifiers.ip = ipRow.value end
 

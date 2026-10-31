@@ -1,5 +1,5 @@
 -- /aduty, /coords, /health, /armor, /permission -- all act on the caller
--- unless noted; QB.nui.copyToClipboard is client-realm only (kora_lib's entire
+-- unless noted; Kora.nui.copyToClipboard is client-realm only (kora_lib's entire
 -- nui module has no server.lua), so /coords relays to the caller's own client
 -- rather than doing anything server-side itself.
 

@@ -14,10 +14,10 @@ dependency 'kora_core'
 dependency 'kora_sql'
 dependency 'kora_vehiclekeys'
 
--- kora_lib strictly before kora_core/qbsql: both extend the QB table kora_lib's own
--- init.lua creates. kora_core's mirror is what gives us QB.shared.get/.all for
+-- kora_lib strictly before kora_core/qbsql: both extend the Kora table kora_lib's own
+-- init.lua creates. kora_core's mirror is what gives us Kora.shared.get/.all for
 -- job/gang/vehicle/item picker lists; kora_sql's init.lua is what gives us
--- QB.sql.* directly for the bans table and admin_logs.
+-- Kora.sql.* directly for the bans table and admin_logs.
 shared_script '@kora_lib/init.lua'
 shared_script '@kora_core/init.lua'
 shared_script '@kora_sql/init.lua'

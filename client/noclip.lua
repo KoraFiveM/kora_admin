@@ -48,7 +48,7 @@ local function enable()
     SetEntityCollision(ped, false, false)
     SetEntityInvincible(ped, true)
     SetEntityVisible(ped, false, false)
-    QB.nui.send('noclip:hud', { active = true })
+    Kora.nui.send('noclip:hud', { active = true })
 
     CreateThread(function()
         while active do
@@ -66,7 +66,7 @@ local function disable()
     SetEntityCollision(ped, true, true)
     SetEntityInvincible(ped, false)
     SetEntityVisible(ped, true, false)
-    QB.nui.send('noclip:hud', nil)
+    Kora.nui.send('noclip:hud', nil)
 end
 
 RegisterNetEvent('qbadmin:client:noclip', function()

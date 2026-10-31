@@ -2,7 +2,7 @@
 -- commands authenticate every request before either event can be sent.
 
 local function notify(kind, message)
-    QB.notify.send({
+    Kora.notify.send({
         title = 'Developer tools',
         type = kind,
         message = message,
@@ -24,12 +24,12 @@ end
 
 RegisterNetEvent('qbadmin:client:startPlacement', function(model)
     runCreator('Entity placement', function()
-        return QB.placement.start(model)
+        return Kora.placement.start(model)
     end)
 end)
 
 RegisterNetEvent('qbadmin:client:startZoneCreator', function(zoneType)
     runCreator(('%s zone'):format(zoneType), function()
-        return QB.zones.startCreator(zoneType)
+        return Kora.zones.startCreator(zoneType)
     end)
 end)

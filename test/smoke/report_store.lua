@@ -27,7 +27,7 @@ local function copy(row)
     return out
 end
 
-QB = {
+Kora = {
     sql = {
         NULL = '<NULL>',
         insert = function(sql, params)

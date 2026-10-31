@@ -12,7 +12,7 @@ local function truthy(value, message) if not value then error(message, 2) end en
 dofile('config.lua')
 local callbacks, commands = {}, {}
 local adminViewer = false
-QB = {
+Kora = {
     callback = { register = function(name, handler) callbacks[name] = handler end },
     commands = { add = function(name, _, _, _, handler, options) commands[name] = { handler = handler, options = options } end },
     notify = { send = function() end },
@@ -90,7 +90,7 @@ end)
 
 test('a denied admin-menu open explains the permission requirement and roles', function()
     local message, kind
-    QB.notify.send = function(_, payload) message, kind = payload.message, payload.type end
+    Kora.notify.send = function(_, payload) message, kind = payload.message, payload.type end
 
     commands.admin.options.notify(7)
 

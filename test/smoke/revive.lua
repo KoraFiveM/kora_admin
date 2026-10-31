@@ -11,7 +11,7 @@ dofile('config.lua')
 local commands, responses, events, order = {}, {}, {}, {}
 local state, fullRevived, throwing = 'started', {}, false
 
-QB = { commands = { add = function(name, _, _, _, handler) commands[name] = handler end } }
+Kora = { commands = { add = function(name, _, _, _, handler) commands[name] = handler end } }
 function AddEventHandler() end
 function RegisterNetEvent() end
 function GetResourceState() return state end

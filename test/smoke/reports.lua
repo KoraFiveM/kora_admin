@@ -25,7 +25,7 @@ dofile('config.lua')
 
 local commands, responses, events, logs = {}, {}, {}, {}
 local created, reply
-QB = {
+Kora = {
     commands = { add = function(name, _, _, _, handler, options)
         commands[name] = { handler = handler, options = options }
     end },

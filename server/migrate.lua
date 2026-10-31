@@ -21,14 +21,14 @@ local function checksum(str)
 end
 
 CreateThread(function()
-    local ok = QB.sql.ready(60000)
+    local ok = Kora.sql.ready(60000)
     if not ok then
         print('^1[qbadmin:migrate]^7 qbsql never became ready -- admin logs and reports unavailable.')
         return
     end
 
     local resource = GetCurrentResourceName()
-    local applied, err = QB.sql.migrateFiles(resource, {
+    local applied, err = Kora.sql.migrateFiles(resource, {
         { version = 1, name = 'admin_logs', file = 'sql/001_admin_logs.sql' },
         { version = 2, name = 'admin_reports', file = 'sql/002_admin_reports.sql' },
     }, checksum)

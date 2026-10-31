@@ -57,20 +57,20 @@ local function sanitizeSchema(schema)
     return out
 end
 
-QB.callback.register('qbadmin:configCatalog', function(source)
+Kora.callback.register('qbadmin:configCatalog', function(source)
     local ok, err = deny(source)
     if not ok then return nil, err end
-    local catalog = QB.config.catalog()
+    local catalog = Kora.config.catalog()
     for _, entry in ipairs(catalog) do entry.schema = sanitizeSchema(entry.schema) end
     return catalog
 end)
 
-QB.callback.register('qbadmin:configRead', function(source, resource)
+Kora.callback.register('qbadmin:configRead', function(source, resource)
     local ok, err = deny(source)
     if not ok then return nil, err end
     if type(resource) ~= 'string' then return nil, 'invalid resource' end
 
-    local readOk, entry = pcall(QB.config.read, resource)
+    local readOk, entry = pcall(Kora.config.read, resource)
     if not readOk or type(entry) ~= 'table' then return nil, 'configuration is unavailable' end
     entry.configured = sanitize(entry.schema, entry.configured)
     entry.values = sanitize(entry.schema, entry.values)
@@ -78,7 +78,7 @@ QB.callback.register('qbadmin:configRead', function(source, resource)
     return entry
 end)
 
-QB.commands.add('config', 'Open the configuration editor', nil, false, function(source)
+Kora.commands.add('config', 'Open the configuration editor', nil, false, function(source)
     TriggerClientEvent('qbadmin:client:configOpened', source)
 end, {
     permission = Config.configEditor.level,
@@ -96,12 +96,12 @@ local function validRequest(request)
     return #request.path > 0
 end
 
-QB.callback.register('qbadmin:configCommit', function(source, request)
+Kora.callback.register('qbadmin:configCommit', function(source, request)
     local ok, err = deny(source)
     if not ok then return nil, err end
     if not validRequest(request) then return nil, 'invalid configuration request' end
 
-    local result = QB.config.commit(request.resource, {
+    local result = Kora.config.commit(request.resource, {
         path = request.path,
         value = request.value,
         revision = request.revision,
@@ -115,12 +115,12 @@ QB.callback.register('qbadmin:configCommit', function(source, request)
     return result
 end)
 
-QB.callback.register('qbadmin:configReset', function(source, request)
+Kora.callback.register('qbadmin:configReset', function(source, request)
     local ok, err = deny(source)
     if not ok then return nil, err end
     if not validRequest(request) then return nil, 'invalid configuration request' end
 
-    local result = QB.config.reset(request.resource, {
+    local result = Kora.config.reset(request.resource, {
         path = request.path,
         revision = request.revision,
     })

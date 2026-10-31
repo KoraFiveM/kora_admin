@@ -26,7 +26,7 @@ local waits = 0
 local grantedKeys = {}
 local createdVehicles = {}
 
-QB = {
+Kora = {
     lookup = {
         vehicle = function(hash) return hash == 123 and {} or nil end,
         model = function(hash)

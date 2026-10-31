@@ -85,7 +85,7 @@ Admin.addCommand('ban', 'Ban a player, online or offline', { { name = 'target' }
         end
 
         local _, actorName = Admin.actorIdentity(source)
-        local banId, insertErr = QB.sql.insert(
+        local banId, insertErr = Kora.sql.insert(
             'INSERT INTO `bans` (`name`,`license`,`discord`,`ip`,`reason`,`expire`,`bannedby`) VALUES (?,?,?,?,?,?,?)',
             { name, identifiers.license, identifiers.discord, identifiers.ip, reason, expire, actorName }
         )
@@ -115,10 +115,10 @@ Admin.addCommand('unban', 'Lift a ban by license or ban id (preserves history)',
         local id = tonumber(arg)
         local result
         if id then
-            result = QB.sql.execute(
+            result = Kora.sql.execute(
                 'UPDATE `bans` SET `expire` = ? WHERE `id` = ? AND (`expire` IS NULL OR `expire` > ?)', { os.time(), id, os.time() })
         else
-            result = QB.sql.execute(
+            result = Kora.sql.execute(
                 'UPDATE `bans` SET `expire` = ? WHERE `license` = ? AND (`expire` IS NULL OR `expire` > ?)', { os.time(), arg, os.time() })
         end
 

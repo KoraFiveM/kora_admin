@@ -12,7 +12,7 @@ end
 
 ---Fields may be a plain list or a function returning one, resolved right
 ---before the form opens rather than when SECTIONS is built (see below):
----a field using registry-backed job/item/vehicle options needs QB.shared to have
+---a field using registry-backed job/item/vehicle options needs Kora.shared to have
 ---already received its mirror snapshot from kora_core, which may not have
 ---happened yet at resource-start when SECTIONS itself is constructed.
 ---@param fields? table[]|fun():table[]
@@ -107,7 +107,7 @@ end)
 
 local function openClothing(mode, service)
     if GetResourceState('kora_clothing') ~= 'started' then
-        QB.notify.send({ type = 'error', message = 'qbclothing is not running' })
+        Kora.notify.send({ type = 'error', message = 'qbclothing is not running' })
         return
     end
     if mode == 'shop' then
@@ -127,7 +127,7 @@ end
 ---@return table[]
 local function roleFields(kind, label)
     local roles, gradesByRole = {}, {}
-    for _, role in ipairs(QB.shared.all(kind)) do
+    for _, role in ipairs(Kora.shared.all(kind)) do
         roles[#roles + 1] = { value = role.name, label = role.label }
         local grades = {}
         for gradeNumber, grade in ipairs(role.grades or {}) do
@@ -152,7 +152,7 @@ end
 
 local function vehicleOptions()
     local out = {}
-    for _, veh in ipairs(QB.shared.all('vehicles')) do out[#out + 1] = { value = veh.model, label = ('%s (%s)'):format(veh.name, veh.model) } end
+    for _, veh in ipairs(Kora.shared.all('vehicles')) do out[#out + 1] = { value = veh.model, label = ('%s (%s)'):format(veh.name, veh.model) } end
     table.sort(out, function(a, b) return a.label:lower() < b.label:lower() end)
     return out
 end
@@ -253,7 +253,7 @@ end
 local function updateActiveRegistryFields()
     if not activeNavigation then return end
     refreshRegistryFields(activeNavigation)
-    if QB.nui.updateApp then QB.nui.updateApp('qbadmin:menu', { navigation = activeNavigation }) end
+    if Kora.nui.updateApp then Kora.nui.updateApp('qbadmin:menu', { navigation = activeNavigation }) end
 end
 
 local function refreshAppActionStates()
@@ -279,7 +279,7 @@ local function refreshAppActionStates()
             end
         end
     end)
-    if QB.nui.updateApp then QB.nui.updateApp('qbadmin:menu', { navigation = activeNavigation }) end
+    if Kora.nui.updateApp then Kora.nui.updateApp('qbadmin:menu', { navigation = activeNavigation }) end
 end
 Admin.refreshAppActionStates = refreshAppActionStates
 
@@ -287,10 +287,10 @@ Admin.refreshAppActionStates = refreshAppActionStates
 -- run, so the snapshot event is the reliable initial-load hook. Changes after
 -- that point arrive through the shared-list subscription.
 RegisterNetEvent('qbcore:registry:snapshotAll', updateActiveRegistryFields)
-if QB.shared.onChange then
-    QB.shared.onChange('vehicles', updateActiveRegistryFields)
-    QB.shared.onChange('jobs', updateActiveRegistryFields)
-    QB.shared.onChange('gangs', updateActiveRegistryFields)
+if Kora.shared.onChange then
+    Kora.shared.onChange('vehicles', updateActiveRegistryFields)
+    Kora.shared.onChange('jobs', updateActiveRegistryFields)
+    Kora.shared.onChange('gangs', updateActiveRegistryFields)
 end
 
 -- Admin duty is replicated by kora_core after the server accepts /aduty. Refresh
@@ -339,7 +339,7 @@ end
 
 local function itemOptions()
     local out = {}
-    for _, item in ipairs(QB.shared.all('items')) do out[#out + 1] = { value = item.name, label = item.label or item.name } end
+    for _, item in ipairs(Kora.shared.all('items')) do out[#out + 1] = { value = item.name, label = item.label or item.name } end
     return out
 end
 
@@ -511,7 +511,7 @@ local SECTIONS = {
             { id = 'fix', label = 'Repair Current Vehicle', level = 'mod', icon = 'wrench', run = withFields('fix') },
             { id = 'dv', label = 'Delete Vehicle', level = 'admin', icon = 'trash-2', variant = 'destructive',
                 description = 'Delete the vehicle you are in, or the nearest vehicle when on foot',
-                visible = function() return QB.cache.vehicle() ~= false or (tonumber(Config.dv.nearestRadius) or 0) > 0 end,
+                visible = function() return Kora.cache.vehicle() ~= false or (tonumber(Config.dv.nearestRadius) or 0) > 0 end,
                 run = withConfirm('Delete your vehicle, or the nearest one if you are on foot?', withFields('dv')) },
         },
     },
@@ -587,7 +587,7 @@ local SECTIONS = {
         description = 'Edit registered resource settings. Each field states whether it applies now or needs a restart.',
         items = {
             { id = 'open', label = 'Open Configuration Editor', level = Config.configEditor.level, icon = 'settings',
-                run = appAction(function() QB.config.open() end, nil, nil, true) },
+                run = appAction(function() Kora.config.open() end, nil, nil, true) },
         },
     },
     {
@@ -758,9 +758,9 @@ local function openRoot()
     end
 
     local function showAuditInShell(filters)
-        local rows, err = QB.callback.trigger('qbadmin:menuAuditLog', filters)
+        local rows, err = Kora.callback.trigger('qbadmin:menuAuditLog', filters)
         if not rows then
-            QB.notify.send({ type = 'error', message = err or 'Could not load audit log' })
+            Kora.notify.send({ type = 'error', message = err or 'Could not load audit log' })
             return {}
         end
         local tab = findTab(findView('server'), 'audit')
@@ -799,9 +799,9 @@ local function openRoot()
     local function showPlayersInShell()
         local view = playerView()
         if not view then return {} end
-        local players, err = QB.callback.trigger('qbadmin:menuPlayers')
+        local players, err = Kora.callback.trigger('qbadmin:menuPlayers')
         if not players then
-            QB.notify.send({ type = 'error', message = err or 'Could not load players' })
+            Kora.notify.send({ type = 'error', message = err or 'Could not load players' })
             return {}
         end
 
@@ -828,9 +828,9 @@ local function openRoot()
         local view = reportView()
         if not view then return {} end
         currentReportFilters = filters or currentReportFilters
-        local rows, err = QB.callback.trigger('qbadmin:menuReports', currentReportFilters)
+        local rows, err = Kora.callback.trigger('qbadmin:menuReports', currentReportFilters)
         if not rows then
-            QB.notify.send({ type = 'error', message = err or 'Could not load reports' })
+            Kora.notify.send({ type = 'error', message = err or 'Could not load reports' })
             return {}
         end
         local tab = sectionTab(sectionsById.reports)
@@ -863,9 +863,9 @@ local function openRoot()
     end
 
     local function showSelectedReport(id)
-        local report, err = QB.callback.trigger('qbadmin:menuReport', id)
+        local report, err = Kora.callback.trigger('qbadmin:menuReport', id)
         if not report then
-            QB.notify.send({ type = 'error', message = err or 'Could not load report' })
+            Kora.notify.send({ type = 'error', message = err or 'Could not load report' })
             return {}
         end
         local view = reportView()
@@ -992,9 +992,9 @@ local function openRoot()
     -- twice.  The table includes the caller too, so self actions work through
     -- exactly the same screen.
     local function showSelectedPlayer(player)
-        local profile, profileErr = QB.callback.trigger('qbadmin:menuPlayerProfile', player.id)
+        local profile, profileErr = Kora.callback.trigger('qbadmin:menuPlayerProfile', player.id)
         if not profile then
-            QB.notify.send({ type = 'error', message = profileErr or 'That player is no longer online' })
+            Kora.notify.send({ type = 'error', message = profileErr or 'That player is no longer online' })
             return {}
         end
 
@@ -1038,8 +1038,8 @@ local function openRoot()
         end
 
         add('profile', 'copyinfo', 'Copy Player Info', 'support', appAction(function()
-            QB.nui.copyToClipboard(playerProfileClipboard(profile))
-            QB.notify.send({ type = 'success', message = 'Player information copied' })
+            Kora.nui.copyToClipboard(playerProfileClipboard(profile))
+            Kora.notify.send({ type = 'success', message = 'Player information copied' })
         end))
         add('history', 'warnings', 'Warning History', 'mod', selected('warnings'))
 
@@ -1218,7 +1218,7 @@ local function openRoot()
         Admin.refreshSelectedPlayerState = function(updatedTarget)
             if tostring(updatedTarget) ~= target then return end
             local refreshed = showSelectedPlayer({ id = target })
-            if refreshed.update and QB.nui.updateApp then QB.nui.updateApp('qbadmin:menu', refreshed.update) end
+            if refreshed.update and Kora.nui.updateApp then Kora.nui.updateApp('qbadmin:menu', refreshed.update) end
         end
         return { update = { navigation = navigation }, navigate = { viewId = 'players', tabId = 'overview' } }
     end
@@ -1230,7 +1230,7 @@ local function openRoot()
     showPlayersInShell()
     showReportsInShell({ status = 'open' })
     refreshRegistryFields(activeNavigation)
-    QB.nui.registerApp({
+    Kora.nui.registerApp({
         id = 'qbadmin:menu',
         title = 'Administration',
         description = 'Server administration',
@@ -1278,7 +1278,7 @@ local function openRoot()
                     end
                 end
                 if selected then return showSelectedPlayer(selected) end
-                QB.notify.send({ type = 'error', message = 'That player is no longer online' })
+                Kora.notify.send({ type = 'error', message = 'That player is no longer online' })
                 return {}
             end
             if categoryId == 'player' and itemId == 'back' then
@@ -1314,7 +1314,7 @@ local function openRoot()
             error('That administrative action is no longer available.')
         end,
     })
-    QB.nui.openApp('qbadmin:menu')
+    Kora.nui.openApp('qbadmin:menu')
 end
 
 RegisterNetEvent('qbadmin:client:refreshMenuPlayerState', function(targetSrc)

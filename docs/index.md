@@ -199,7 +199,7 @@ another resource.
 ### Read the audit trail from another resource
 ```lua
 -- server, e.g. a staff-dashboard resource querying kora_admin's own table via kora_sql
-local rows = QB.sql.query(
+local rows = Kora.sql.query(
     'SELECT * FROM `admin_logs` WHERE `action` = ? ORDER BY `created_at` DESC LIMIT 20', { 'ban' })
 for _, row in ipairs(rows) do
     print(row.actor_name, 'banned', row.target_name, row.details)
@@ -209,7 +209,7 @@ end
 ## API reference
 
 kora_admin has no `exports` — the whole surface is chat commands registered
-through `QB.commands.add`, plus internal `qbadmin:client:*`/`qbadmin:server:*`
+through `Kora.commands.add`, plus internal `qbadmin:client:*`/`qbadmin:server:*`
 events used to relay a command's effect to the right client. Most commands
 accept an `[id]` argument that defaults to the caller, or the literal word
 `me` — see `Admin.resolveTarget` (`server/target.lua`). Commands marked

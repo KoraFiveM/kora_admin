@@ -23,9 +23,9 @@ ranked, so a higher role automatically receives every lower role's access.
 | `admin` | Persistent-state, economic, or identity-affecting actions, or projecting power onto another player's world: ban/unban, money, items, job/gang, vehicle/entity spawn/delete, noclip, god/dev mode/invisible **on another player**, announce, weather/time, audit log. |
 | `owner` | Server-wide or unrestricted privilege changes: configuration editor, permanent runtime grants/revokes, and resource restart. |
 
-Commands register through **kora_lib's** `QB.commands.add` and all use
+Commands register through **kora_lib's** `Kora.commands.add` and all use
 `Admin.checkLevel` (`server/permissions.lua`). That is a thin adapter over the
-central `QB.permissions.hasLevel` gateway, so command execution, menu data,
+central `Kora.permissions.hasLevel` gateway, so command execution, menu data,
 and the level sent to the client menu all resolve permissions identically.
 Rank checks cascade: a resolved `owner` satisfies `admin`, `moderator`, and
 `support` without manual principal chaining.
@@ -182,7 +182,7 @@ the menu definition. Clothing/styling, teleports, spectating, noclip, and the
 developer placement and zone tools close the admin shell before they start.
 
 `F7` is mapped directly on the server-owned `/admin` definition through
-`QB.commands` keymapping support. It therefore enters the exact same permission
+`Kora.commands` keymapping support. It therefore enters the exact same permission
 and error-handling path as typing `/admin`; there is no client forwarding
 command that can open the menu independently.
 
@@ -216,7 +216,7 @@ uses kora_lib's camera raycast and focus-free HUD to identify the prop, ped, or
 vehicle being aimed at. It prefers GTA's own entity archetype name, so map
 props show their actual model name; `H` copies that name and `X` closes the
 picker by default (both are rebindable in FiveM settings). The tab also launches
-`QB.placement.start(model)` and opens the kora_lib box/sphere/poly zone creator.
+`Kora.placement.start(model)` and opens the kora_lib box/sphere/poly zone creator.
 Development mode for yourself or another player is changed from that selected
 player's **Development** group. When
 `Config.developer.requireDevMode` is enabled, the builder shortcuts remain

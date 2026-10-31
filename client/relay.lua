@@ -22,7 +22,7 @@ end)
 -- GTA's own death state -- they say nothing to whichever ambulance job is
 -- actually running. Both real qb-ambulancejob and the kora_lib-native kora_ambulance
 -- rebuild track their OWN client-local "is this player dead/downed" flags
--- (plain module locals in one, a QB.notify-driven state table in the other)
+-- (plain module locals in one, a Kora.notify-driven state table in the other)
 -- that gate a persistent per-frame thread forcing the death animation/ragdoll/
 -- disabled controls -- if that thread's flag is never cleared, the player
 -- stays visibly stuck in the death loop even after their raw health reads
@@ -84,7 +84,7 @@ RegisterNetEvent('qbadmin:client:spawnEntity', function(model)
     -- The entities module owns model hashing, streaming, type detection, and
     -- creation. Vehicle commands are rejected server-side before this relay
     -- so they keep kora_admin's existing networked vehicle path.
-    local entity, err = QB.entities.create(model, {
+    local entity, err = Kora.entities.create(model, {
         x = coords.x,
         y = coords.y,
         z = coords.z,
@@ -92,29 +92,29 @@ RegisterNetEvent('qbadmin:client:spawnEntity', function(model)
     }, { preset = 'static' })
 
     if not entity then
-        QB.notify.send({ type = 'error', message = ('Could not spawn %s: %s'):format(model, err or 'unknown error') })
+        Kora.notify.send({ type = 'error', message = ('Could not spawn %s: %s'):format(model, err or 'unknown error') })
         return
     end
 
     lastAdminEntity = entity
-    QB.notify.send({ type = 'success', message = ('Spawned entity %s'):format(model) })
+    Kora.notify.send({ type = 'success', message = ('Spawned entity %s'):format(model) })
 end)
 
 RegisterNetEvent('qbadmin:client:deleteLastEntity', function()
     if not lastAdminEntity then
-        QB.notify.send({ type = 'error', message = 'No admin-spawned entity to delete' })
+        Kora.notify.send({ type = 'error', message = 'No admin-spawned entity to delete' })
         return
     end
 
     local entity = lastAdminEntity
     lastAdminEntity = nil
-    local removed, err = QB.entities.remove(entity)
+    local removed, err = Kora.entities.remove(entity)
     if not removed then
-        QB.notify.send({ type = 'error', message = err or 'Could not delete the entity' })
+        Kora.notify.send({ type = 'error', message = err or 'Could not delete the entity' })
         return
     end
 
-    QB.notify.send({ type = 'success', message = 'Deleted your last admin-spawned entity' })
+    Kora.notify.send({ type = 'success', message = 'Deleted your last admin-spawned entity' })
 end)
 
 RegisterNetEvent('qbadmin:client:enterVehicle', function(netId, seat)
@@ -137,13 +137,13 @@ end)
 
 RegisterNetEvent('qbadmin:client:coords', function()
     local coords = GetEntityCoords(PlayerPedId())
-    QB.nui.copyToClipboard(('vector3(%.2f, %.2f, %.2f)'):format(coords.x, coords.y, coords.z))
+    Kora.nui.copyToClipboard(('vector3(%.2f, %.2f, %.2f)'):format(coords.x, coords.y, coords.z))
 end)
 
 RegisterNetEvent('qbadmin:client:vec4', function()
     local coords = GetEntityCoords(PlayerPedId())
     local heading = GetEntityHeading(PlayerPedId())
-    QB.nui.copyToClipboard(('vector4(%.2f, %.2f, %.2f, %.2f)'):format(coords.x, coords.y, coords.z, heading))
+    Kora.nui.copyToClipboard(('vector4(%.2f, %.2f, %.2f, %.2f)'):format(coords.x, coords.y, coords.z, heading))
 end)
 
 

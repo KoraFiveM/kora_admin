@@ -49,13 +49,13 @@ end
 
 local function notifyStaff(payload)
     for _, playerSrc in ipairs(exports.kora_core:getPlayers()) do
-        if Admin.checkLevel(playerSrc, Config.reports.staffLevel) then QB.notify.send(playerSrc, payload) end
+        if Admin.checkLevel(playerSrc, Config.reports.staffLevel) then Kora.notify.send(playerSrc, payload) end
     end
 end
 
 local function notifyReporter(row, payload)
     local src = Admin.reporterSource(row)
-    if src then QB.notify.send(src, payload) end
+    if src then Kora.notify.send(src, payload) end
 end
 
 ---@param src integer
@@ -79,11 +79,11 @@ function Admin.createReport(src, typeId, message)
     local data = exports.kora_core:getPlayer(src)
     if not data then return nil, 'you are not logged in' end
     local reporterName = data.name or GetPlayerName(src) or ('unknown(%d)'):format(src)
-    local id, dbErr = QB.sql.insert(
+    local id, dbErr = Kora.sql.insert(
         'INSERT INTO `admin_reports` (`type`,`reporter_source`,`reporter_citizenid`,`reporter_license`,`reporter_name`,`message`) VALUES (?,?,?,?,?,?)',
         {
-            definition.id, src, data.citizenid or QB.sql.NULL,
-            exports.kora_core:primary(src) or QB.sql.NULL, reporterName, message,
+            definition.id, src, data.citizenid or Kora.sql.NULL,
+            exports.kora_core:primary(src) or Kora.sql.NULL, reporterName, message,
         }
     )
     if not id then return nil, dbErr or 'could not save report' end
@@ -103,7 +103,7 @@ end
 function Admin.getReport(id)
     id = Admin.finiteNumber(id, 1, nil, true)
     if not id then return nil end
-    local row = QB.sql.single('SELECT * FROM `admin_reports` WHERE `id` = ? LIMIT 1', { id })
+    local row = Kora.sql.single('SELECT * FROM `admin_reports` WHERE `id` = ? LIMIT 1', { id })
     if row then row.reporter_source = Admin.reporterSource(row) end
     return row
 end
@@ -113,7 +113,7 @@ end
 function Admin.getReportMessages(id)
     id = Admin.finiteNumber(id, 1, nil, true)
     if not id then return {} end
-    return QB.sql.query(
+    return Kora.sql.query(
         'SELECT `id`,`author_name`,`author_role`,`message`,`created_at` FROM `admin_report_messages` WHERE `report_id` = ? ORDER BY `created_at`,`id`',
         { id }
     ) or {}
@@ -145,7 +145,7 @@ function Admin.queryReports(filters)
     sql = sql .. ' ORDER BY FIELD(`status`,\'open\',\'claimed\',\'resolved\',\'dismissed\'), `updated_at` DESC LIMIT ? OFFSET ?'
     params[#params + 1] = Config.reports.pageSize
     params[#params + 1] = (page - 1) * Config.reports.pageSize
-    return QB.sql.query(sql, params) or {}
+    return Kora.sql.query(sql, params) or {}
 end
 
 local function canRead(src, row)
@@ -170,12 +170,12 @@ function Admin.replyToReport(src, id, message)
     if not message then return false, 'reply required' end
 
     local license, name = actorIdentity(src)
-    local inserted, dbErr = QB.sql.insert(
+    local inserted, dbErr = Kora.sql.insert(
         'INSERT INTO `admin_report_messages` (`report_id`,`author_license`,`author_name`,`author_role`,`message`) VALUES (?,?,?,?,?)',
-        { row.id, license or QB.sql.NULL, name, role, message }
+        { row.id, license or Kora.sql.NULL, name, role, message }
     )
     if not inserted then return false, dbErr or 'could not save reply' end
-    QB.sql.update('UPDATE `admin_reports` SET `updated_at` = CURRENT_TIMESTAMP WHERE `id` = ?', { row.id })
+    Kora.sql.update('UPDATE `admin_reports` SET `updated_at` = CURRENT_TIMESTAMP WHERE `id` = ?', { row.id })
 
     if role == 'staff' then
         notifyReporter(row, { title = ('Report #%s reply'):format(row.id), message = message, type = 'info' })
@@ -196,9 +196,9 @@ function Admin.claimReport(src, id)
     if not row then return false, 'report not found' end
     if row.status == 'resolved' or row.status == 'dismissed' then return false, 'reopen the report before claiming it' end
     local license, name = actorIdentity(src)
-    local updated, dbErr = QB.sql.update(
+    local updated, dbErr = Kora.sql.update(
         'UPDATE `admin_reports` SET `status` = \'claimed\',`claimed_by_license` = ?,`claimed_by_name` = ? WHERE `id` = ?',
-        { license or QB.sql.NULL, name, row.id }
+        { license or Kora.sql.NULL, name, row.id }
     )
     if updated == nil then return false, dbErr or 'could not claim report' end
     Admin.log(src, 'report_claim', reportTarget(row), { reportId = row.id })
@@ -225,9 +225,9 @@ function Admin.setReportStatus(src, id, status, note)
         params = { row.id }
     else
         sql = 'UPDATE `admin_reports` SET `status` = ?,`resolution` = ?,`closed_at` = CURRENT_TIMESTAMP WHERE `id` = ?'
-        params = { status, note or QB.sql.NULL, row.id }
+        params = { status, note or Kora.sql.NULL, row.id }
     end
-    local updated, dbErr = QB.sql.update(sql, params)
+    local updated, dbErr = Kora.sql.update(sql, params)
     if updated == nil then return false, dbErr or 'could not update report' end
 
     local _, actorName = actorIdentity(src)

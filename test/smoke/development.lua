@@ -30,7 +30,7 @@ local clientEvents = {}
 local logs = {}
 local devMode = false
 
-QB = {
+Kora = {
     commands = {
         add = function(name, _, _, _, handler, options)
             commands[name] = { handler = handler, options = options }
@@ -125,7 +125,7 @@ local keybinds = {}
 local textUi = {}
 local copiedText
 
-QB = {
+Kora = {
     notify = { send = function(payload) notifications[#notifications + 1] = payload end },
     placement = { start = function() return placementResult end },
     zones = { startCreator = function() return zoneResult end },

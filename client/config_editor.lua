@@ -191,15 +191,15 @@ local function addSelectedView(definition, setting)
 end
 
 local function openEditor()
-    local result, err = QB.callback.trigger('qbadmin:configCatalog')
-    if not result then return QB.notify.send({ type = 'error', message = err or 'Could not load configuration catalog.' }) end
+    local result, err = Kora.callback.trigger('qbadmin:configCatalog')
+    if not result then return Kora.notify.send({ type = 'error', message = err or 'Could not load configuration catalog.' }) end
     catalog = result
     selected = nil
 
     local definition = baseDefinition()
     definition.onAction = function(action, context)
         if action == 'config:resource' then
-            local entry, readError = QB.callback.trigger('qbadmin:configRead', context.itemId)
+            local entry, readError = Kora.callback.trigger('qbadmin:configRead', context.itemId)
             if not entry then error(readError or 'Could not read resource configuration.') end
             selected = { entry = entry }
             local updated = baseDefinition()
@@ -230,13 +230,13 @@ local function openEditor()
             local response, requestError
             if action == 'config:save' then
                 request.value = inputValue(selected.setting, context.value or {})
-                response, requestError = QB.callback.trigger('qbadmin:configCommit', request)
+                response, requestError = Kora.callback.trigger('qbadmin:configCommit', request)
             else
-                response, requestError = QB.callback.trigger('qbadmin:configReset', request)
+                response, requestError = Kora.callback.trigger('qbadmin:configReset', request)
             end
             if not response or not response.ok then error((response and response.error) or requestError or 'Configuration change failed.') end
-            QB.notify.send({ type = 'success', message = response.applied and 'Configuration updated live.' or 'Configuration saved; restart the resource to apply it.' })
-            local refreshed, refreshError = QB.callback.trigger('qbadmin:configRead', selected.entry.resource)
+            Kora.notify.send({ type = 'success', message = response.applied and 'Configuration updated live.' or 'Configuration saved; restart the resource to apply it.' })
+            local refreshed, refreshError = Kora.callback.trigger('qbadmin:configRead', selected.entry.resource)
             if not refreshed then error(refreshError or 'The setting saved, but could not be refreshed.') end
             selected.entry = refreshed
             local leaves = {}
@@ -249,8 +249,8 @@ local function openEditor()
         end
         error('That configuration action is no longer available.')
     end
-    QB.nui.registerApp(definition)
-    QB.nui.openApp('qbadmin:config')
+    Kora.nui.registerApp(definition)
+    Kora.nui.openApp('qbadmin:config')
 end
 
 RegisterNetEvent('qbadmin:client:configOpened', openEditor)

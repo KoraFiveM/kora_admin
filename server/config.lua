@@ -18,39 +18,39 @@ Config.permissions.discordRoles = {
 -- This file is server-only even though kora_admin's base Config is shared. Keep
 -- optional Discord role mappings out of every client-side configuration
 -- snapshot while still making them visible to the owner-only editor.
-if QB and QB.config and QB.config.extend then
-    QB.config.extend({
+if Kora and Kora.config and Kora.config.extend then
+    Kora.config.extend({
         permissions = {
-            mode = QB.config.enum('ace_discord', { options = {
+            mode = Kora.config.enum('ace_discord', { options = {
                 { value = 'ace_discord', label = 'ACE and Discord (compatible)' },
                 { value = 'discord', label = 'Discord roles only' },
             }, live = true, description = 'Discord-only access ignores ACE and temporary grants for qbadmin. Map an owner role before switching.' }),
-            discordRoles = QB.config.map(Config.permissions.discordRoles,
-                QB.config.list({}, QB.config.string('', { minLength = 1 })),
+            discordRoles = Kora.config.map(Config.permissions.discordRoles,
+                Kora.config.list({}, Kora.config.string('', { minLength = 1 })),
                 { live = true, advanced = false, description = 'Map each staff tier to Discord role IDs. Higher tiers inherit lower tiers.' }),
         },
         discord = {
-            enabled = QB.config.boolean(false, { live = true, label = 'Enable Discord administration' }),
-            applicationId = QB.config.string('', { live = true, label = 'Discord application ID' }),
-            guildId = QB.config.string('', { live = true, label = 'Discord server ID',
+            enabled = Kora.config.boolean(false, { live = true, label = 'Enable Discord administration' }),
+            applicationId = Kora.config.string('', { live = true, label = 'Discord application ID' }),
+            guildId = Kora.config.string('', { live = true, label = 'Discord server ID',
                 description = 'Uses kora_lib_discord_guild_id (or the deprecated qblib_discord_guild_id) when blank. This is also the guild used for in-game role checks.' }),
-            publicKey = QB.config.string('', { live = true, label = 'Discord application public key',
+            publicKey = Kora.config.string('', { live = true, label = 'Discord application public key',
                 description = 'The public key from the Developer Portal verifies signed slash command requests. This is safe to display.' }),
-            channels = QB.config.list({}, QB.config.string('', { minLength = 1 }), {
+            channels = Kora.config.list({}, Kora.config.string('', { minLength = 1 }), {
                 live = true, advanced = false, label = 'Staff channel IDs',
                 description = 'Slash commands are accepted only in these channels. An empty list denies every staff action.' }),
-            disabledCommands = QB.config.list({}, QB.config.string('', { minLength = 1 }), {
+            disabledCommands = Kora.config.list({}, Kora.config.string('', { minLength = 1 }), {
                 live = true, advanced = false, label = 'Commands disabled in Discord' }),
-            confirmCommands = QB.config.list({ 'ban', 'unban', 'kick', 'clearinventory', 'restartresource',
+            confirmCommands = Kora.config.list({ 'ban', 'unban', 'kick', 'clearinventory', 'restartresource',
                 'setpermission', 'revokepermission', 'granttempaccess', 'revoketempaccess' },
-                QB.config.string('', { minLength = 1 }), { live = true, advanced = false,
+                Kora.config.string('', { minLength = 1 }), { live = true, advanced = false,
                     label = 'Commands requiring confirmation' }),
-            cooldownSeconds = QB.config.integer(3, { live = true, min = 1, max = 60,
+            cooldownSeconds = Kora.config.integer(3, { live = true, min = 1, max = 60,
                 label = 'Seconds between staff commands' }),
-            restartEnabled = QB.config.boolean(false, { live = true, label = 'Allow full server restarts' }),
-            restartDelaySeconds = QB.config.integer(60, { live = true, min = 30, max = 3600,
+            restartEnabled = Kora.config.boolean(false, { live = true, label = 'Allow full server restarts' }),
+            restartDelaySeconds = Kora.config.integer(60, { live = true, min = 30, max = 3600,
                 label = 'Restart countdown (seconds)' }),
-            restartRole = QB.config.string('owner', { live = true, label = 'Minimum restart tier' }),
+            restartRole = Kora.config.string('owner', { live = true, label = 'Minimum restart tier' }),
         },
     }, { scope = 'server' })
 end

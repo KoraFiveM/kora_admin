@@ -13,7 +13,7 @@ local world = {}      -- entity -> { x, y, z, plate, bucket, seats = {[seat]=ped
 local playerVehicle = 0
 local players = { [900] = true }
 
-QB = { commands = { add = function(name, _, args, required, handler, options)
+Kora = { commands = { add = function(name, _, args, required, handler, options)
     commands[name] = { arguments = args, required = required, handler = handler, options = options }
 end } }
 Admin = {

@@ -15,7 +15,7 @@ os.time = function() return clock end
 local apiOk, remoteRoles, aceLevel = true, { '200' }, 'owner'
 local linkedUser, queuedRoles, restarted = nil, nil, 0
 local validate, apply
-QB = {
+Kora = {
     commands = { add = function(name, _, _, _, handler) registered[name] = handler end },
     permissions = { getLevel = function(_, _, options)
         if options.discordRoles.moderator and options.discordRoles.moderator[1] == 'new' then return 'moderator' end
@@ -136,7 +136,7 @@ test('offline Discord staff use real handlers, keep inner rank gates, and receiv
     local response = execute(interaction('run', { command = 'heal', arguments = '12' }))
     equal(response.ok, true); assert(response.message:find('Healed Target', 1, true))
     local audit = sql[#sql].params
-    equal(audit[2], QB.sql.NULL); equal(audit[3], 'Discord 1000'); equal(audit[7].discord_id, '1000')
+    equal(audit[2], Kora.sql.NULL); equal(audit[3], 'Discord 1000'); equal(audit[7].discord_id, '1000')
     equal(execute(interaction('run', { command = 'god', arguments = '12 on' })).ok, false)
     equal(execute(interaction('run', { command = 'noclip' })).ok, false)
     equal(execute(interaction('run', { command = 'quit; restart' })).ok, false)

@@ -19,7 +19,7 @@ local ENTITY_KINDS = {
 }
 
 local function notify(kind, message)
-    QB.notify.send({ title = 'Entity picker', type = kind, message = message })
+    Kora.notify.send({ title = 'Entity picker', type = kind, message = message })
 end
 
 local function entityKind(entity)
@@ -34,9 +34,9 @@ local function actualArchetypeName(entity)
 end
 
 local function lookupModelName(model, kind)
-    if not QB.lookup or type(QB.lookup.model) ~= 'function' then return nil end
+    if not Kora.lookup or type(Kora.lookup.model) ~= 'function' then return nil end
 
-    local ok, record = pcall(QB.lookup.model, model, kind.lookupKind)
+    local ok, record = pcall(Kora.lookup.model, model, kind.lookupKind)
     if ok and type(record) == 'table' and type(record.name) == 'string' and record.name ~= '' then
         return record.name, record
     end
@@ -98,7 +98,7 @@ local function updateHud(snapshot)
     state.text = text
     state.nextHudAt = GetGameTimer() + 100
     if state.hud then
-        QB.textui.update(state.hud, text, { key = Config.entityPicker.copyKey, icon = 'copy', position = 'right-center' })
+        Kora.textui.update(state.hud, text, { key = Config.entityPicker.copyKey, icon = 'copy', position = 'right-center' })
     end
 end
 
@@ -109,7 +109,7 @@ local function stopPicker(message)
     state.snapshot = nil
     state.text = nil
     state.nextHudAt = 0
-    if state.hud then QB.textui.hide(state.hud) end
+    if state.hud then Kora.textui.hide(state.hud) end
     state.hud = nil
     if message then notify('info', message) end
 end
@@ -124,7 +124,7 @@ local function copyModelName()
         return notify('error', ('No model name is available; use hash %s instead'):format(tostring(snapshot.model)))
     end
 
-    local result = QB.nui.copyToClipboard(snapshot.modelName)
+    local result = Kora.nui.copyToClipboard(snapshot.modelName)
     if type(result) == 'table' and type(result.next) == 'function' then
         result:next(function(copied)
             if copied then
@@ -144,15 +144,15 @@ local function startPicker()
     if state.active then
         return notify('info', 'Entity picker is already active')
     end
-    if QB.placement and QB.placement.isActive and QB.placement.isActive() then
+    if Kora.placement and Kora.placement.isActive and Kora.placement.isActive() then
         return notify('error', 'Finish entity placement before opening the picker')
     end
-    if QB.zones and QB.zones.isCreatorActive and QB.zones.isCreatorActive() then
+    if Kora.zones and Kora.zones.isCreatorActive and Kora.zones.isCreatorActive() then
         return notify('error', 'Finish zone creation before opening the picker')
     end
 
     state.active = true
-    state.hud = QB.textui.show(hudText(nil), {
+    state.hud = Kora.textui.show(hudText(nil), {
         key = Config.entityPicker.copyKey,
         icon = 'copy',
         position = 'right-center',
@@ -163,14 +163,14 @@ local function startPicker()
 
     CreateThread(function()
         while state.active do
-            local hit, hitCoords, entity = QB.raycast.fromCamera(Config.entityPicker.maxDistance)
+            local hit, hitCoords, entity = Kora.raycast.fromCamera(Config.entityPicker.maxDistance)
             updateHud(hit and inspectEntity(entity, hitCoords) or nil)
             Wait(0)
         end
     end)
 end
 
-QB.keybind.add({
+Kora.keybind.add({
     name = 'qbadmin_entitypicker_copy',
     description = 'Entity Picker: Copy Model Name',
     defaultMapper = 'keyboard',
@@ -178,7 +178,7 @@ QB.keybind.add({
     onPressed = copyModelName,
 })
 
-QB.keybind.add({
+Kora.keybind.add({
     name = 'qbadmin_entitypicker_close',
     description = 'Entity Picker: Close',
     defaultMapper = 'keyboard',

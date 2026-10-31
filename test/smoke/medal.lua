@@ -20,7 +20,7 @@ local callbacks = {}
 local timers = {}
 
 Admin = {}
-QB = {
+Kora = {
     notify = { send = function(payload) notifications[#notifications + 1] = payload end },
     util = { trim = function(value) return type(value) == 'string' and value:match('^%s*(.-)%s*$') or value end },
 }

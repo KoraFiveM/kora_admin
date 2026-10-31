@@ -36,7 +36,7 @@ local entry = {
     values = { enabled = false, interval = 10 },
 }
 
-QB = {
+Kora = {
     callback = {
         trigger = function(name, request)
             if name == 'qbadmin:configCatalog' then return { { resource = 'sample' } } end

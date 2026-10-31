@@ -6,11 +6,11 @@ local pending = {}
 local nextRequestId = 0
 
 local function notify(notificationType, message)
-    QB.notify.send({ type = notificationType, message = message })
+    Kora.notify.send({ type = notificationType, message = message })
 end
 
 local function trim(value)
-    return type(value) == 'string' and QB.util.trim(value) or ''
+    return type(value) == 'string' and Kora.util.trim(value) or ''
 end
 
 local function publicKey()

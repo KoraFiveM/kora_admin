@@ -135,13 +135,13 @@ function Admin.getLevel(src)
         for _, level in ipairs(aceLevels) do
             local roles = Config.permissions.discordRoles[level]
             if roles and #roles > 0 then
-                local ok, allowed = pcall(QB.discord.hasAnyRole, src, roles)
+                local ok, allowed = pcall(Kora.discord.hasAnyRole, src, roles)
                 if ok and allowed == true then return canonical[level] end
             end
         end
         return 'user'
     end
-    local held = canonical[QB.permissions.getLevel(src, aceLevels, permissionOptions())] or 'user'
+    local held = canonical[Kora.permissions.getLevel(src, aceLevels, permissionOptions())] or 'user'
     local temporary = temporaryLevel(src)
     if temporary and Admin.roleRank(temporary) > Admin.roleRank(held) then return temporary end
     return held
@@ -329,7 +329,7 @@ RegisterCommand('qbadmin_whyperms', function(source, args)
     end
 
     local levels, canonical = Admin.aceLevels()
-    local checks, matchedLevel = QB.permissions.explain(target, levels, permissionOptions())
+    local checks, matchedLevel = Kora.permissions.explain(target, levels, permissionOptions())
     local resolved = canonical[matchedLevel] or 'user'
     print('  ace checks (object -> raw value returned by IsPlayerAceAllowed):')
     for _, check in ipairs(checks) do

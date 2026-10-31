@@ -14,7 +14,7 @@ AddEventHandler('playerConnecting', function(_name, _setKickReason, deferrals)
     -- ip matching is inherently less reliable this early in the handshake than
     -- license/discord (see docs.md); still included since a repeat offender's
     -- IP is still worth catching even if occasionally missed here.
-    local ban = QB.sql.single(
+    local ban = Kora.sql.single(
         'SELECT `id`, `reason`, `expire` FROM `bans` '
         .. 'WHERE (`license` = ? OR `discord` = ? OR `ip` = ?) AND (`expire` IS NULL OR `expire` > ?) '
         .. 'ORDER BY `id` DESC LIMIT 1',

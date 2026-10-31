@@ -11,18 +11,18 @@
 function Admin.log(actorSrc, action, target, details)
     local actorLicense, actorName = Admin.actorIdentity(actorSrc)
 
-    QB.sql.insert(
+    Kora.sql.insert(
         'INSERT INTO `admin_logs` (`action`,`actor_license`,`actor_name`,`target_citizenid`,`target_license`,`target_name`,`details`) '
         .. 'VALUES (?,?,?,?,?,?,?)',
         {
             -- A console action has no actor license, and most actions have no
             -- target or details. Each of those is a real NULL column, not an
             -- absent parameter -- binding nil would hole or truncate the array.
-            action, actorLicense or QB.sql.NULL, actorName,
-            (target and target.citizenid) or QB.sql.NULL,
-            (target and target.license) or QB.sql.NULL,
-            (target and target.name) or QB.sql.NULL,
-            details and json.encode(details) or QB.sql.NULL,
+            action, actorLicense or Kora.sql.NULL, actorName,
+            (target and target.citizenid) or Kora.sql.NULL,
+            (target and target.license) or Kora.sql.NULL,
+            (target and target.name) or Kora.sql.NULL,
+            details and json.encode(details) or Kora.sql.NULL,
         }
     )
 end
@@ -64,5 +64,5 @@ function Admin.queryLogs(filters)
     params[#params + 1] = pageSize
     params[#params + 1] = offset
 
-    return QB.sql.query(sql, params) or {}
+    return Kora.sql.query(sql, params) or {}
 end

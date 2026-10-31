@@ -36,7 +36,7 @@ local weatherResourceState = 'missing'
 
 function GetResourceState() return weatherResourceState end
 
-QB = {
+Kora = {
     commands = {
         add = function(name, _, _, _, handler, options)
             commands[name] = { handler = handler, options = options }
@@ -241,7 +241,7 @@ local clockHour, clockMinute = 8, 0
 local adminDuty = false
 local adminDutyChanged
 
-QB = {
+Kora = {
     notify = { send = function() end },
     cache = {
         serverId = function() return 7 end,
@@ -393,12 +393,12 @@ test('Admin Duty shows its current state and the action it will take', function(
 end)
 
 test('Vehicle provides both a refreshed catalogue and a free-form spawn code', function()
-    QB.shared.all = function() return {} end
+    Kora.shared.all = function() return {} end
     local appUpdate
-    QB.nui.updateApp = function(_, update) appUpdate = update end
+    Kora.nui.updateApp = function(_, update) appUpdate = update end
     netEvents['qbadmin:client:openMenu']('god')
 
-    QB.shared.all = function(name)
+    Kora.shared.all = function(name)
         if name == 'vehicles' then return { { model = 'zentorno', name = 'Zentorno' } } end
         return {}
     end
@@ -414,12 +414,12 @@ test('Vehicle provides both a refreshed catalogue and a free-form spawn code', f
     menuPayload.onAction('vehicle:car', { value = { model = 'adder' } })
     equal(executedCommand, 'car adder', 'Spawn from Code calls the self-spawn command')
 
-    QB.shared.all = function() return {} end
-    QB.nui.updateApp = nil
+    Kora.shared.all = function() return {} end
+    Kora.nui.updateApp = nil
 end)
 
 test('List Players selects a player before running their admin actions', function()
-    local previousSharedAll, previousSharedGet = QB.shared.all, QB.shared.get
+    local previousSharedAll, previousSharedGet = Kora.shared.all, Kora.shared.get
     local jobs = {
         { name = 'police', label = 'Law Enforcement', grades = {
             { name = 'Cadet' }, { name = 'Officer' },
@@ -429,15 +429,15 @@ test('List Players selects a player before running their admin actions', functio
     local gangs = {
         { name = 'none', label = 'No Gang', grades = { { name = 'None' } } },
     }
-    QB.shared.all = function(name)
+    Kora.shared.all = function(name)
         if name == 'jobs' then return jobs end
         if name == 'gangs' then return gangs end
         return {}
     end
     -- Role fields must be complete from the same `all()` snapshot; a second
     -- lookup can be briefly empty while the client registry is being seeded.
-    QB.shared.get = function() return nil end
-    QB.callback.trigger = function(name)
+    Kora.shared.get = function() return nil end
+    Kora.callback.trigger = function(name)
         if name == 'qbadmin:menuPlayers' then
             -- The caller is deliberately present in this list: staff may
             -- select themselves and use the same player-first workflow.
@@ -544,13 +544,13 @@ test('List Players selects a player before running their admin actions', functio
     truthy(onlinePlayers.searchable and onlinePlayers.pageSize == 12,
         'the restored online-player table is searchable and paged')
 
-    QB.shared.all, QB.shared.get = previousSharedAll, previousSharedGet
+    Kora.shared.all, Kora.shared.get = previousSharedAll, previousSharedGet
 end)
 
 test('Reports list, detail, conversation, and management stay in the app shell', function()
     local createdAt = 1788744746000
     local repliedAt = 1788744806
-    QB.callback.trigger = function(name)
+    Kora.callback.trigger = function(name)
         if name == 'qbadmin:menuReports' then
             return { {
                 id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen',
@@ -614,7 +614,7 @@ test('Reports list, detail, conversation, and management stay in the app shell',
 end)
 
 test('kora_broadcast notifies every player, but only from the console', function()
-    QB.notify = { sendToAll = function(payload) broadcasts[#broadcasts + 1] = payload end }
+    Kora.notify = { sendToAll = function(payload) broadcasts[#broadcasts + 1] = payload end }
     local command = consoleCommands.kora_broadcast
     truthy(command and command.restricted, 'kora_broadcast should be a restricted command')
 

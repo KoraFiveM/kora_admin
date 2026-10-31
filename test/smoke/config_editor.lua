@@ -43,7 +43,7 @@ local configRead = {
     values = { enabled = false, webhook = 'https://secret.invalid' },
 }
 
-QB = {
+Kora = {
     callback = { register = function(name, handler) callbacks[name] = handler end },
     commands = { add = function(name, _, _, _, handler, options) commands[name] = { handler = handler, options = options } end },
     config = {

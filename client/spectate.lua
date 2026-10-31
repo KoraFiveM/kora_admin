@@ -15,7 +15,7 @@ end
 local function start(targetSrc)
     local targetPlayer = GetPlayerFromServerId(targetSrc)
     if targetPlayer == -1 then
-        QB.notify.send({ title = 'Admin — Error', message = 'target is not visible to your client yet', type = 'error' })
+        Kora.notify.send({ title = 'Admin — Error', message = 'target is not visible to your client yet', type = 'error' })
         return
     end
 
@@ -27,7 +27,7 @@ local function start(targetSrc)
         ped = GetPlayerPed(targetPlayer)
     end
     if not DoesEntityExist(ped) then
-        QB.notify.send({ title = 'Admin — Error', message = 'could not find target ped', type = 'error' })
+        Kora.notify.send({ title = 'Admin — Error', message = 'could not find target ped', type = 'error' })
         return
     end
 

@@ -18,7 +18,7 @@ function Admin.addCommand(name, help, args, argsRequired, handler, options)
         end
         return handler(source, parsedArgs, raw)
     end
-    QB.commands.add(name, help, args, argsRequired, run, options)
+    Kora.commands.add(name, help, args, argsRequired, run, options)
     Admin.commands[name] = {
         help = help, args = args, argsRequired = argsRequired,
         handler = run, permission = options and options.permission or 'user',

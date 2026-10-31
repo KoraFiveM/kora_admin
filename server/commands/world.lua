@@ -21,7 +21,7 @@ Admin.addCommand('announce', 'Broadcast a message to every player', { { name = '
     local message = table.concat(args, ' ')
     if message == '' then return Admin.respond(source, false, 'message required') end
 
-    QB.notify.sendToAll({ title = 'Announcement', message = message, type = 'info', duration = 8000 })
+    Kora.notify.sendToAll({ title = 'Announcement', message = message, type = 'info', duration = 8000 })
     Admin.log(source, 'announce', nil, { message = message })
     Admin.respond(source, true, 'Announcement sent')
 end, OPTS_ADMIN)
@@ -34,7 +34,7 @@ RegisterCommand('kora_broadcast', function(source, _, raw)
     local message = raw:match('^%S+%s+(.+)$')
     if not message then return end
 
-    QB.notify.sendToAll({ title = 'Server', message = message:sub(1, 200), type = 'warning', duration = 60000 })
+    Kora.notify.sendToAll({ title = 'Server', message = message:sub(1, 200), type = 'warning', duration = 60000 })
 end, true)
 
 Admin.addCommand('weather', 'Set the server weather', { { name = 'type' } }, true, function(source, args)

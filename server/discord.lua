@@ -66,7 +66,7 @@ local function freshLevel(userId)
         result:resolve({ level = level, error = err })
     end
     SetTimeout(10000, function() finish(nil, 'Discord role verification timed out') end)
-    QB.discord.getMember(guildId(), userId, function(ok, response)
+    Kora.discord.getMember(guildId(), userId, function(ok, response)
         local member = response and response.data
         if not ok or type(member) ~= 'table' or type(member.roles) ~= 'table' then
             return finish(nil, 'Could not verify your current Discord roles')
@@ -76,7 +76,7 @@ local function freshLevel(userId)
             for _, role in ipairs(Config.permissions.discordRoles[level] or {}) do
                 local resolved = role:match('^%d+$') and role or nil
                 if not resolved then
-                    local cached = QB.discord.getRole(role, guildId())
+                    local cached = Kora.discord.getRole(role, guildId())
                     resolved = cached and cached.id
                 end
                 if resolved and contains(member.roles, resolved) then return finish(canonical[level]) end
@@ -152,7 +152,7 @@ local function scheduleRestart(context, reason, confirmed)
         discord_id = context.userId, reason = reason, delay_seconds = delay,
     })
     restartPending = true
-    QB.notify.sendToAll({ title = 'Server restart', message = ('Restart in %d seconds: %s'):format(delay, reason),
+    Kora.notify.sendToAll({ title = 'Server restart', message = ('Restart in %d seconds: %s'):format(delay, reason),
         type = 'warning', duration = 10000 })
     SetTimeout(delay * 1000, function()
         CreateThread(function()
@@ -163,7 +163,7 @@ local function scheduleRestart(context, reason, confirmed)
                 or not contains(Config.discord.channels, context.channelId) then
                 restartPending = false
                 Admin.log(0, 'discord.restart.cancelled', nil, { discord_id = context.userId, reason = 'Access or configuration changed' })
-                QB.notify.sendToAll({ title = 'Server restart cancelled', message = 'Restart authorization is no longer available.', type = 'info' })
+                Kora.notify.sendToAll({ title = 'Server restart cancelled', message = 'Restart authorization is no longer available.', type = 'info' })
                 return
             end
             Admin.commandContexts[coroutine.running()] = context
@@ -176,7 +176,7 @@ local function scheduleRestart(context, reason, confirmed)
                 CreateThread(function()
                     print(('^1[qbadmin:discord]^7 txAdmin restart failed: %s'):format(tostring(message)))
                     Admin.log(0, 'discord.restart.failed', nil, { discord_id = context.userId, error = tostring(message) })
-                    QB.notify.sendToAll({ title = 'Server restart unconfirmed', message = 'txAdmin did not confirm the restart. Staff should check its control panel.', type = 'error' })
+                    Kora.notify.sendToAll({ title = 'Server restart unconfirmed', message = 'txAdmin did not confirm the restart. Staff should check its control panel.', type = 'error' })
                 end)
             end)
         end)
@@ -313,28 +313,28 @@ local function configureDiscord()
         return print('^1[qbadmin:discord]^7 Configure the application ID, server ID and public key in appshell before enabling Discord.')
     end
     -- Upsert our one command; never replace another integration's commands.
-    QB.discord.botRequest('POST', '/applications/' .. application .. '/guilds/' .. guild .. '/commands', registrationPayload(), function(ok)
+    Kora.discord.botRequest('POST', '/applications/' .. application .. '/guilds/' .. guild .. '/commands', registrationPayload(), function(ok)
         if generation ~= registrationGeneration then return end
         print(ok and '^2[qbadmin:discord]^7 /qbadmin registered.' or '^1[qbadmin:discord]^7 Could not register /qbadmin; check the bot token and guild access.')
     end)
-    QB.discord.syncRoles()
+    Kora.discord.syncRoles()
 end
 
-QB.config.onValidate(function(proposed)
+Kora.config.onValidate(function(proposed)
     local settings = proposed.discord
     if settings.enabled then
         if not settings.applicationId:match('^%d+$') or not settings.publicKey:match('^%x+$') or #settings.publicKey ~= 64
             or not (settings.guildId ~= '' and settings.guildId or guildConvar()):match('^%d+$') then
             return false, 'Set a valid Discord application ID, server ID and public key before enabling administration.'
         end
-        if not QB.discord.botEnabled() then return false, 'Set the server-only kora_lib_discord_bot_token first.' end
+        if not Kora.discord.botEnabled() then return false, 'Set the server-only kora_lib_discord_bot_token first.' end
     end
     if not proposed.permissions.roles[settings.restartRole] then return false, 'Restart tier must be a configured staff role.' end
     for _, id in ipairs(settings.channels) do
         if not id:match('^%d+$') then return false, 'Staff channels must be Discord channel IDs.' end
     end
     if proposed.permissions.mode == 'discord' then
-        if not QB.discord.botEnabled() or not (settings.guildId ~= '' and settings.guildId or guildConvar()):match('^%d+$') then
+        if not Kora.discord.botEnabled() or not (settings.guildId ~= '' and settings.guildId or guildConvar()):match('^%d+$') then
             return false, 'Configure the Discord bot and server before enabling Discord-only access.'
         end
         local owner = proposed.permissions.discordRoles[proposed.configEditor.level]
@@ -343,7 +343,7 @@ QB.config.onValidate(function(proposed)
     return true
 end)
 
-QB.config.onApply(function(_, _, path)
+Kora.config.onApply(function(_, _, path)
     if path[1] ~= 'discord' and path[1] ~= 'permissions' then return end
     SetTimeout(0, function()
         if path[1] == 'discord' and (path[2] == 'enabled' or path[2] == 'applicationId' or path[2] == 'guildId' or path[2] == 'publicKey') then

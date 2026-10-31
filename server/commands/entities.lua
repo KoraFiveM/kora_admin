@@ -13,7 +13,7 @@ local function validEntityModel(model)
 
     local hash = joaat(model)
     if hash == 0 or hash == -1 then return nil end
-    local record = QB.lookup.model(hash)
+    local record = Kora.lookup.model(hash)
     if not record then return nil end
     if record.namespace == 'vehicle' then return nil, 'use /car or /veh for vehicle models' end
     return model

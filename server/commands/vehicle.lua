@@ -12,9 +12,9 @@ local function validModel(model)
     model = model:lower()
 
     -- The shared lookup also includes streamed addon vehicles.
-    if QB.shared.get('vehicles', model) then return model end
+    if Kora.shared.get('vehicles', model) then return model end
     local hash = joaat(model)
-    if hash == 0 or hash == -1 or not QB.lookup.vehicle(hash) then return nil end
+    if hash == 0 or hash == -1 or not Kora.lookup.vehicle(hash) then return nil end
     return model
 end
 

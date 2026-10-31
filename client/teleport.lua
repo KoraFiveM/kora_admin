@@ -146,7 +146,7 @@ end)
 RegisterNetEvent('qbadmin:client:tpm', function()
     local coords, err = getWaypointCoords()
     if not coords then
-        QB.notify.send({ title = 'Admin — Error', message = err, type = 'error' })
+        Kora.notify.send({ title = 'Admin — Error', message = err, type = 'error' })
         return
     end
     Admin.teleportTo(coords, true)
@@ -154,7 +154,7 @@ end)
 
 RegisterNetEvent('qbadmin:client:tpback', function()
     if not lastPosition then
-        QB.notify.send({ title = 'Admin — Error', message = 'no previous position recorded', type = 'error' })
+        Kora.notify.send({ title = 'Admin — Error', message = 'no previous position recorded', type = 'error' })
         return
     end
     Admin.teleportTo({ x = lastPosition.x, y = lastPosition.y, z = lastPosition.z })
