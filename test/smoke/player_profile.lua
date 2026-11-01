@@ -98,5 +98,26 @@ test('a denied admin-menu open explains the permission requirement and roles', f
     equal(kind, 'error', 'the access reason is an error notification')
 end)
 
+test('the role catalogue lists every grade in level order for array and string-keyed jobs', function()
+    exports.kora_core.allShared = function(_, kind)
+        if kind == 'gangs' then return { { name = 'none', label = 'No Gang', grades = { { name = 'None' } } } } end
+        return {
+            { name = 'mechanic', label = 'Mechanic', grades = { { name = 'Apprentice' }, { name = 'Mechanic' }, { name = 'Boss' } } },
+            { name = 'mechanic2', label = 'LS Customs', grades = { ['1'] = { name = 'Novice' }, ['0'] = { name = 'Recruit' } } },
+        }
+    end
+    adminViewer = false
+    local roles = callbacks['qbadmin:menuRoles'](7)
+    equal(roles, nil, 'the role catalogue is admin-only')
+    adminViewer = true
+    roles = callbacks['qbadmin:menuRoles'](7)
+    equal(#roles.jobs, 2, 'every job is returned')
+    equal(#roles.jobs[1].grades, 3, 'array grades are all listed')
+    equal(roles.jobs[2].grades[1].name, 'Recruit', 'string-keyed grades are sorted by level')
+    equal(#roles.jobs[2].grades, 2, 'string-keyed grades are not dropped')
+    equal(roles.gangs[1].grades[1].name, 'None', 'gangs are included')
+    adminViewer = false
+end)
+
 print(('qbadmin player profile: %d passed, %d failed'):format(passed, failed))
 if failed > 0 then os.exit(1) end

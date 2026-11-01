@@ -427,6 +427,8 @@ test('List Players selects a player before running their admin actions', functio
         { name = 'ambulance', label = 'EMS', grades = { { name = 'Recruit' } } },
         -- Legacy string-keyed grades must still list, in level order.
         { name = 'mechanic2', label = 'LS Customs', grades = { ['1'] = { name = 'Novice' }, ['0'] = { name = 'Recruit' } } },
+        -- Placeholder duplicate of the same label is hidden (Config.roles.hideDuplicateLabels).
+        { name = 'mechanic3', label = 'LS Customs', grades = { ['0'] = { name = 'Recruit' } } },
         -- A repeated job name is listed once.
         { name = 'ambulance', label = 'EMS', grades = { { name = 'Recruit' } } },
     }
@@ -500,6 +502,17 @@ test('List Players selects a player before running their admin actions', functio
     equal(#setJob.fields[1].options, 3, 'jobs should be listed once per name')
     equal(setJob.fields[2].optionsByValue.mechanic2[1].label, '1 - Recruit', 'string-keyed grades should be sorted by level')
     equal(#setJob.fields[2].optionsByValue.mechanic2, 2, 'string-keyed grades should not be dropped')
+    equal(setJob.fields[2].optionsByValue.mechanic3, nil, 'a duplicate-label job should be hidden from Set Job')
+
+    Config.roles.hideDuplicateLabels = false
+    Config.roles.hiddenJobs = { 'ambulance' }
+    netEvents['qbcore:registry:snapshotAll']({})
+    local reselected = menuPayload.onAction('player:select', { itemId = '7' })
+    local reSetJob = findAction(menuPayload, 'player:target:setjob')
+    equal(#reSetJob.fields[1].options, 3, 'hiddenJobs should drop named jobs while duplicate hiding is off')
+    equal(reSetJob.fields[2].optionsByValue.ambulance, nil, 'a hidden job should have no grade list')
+    Config.roles.hideDuplicateLabels = true
+    Config.roles.hiddenJobs = {}
 
     local duty = findAction(menuPayload, 'player:target:setduty')
     equal(duty.label, 'Take Off Duty', 'selected-player duty action should name its result')

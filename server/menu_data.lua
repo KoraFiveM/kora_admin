@@ -9,6 +9,32 @@ local function allowed(src, level)
     return true
 end
 
+-- Job and gang records for the Set Job / Set Gang forms, read from kora_core's
+-- authoritative registry and reduced to name, label and an ordered grade list so
+-- the form never depends on how a client mirror was seeded. Hiding duplicates is
+-- left to the client (Config.roles).
+local function roleRecords(kind)
+    local out = {}
+    for _, role in ipairs(exports.kora_core:allShared(kind) or {}) do
+        local entries = {}
+        for key, grade in pairs(type(role.grades) == 'table' and role.grades or {}) do
+            local level = tonumber(key)
+            if level and type(grade) == 'table' then entries[#entries + 1] = { level = level, name = grade.name } end
+        end
+        table.sort(entries, function(a, b) return a.level < b.level end)
+        local grades = {}
+        for index, entry in ipairs(entries) do grades[index] = { name = entry.name or tostring(index) } end
+        out[#out + 1] = { name = role.name, label = role.label or role.name, grades = grades }
+    end
+    return out
+end
+
+Kora.callback.register('qbadmin:menuRoles', function(src)
+    local ok, err = allowed(src, 'admin')
+    if not ok then return nil, err end
+    return { jobs = roleRecords('jobs'), gangs = roleRecords('gangs') }
+end)
+
 Kora.callback.register('qbadmin:menuPlayers', function(src)
     local ok, err = allowed(src, 'support')
     if not ok then return nil, err end

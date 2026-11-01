@@ -135,17 +135,36 @@ local function sortedGrades(grades)
     return entries
 end
 
+---Role records (jobs/gangs) the server last sent for the Set Job / Set Gang forms.
+---The server reads its authoritative registry, so grades never depend on how
+---this client mirror was seeded; the mirror is only the fallback.
+local roleCatalogue = {}
+
+local function roleHidden(kind, role, hiddenNames, seenLabels)
+    if kind ~= 'jobs' then return false end
+    if hiddenNames[role.name] then return true end
+    local label = tostring(role.label or role.name):lower()
+    if Config.roles.hideDuplicateLabels and seenLabels[label] then return true end
+    seenLabels[label] = true
+    return false
+end
+
 ---Build a role selector and its dependent grade selector from one registry
----snapshot. Reading each record directly from `all()` avoids a second lookup
+---snapshot. Reading each record directly from the list avoids a second lookup
 ---returning nil while a client mirror is being re-seeded. Records are
----deduplicated by name (first wins).
+---deduplicated by name (first wins); Config.roles hides placeholder jobs.
 ---@param kind 'jobs'|'gangs'
 ---@param label string
 ---@return table[]
 local function roleFields(kind, label)
-    local roles, gradesByRole, seen = {}, {}, {}
-    for _, role in ipairs(Kora.shared.all(kind)) do
-        if not seen[role.name] then
+    local records = roleCatalogue[kind]
+    if type(records) ~= 'table' or #records == 0 then records = Kora.shared.all(kind) end
+    local hiddenNames = {}
+    for _, name in ipairs(Config.roles.hiddenJobs) do hiddenNames[name] = true end
+
+    local roles, gradesByRole, seen, seenLabels = {}, {}, {}, {}
+    for _, role in ipairs(records) do
+        if not seen[role.name] and not roleHidden(kind, role, hiddenNames, seenLabels) then
             seen[role.name] = true
             roles[#roles + 1] = { value = role.name, label = role.label }
             local grades = {}
@@ -271,6 +290,7 @@ local function refreshRegistryFields(navigation)
 end
 
 local function updateActiveRegistryFields()
+    roleCatalogue = {}
     if not activeNavigation then return end
     refreshRegistryFields(activeNavigation)
     if Kora.nui.updateApp then Kora.nui.updateApp('qbadmin:menu', { navigation = activeNavigation }) end
@@ -1008,6 +1028,9 @@ local function openRoot()
             Kora.notify.send({ type = 'error', message = profileErr or 'That player is no longer online' })
             return {}
         end
+
+        local roles = Kora.callback.trigger('qbadmin:menuRoles')
+        if type(roles) == 'table' then roleCatalogue = roles end
 
         local view = findView('players')
         if not view then return {} end

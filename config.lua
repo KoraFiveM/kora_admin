@@ -174,6 +174,15 @@ Config.reports = {
     maxMessageLength = 1000, -- applies to initial reports, replies, and staff resolution notes
 }
 
+Config.roles = {
+    -- Job names left out of the admin Set Job list. /setjob still accepts them and
+    -- players who already hold them keep them, e.g. { 'mechanic3' }.
+    hiddenJobs = {},
+    -- List one job per label, first in registry order wins. Hides placeholder
+    -- duplicates such as the upstream qb-core mechanic2/mechanic3 "LS Customs".
+    hideDuplicateLabels = true,
+}
+
 Config.keybind = {
     -- Attached directly to the server-owned /admin registration. Binding a
     -- key grants nothing: kora_lib dispatches it through /admin's normal support gate.

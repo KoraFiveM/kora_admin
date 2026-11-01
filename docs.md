@@ -364,3 +364,16 @@ live handlers.
 identifier formatting, because no `removePermission` counterpart exists in
 `kora_core/modules/permissions/server.lua`. Worth adding there directly so other
 resources don't have to repeat this.
+
+## Set Job / Set Gang lists
+
+The Job and Grade pickers are filled from the kora_core registry on the server
+(`qbadmin:menuRoles`, admin level), falling back to the client mirror only if
+that call fails. `Config.roles` trims the job list without changing any job:
+
+- `hiddenJobs` (default `{}`): job names to leave out, e.g. `{ "mechanic3" }`.
+- `hideDuplicateLabels` (default `true`): list one job per label, first in
+  registry order wins. The upstream qb-core `mechanic2`/`mechanic3` share the
+  label "LS Customs", so only one is offered.
+
+Hidden jobs still work with `/setjob`, and players who hold them keep them.
