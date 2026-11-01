@@ -229,7 +229,7 @@ accept an `[id]` argument that defaults to the caller, or the literal word
 /kick [id=me] [reason]
 /freeze <id> <true|false>
 /kill <id>
-/heal <id>
+/heal <id>                               -- also fills hunger/thirst (Config.heal.restoreNeeds)
 /revive <id>
 /god [id=me] [true|false]                 -- targeting another player needs admin
 /devmode [id=me] [true|false]             -- targeting another player needs admin

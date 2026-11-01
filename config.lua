@@ -43,6 +43,12 @@ Config.permissions = {
     },
 }
 
+Config.heal = {
+    -- /heal (and the admin-menu Heal action) also fill hunger and thirst to 100.
+    -- /revive never changes needs. Set false for health-only heals.
+    restoreNeeds = true,
+}
+
 Config.ban = {
     durationUnits = { m = 60, h = 3600, d = 86400, w = 604800 }, -- seconds per duration-string unit ('30m', '2d', ...)
     durationWords = { perm = true, permanent = true },           -- words treated as a permanent ban (expire = NULL)

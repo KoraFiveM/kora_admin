@@ -9,7 +9,7 @@ local function equal(a, e, m) if a ~= e then error(('%s (expected %s, got %s)'):
 dofile('config.lua')
 
 local commands, responses, events, order = {}, {}, {}, {}
-local state, fullRevived, throwing = 'started', {}, false
+local state, fullRevived, throwing, meta = 'started', {}, false, {}
 
 Kora = { commands = { add = function(name, _, _, _, handler) commands[name] = handler end } }
 function AddEventHandler() end
@@ -17,7 +17,7 @@ function RegisterNetEvent() end
 function GetResourceState() return state end
 function TriggerClientEvent(name, target) events[#events + 1] = name order[#order + 1] = 'client' end
 exports = {
-    kora_core = { setMetaData = function() order[#order + 1] = 'meta' end },
+    kora_core = { setMetaData = function(_, _, key, value) order[#order + 1] = 'meta' meta[#meta + 1] = key .. '=' .. tostring(value) end },
     kora_ambulance = { fullRevive = function(_, src)
         order[#order + 1] = 'full'
         if throwing then error('boom') end
@@ -38,7 +38,7 @@ dofile('server/command_registry.lua')
 dofile('server/commands/moderation.lua')
 dofile('server/commands/self.lua')
 
-local function reset() responses, events, order, fullRevived, state, throwing = {}, {}, {}, {}, 'started', false end
+local function reset() responses, events, order, fullRevived, state, throwing, meta = {}, {}, {}, {}, 'started', false, {} end
 
 test('/revive fully revives the target in kora_ambulance after the normal revive', function()
     reset()
@@ -69,6 +69,29 @@ test('a failing fullRevive export does not break the command', function()
     commands.revive(7, { '12' })
     equal(events[1], 'qbadmin:client:revive', 'client revive already sent')
     equal(responses[#responses].ok, true, 'still reports success')
+end)
+
+test('/heal fills hunger and thirst when Config.heal.restoreNeeds is on', function()
+    reset()
+    commands.heal(7, { '12' })
+    equal(events[1], 'qbadmin:client:heal', 'client heal sent')
+    equal(table.concat(meta, ','), 'hunger=100,thirst=100', 'needs restored')
+end)
+
+test('/heal leaves needs alone when restoreNeeds is off', function()
+    reset(); Config.heal.restoreNeeds = false
+    commands.heal(7, { '12' })
+    Config.heal.restoreNeeds = true
+    equal(#meta, 0, 'no needs written')
+    equal(events[1], 'qbadmin:client:heal', 'still heals')
+end)
+
+test('/revive and /selfrevive never write hunger or thirst', function()
+    reset()
+    commands.revive(7, { '12' }); commands.selfrevive(7, {})
+    for _, entry in ipairs(meta) do
+        if entry:find('hunger') or entry:find('thirst') then error('needs touched: ' .. entry) end
+    end
 end)
 
 print(('-- %d passed, %d failed --'):format(passed, failed))

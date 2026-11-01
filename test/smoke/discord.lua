@@ -78,6 +78,7 @@ exports = setmetatable({ kora_core = {
     primary = function() return 'license:target' end,
     getIdentifiers = function() return { license = 'license:target', discord = 'discord:target', ip = '127.0.0.1' } end,
     findByIdentifier = function() return {} end,
+    setMetaData = function() return true end,
 }, kora_admin = {
     discordRestartReady = function() return true end,
     discordRestart = function(_, callback) restarted = restarted + 1; callback(true, 'accepted') end,

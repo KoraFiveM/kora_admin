@@ -156,6 +156,11 @@ Admin.addCommand('heal', 'Fully heal a player', { { name = 'id' } }, false, func
     if not targetSrc then return Admin.respond(source, false, err) end
 
     TriggerClientEvent('qbadmin:client:heal', targetSrc)
+    if Config.heal.restoreNeeds then
+        -- setMetaData persists and syncs the player state kora_hud polls, so the HUD updates at once.
+        exports.kora_core:setMetaData(targetSrc, 'hunger', 100)
+        exports.kora_core:setMetaData(targetSrc, 'thirst', 100)
+    end
     Admin.log(source, 'heal', data)
     Admin.respond(source, true, ('Healed %s'):format(data.name))
 end, OPTS_MOD)

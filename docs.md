@@ -89,6 +89,13 @@ Use `/granttempaccess <id> <role> <minutes>` and
 pickers automatically. Configure the `gates` table to assign existing feature
 bands to an added role.
 
+## Heal restores needs
+
+`/heal` (and the admin-menu Heal action, which runs the same command) also sets
+the target's hunger and thirst to 100 through `kora_core`'s `setMetaData`, so the
+HUD updates immediately. `/revive` and `/selfrevive` never change hunger or
+thirst. Set `Config.heal.restoreNeeds = false` for health-only heals.
+
 ## The `me` convention
 
 Every command that takes a player-id argument treats a missing argument, or
