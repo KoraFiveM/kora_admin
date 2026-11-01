@@ -30,7 +30,7 @@ window.addEventListener('message', async ({ data }) => {
             signal: controller.signal,
         });
         await reportResult({ requestId: data.requestId, ok: response.ok, status: response.status });
-    } catch (error) {
+    } catch {
         await reportResult({ requestId: data.requestId, ok: false, status: 0 });
     } finally {
         window.clearTimeout(timeout);

@@ -83,29 +83,20 @@ function Admin.teleportTo(coords, groundSnap)
     while not IsScreenFadedOut() do Wait(0) end
 
     freezeForTeleport(ped, true)
-    -- Always launches at a fixed safe altitude first, exactly like upstream
-    -- -- not `coords.z + some offset`, since `coords.z` is exactly what
-    -- can't be trusted yet for a ground-snapped destination (nothing is
-    -- streamed in around it until collision has actually been requested
-    -- there), and a literal admin-supplied z gets the same safety net too.
+    -- Always launch at a fixed safe altitude first: coords.z can't be trusted
+    -- for a ground-snapped destination until collision has streamed in.
     movePedAndWaitForCollision(coords.x, coords.y, Config.teleport.waypointLaunchHeight)
 
     local z = coords.z
     if groundSnap then
-        -- Retried up to groundZAttempts times, groundZRetryDelay ms apart
-        -- (matches upstream's own 5 attempts / 500ms), in case collision
-        -- genuinely hasn't finished streaming in yet even after the wait
-        -- above -- only delaying between attempts, not after a successful
-        -- one.
+        -- Retry in case collision hasn't finished streaming in; delay only between failed attempts.
         local found
         for attempt = 1, Config.teleport.groundZAttempts do
             found = findGroundZ(coords.x, coords.y)
             if found then break end
             if attempt < Config.teleport.groundZAttempts then Wait(Config.teleport.groundZRetryDelay) end
         end
-        -- If ground was never found (open water, world edge, etc.), stay at
-        -- the safe high-altitude landing rather than guess -- ragdolling to
-        -- a fall is preferable to spawning under the map with no way out.
+        -- No ground found (open water, world edge): stay at the safe high-altitude landing.
         if found then z = found end
     end
 
@@ -117,10 +108,6 @@ function Admin.teleportTo(coords, groundSnap)
     if coords.heading ~= nil then SetEntityHeading(vehicle > 0 and vehicle or ped, coords.heading) end
     freezeForTeleport(ped, false)
 
-    -- Faces the direction the admin was already facing rather than whatever
-    -- the last camera angle at the OLD position happened to be -- same
-    -- upstream does with SetGameplayCamRelativeHeading(0) right after
-    -- landing.
     SetGameplayCamRelativeHeading(0.0)
 
     DoScreenFadeIn(Config.teleport.fadeTime)

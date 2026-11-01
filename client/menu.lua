@@ -438,7 +438,6 @@ end
 local function medalItems()
     local items = {}
     for index, event in ipairs(Config.medal.events or {}) do
-        local configuredEvent = event
         items[#items + 1] = {
             id = 'clip_' .. tostring(event.id or index),
             label = ('Save %s (%ss)'):format(event.name or 'Medal Clip', tostring(event.duration or '?')),
@@ -448,7 +447,7 @@ local function medalItems()
             disabled = function()
                 return type(Admin.isMedalConfigured) ~= 'function' or not Admin.isMedalConfigured()
             end,
-            run = appAction(function() Admin.invokeMedalEvent(configuredEvent) end),
+            run = appAction(function() Admin.invokeMedalEvent(event) end),
         }
     end
     return items
@@ -808,16 +807,8 @@ local function openRoot()
         return { update = { navigation = navigation }, navigate = { viewId = 'server', tabId = 'audit' } }
     end
 
-    local function reportView()
-        return findView('reports')
-    end
-
-    local function playerView()
-        return findView('players')
-    end
-
     local function showPlayersInShell()
-        local view = playerView()
+        local view = findView('players')
         if not view then return {} end
         local players, err = Kora.callback.trigger('qbadmin:menuPlayers')
         if not players then
@@ -845,7 +836,7 @@ local function openRoot()
     end
 
     local function showReportsInShell(filters)
-        local view = reportView()
+        local view = findView('reports')
         if not view then return {} end
         currentReportFilters = filters or currentReportFilters
         local rows, err = Kora.callback.trigger('qbadmin:menuReports', currentReportFilters)
@@ -888,7 +879,7 @@ local function openRoot()
             Kora.notify.send({ type = 'error', message = err or 'Could not load report' })
             return {}
         end
-        local view = reportView()
+        local view = findView('reports')
         if not view then return {} end
         selectedReportActions = {}
 
@@ -1018,7 +1009,7 @@ local function openRoot()
             return {}
         end
 
-        local view = playerView()
+        local view = findView('players')
         if not view then return {} end
 
         selectedPlayerActions = {}
@@ -1286,7 +1277,7 @@ local function openRoot()
             end
             if categoryId == 'player' and itemId == 'select' and context and context.itemId then
                 local selected
-                local tab = findTab(playerView(), 'player')
+                local tab = findTab(findView('players'), 'player')
                 for _, block in ipairs(tab and tab.content.blocks or {}) do
                     if block.id == 'online-players' then
                         for _, row in ipairs(block.rows) do
