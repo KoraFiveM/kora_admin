@@ -135,15 +135,31 @@ RegisterNetEvent('qbadmin:client:enterVehicle', function(netId, seat)
     end)
 end)
 
+-- Copies a coordinate string, always prints it to F8, and never raises: a failed
+-- clipboard copy (no NUI focus, old kora_lib that rejects) only changes the notification.
+local function copyCoords(text)
+    print(text)
+    local ok, result = pcall(Kora.nui.copyToClipboard, text)
+    if ok and type(result) == 'table' and type(result.next) == 'function' then
+        ok, result = pcall(Citizen.Await, result)
+    end
+    local copied = ok and result == true
+    Kora.notify.send({
+        type = copied and 'success' or 'error',
+        message = copied and 'Copied' or 'Copy failed - coordinates printed to F8',
+    })
+    return copied
+end
+
 RegisterNetEvent('qbadmin:client:coords', function()
     local coords = GetEntityCoords(PlayerPedId())
-    Kora.nui.copyToClipboard(('vector3(%.2f, %.2f, %.2f)'):format(coords.x, coords.y, coords.z))
+    copyCoords(('vector3(%.2f, %.2f, %.2f)'):format(coords.x, coords.y, coords.z))
 end)
 
 RegisterNetEvent('qbadmin:client:vec4', function()
     local coords = GetEntityCoords(PlayerPedId())
     local heading = GetEntityHeading(PlayerPedId())
-    Kora.nui.copyToClipboard(('vector4(%.2f, %.2f, %.2f, %.2f)'):format(coords.x, coords.y, coords.z, heading))
+    copyCoords(('vector4(%.2f, %.2f, %.2f, %.2f)'):format(coords.x, coords.y, coords.z, heading))
 end)
 
 
