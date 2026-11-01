@@ -14,6 +14,7 @@ Config.reports.cooldownSeconds = 30
 
 local reports, messages, nextReport, nextMessage = {}, {}, 1, 1
 local notices, logs = {}, {}
+local lastQuery
 local players = {
     [7] = { citizenid = 'STAFF', name = 'Support' },
     [9] = { citizenid = 'CITIZEN', name = 'Citizen' },
@@ -49,6 +50,7 @@ Kora = {
         end,
         single = function(_, params) return copy(reports[tonumber(params[1])]) end,
         query = function(sql, params)
+            lastQuery = { sql = sql, params = params }
             if sql:find('`admin_report_messages`', 1, true) then
                 local out = {}
                 for _, row in ipairs(messages) do if row.report_id == tonumber(params[1]) then out[#out + 1] = copy(row) end end
@@ -128,6 +130,36 @@ test('report ownership protects player replies while staff can manage reports', 
     equal(reports[1].status, 'resolved', 'resolved status')
     equal(reports[1].resolution, 'Fixed after restart', 'resolution stored')
     truthy(#logs >= 3, 'staff actions should be audited')
+end)
+
+test('report lists are one readable line each, with markup neutralised for chat', function()
+    equal(Admin.reportSubject('  line one\n\nline <b>two</b>\t ', 60), 'line one line <b>two</b>', 'whitespace collapsed')
+    equal(Admin.reportSubject(('x'):rep(100), 10), 'xxxxxxxxx…', 'long subjects are cut')
+    equal(Admin.formatReportAge(45), '45s', 'seconds')
+    equal(Admin.formatReportAge(7200), '2h', 'hours')
+    equal(Admin.formatReportAge(3 * 86400), '3d', 'days')
+    equal(Admin.formatReportAge(nil), '-', 'unknown age')
+
+    local text = Admin.formatReportList({
+        { id = 4, status = 'open', type = 'bug', reporter_name = 'mas maul', message = 'm' },
+        { id = 1, status = 'dismissed', type = 'player', reporter_name = 'Luffy', claimed_by_name = 'Staff',
+            message = "<meta http-equiv='refresh' content='5; url=https://example.test/'>\nsecond line" },
+    })
+    local lines = {}
+    for line in text:gmatch('[^\n]+') do lines[#lines + 1] = line end
+    equal(#lines, 2, 'one line per report')
+    equal(lines[1], '#4 [open] Bug · mas maul — m (-)', 'id, status, category, reporter, subject, age')
+    truthy(not text:find('<', 1, true) and not text:find('>', 1, true), 'no raw angle brackets reach chat')
+end)
+
+test('queryReports can limit a listing to one reporter licence and adds age/subject/category', function()
+    Admin.queryReports({ status = 'all', license = 'license:9' })
+    truthy(lastQuery.sql:find('`reporter_license` = ?', 1, true), 'licence filter in SQL')
+    local found
+    for _, param in ipairs(lastQuery.params) do if param == 'license:9' then found = true end end
+    truthy(found, 'licence passed as a bound parameter')
+    local rows = Admin.queryReports({ status = 'all' })
+    truthy(rows[1].category and rows[1].subject and rows[1].age, 'rows are decorated for list views')
 end)
 
 print(('qbadmin report store: %d passed, %d failed'):format(passed, failed))

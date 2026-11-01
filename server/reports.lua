@@ -21,6 +21,57 @@ local function typeDefinition(typeId)
     end
 end
 
+local function categoryLabel(typeId)
+    local definition = typeDefinition(typeId)
+    return definition and definition.label or tostring(typeId or '-')
+end
+
+---One plain line of report text: control characters and line breaks collapse to
+---single spaces and the result is cut to `max` characters. Markup is left as-is
+---(the app shell renders text, never HTML); chat output goes through chatSafe.
+---@param message any
+---@param max integer
+---@return string
+function Admin.reportSubject(message, max)
+    local text = tostring(message or ''):gsub('%c+', ' '):gsub('%s+', ' '):gsub('^ ', ''):gsub(' $', '')
+    if #text > max then text = text:sub(1, max - 1):gsub('%s+$', '') .. '…' end
+    return text
+end
+
+---@param seconds number|nil
+---@return string
+function Admin.formatReportAge(seconds)
+    seconds = tonumber(seconds)
+    if not seconds then return '-' end
+    seconds = math.max(0, math.floor(seconds))
+    if seconds < 60 then return seconds .. 's' end
+    if seconds < 3600 then return (seconds // 60) .. 'm' end
+    if seconds < 86400 then return (seconds // 3600) .. 'h' end
+    return (seconds // 86400) .. 'd'
+end
+
+---Chat renders what it is given, so angle brackets in player text are swapped
+---for look-alike characters before a report is echoed there.
+---@param text string
+---@return string
+local function chatSafe(text)
+    return (text:gsub('<', '‹'):gsub('>', '›'))
+end
+
+---One readable chat line per report: id, status, category, reporter, subject, age.
+---@param rows table[]
+---@return string
+function Admin.formatReportList(rows)
+    local lines = {}
+    for _, row in ipairs(rows) do
+        lines[#lines + 1] = chatSafe(('#%s [%s] %s · %s%s — %s (%s)'):format(
+            row.id, row.status, row.category or categoryLabel(row.type), Admin.reportSubject(row.reporter_name, 24),
+            row.claimed_by_name and (' → ' .. Admin.reportSubject(row.claimed_by_name, 24)) or '',
+            row.subject or Admin.reportSubject(row.message, 60), row.age or '-'))
+    end
+    return table.concat(lines, '\n')
+end
+
 local function reportTarget(row)
     return {
         citizenid = row.reporter_citizenid,
@@ -104,7 +155,10 @@ function Admin.getReport(id)
     id = Admin.finiteNumber(id, 1, nil, true)
     if not id then return nil end
     local row = Kora.sql.single('SELECT * FROM `admin_reports` WHERE `id` = ? LIMIT 1', { id })
-    if row then row.reporter_source = Admin.reporterSource(row) end
+    if row then
+        row.reporter_source = Admin.reporterSource(row)
+        row.category = categoryLabel(row.type)
+    end
     return row
 end
 
@@ -139,13 +193,26 @@ function Admin.queryReports(filters)
         params[#params + 1] = '%' .. filters.reporter .. '%'
     end
 
+    -- Exact reporter licence: how /reports limits non-staff to their own reports.
+    if filters.license then
+        where[#where + 1] = '`reporter_license` = ?'
+        params[#params + 1] = filters.license
+    end
+
     local page = math.max(1, math.floor(tonumber(filters.page) or 1))
-    local sql = 'SELECT `id`,`type`,`status`,`reporter_name`,`claimed_by_name`,`message`,`created_at`,`updated_at` FROM `admin_reports`'
+    local sql = 'SELECT `id`,`type`,`status`,`reporter_name`,`claimed_by_name`,`message`,`created_at`,`updated_at`,UNIX_TIMESTAMP(`created_at`) AS `created_epoch` FROM `admin_reports`'
     if #where > 0 then sql = sql .. ' WHERE ' .. table.concat(where, ' AND ') end
     sql = sql .. ' ORDER BY FIELD(`status`,\'open\',\'claimed\',\'resolved\',\'dismissed\'), `updated_at` DESC LIMIT ? OFFSET ?'
     params[#params + 1] = Config.reports.pageSize
     params[#params + 1] = (page - 1) * Config.reports.pageSize
-    return Kora.sql.query(sql, params) or {}
+    local rows = Kora.sql.query(sql, params) or {}
+    local now = os.time()
+    for _, row in ipairs(rows) do
+        row.category = categoryLabel(row.type)
+        row.subject = Admin.reportSubject(row.message, 60)
+        row.age = Admin.formatReportAge(tonumber(row.created_epoch) and now - tonumber(row.created_epoch))
+    end
+    return rows
 end
 
 local function canRead(src, row)

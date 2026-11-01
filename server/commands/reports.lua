@@ -46,21 +46,34 @@ Admin.addCommand('reportreply', 'Reply to your report (staff may reply to any re
     Admin.respond(source, ok, ok and ('Reply added to report #%s'):format(args[1]) or err)
 end, OPTS_USER)
 
-Admin.addCommand('reports', 'List player reports', {
-    { name = 'status', help = 'all, open, claimed, resolved, or dismissed' },
-    { name = 'type', help = 'all or a report category' },
-    { name = 'page' },
-}, false, function(source, args)
-    local rows = Admin.queryReports({ status = args[1] or 'open', type = args[2], page = args[3] })
-    if #rows == 0 then return Admin.chat(source, 'No matching reports.') end
-    local lines = {}
-    for _, row in ipairs(rows) do
-        lines[#lines + 1] = ('#%s [%s/%s] %s%s — %s'):format(
-            row.id, row.status, row.type, row.reporter_name,
-            row.claimed_by_name and (' · ' .. row.claimed_by_name) or '', row.message)
-    end
-    Admin.chat(source, table.concat(lines, '\n'))
-end, OPTS_STAFF)
+-- Staff get the Reports screen (or a tidy chat list with Config.reports.command.ui
+-- off); everyone else sees only their own reports. Staff-only data and actions
+-- stay behind the existing Config.reports.staffLevel callbacks and commands.
+if Config.reports.command.enabled then
+    Admin.addCommand('reports', 'List player reports (your own unless you are staff)', {
+        { name = 'status', help = 'all, open, claimed, resolved, or dismissed' },
+        { name = 'type', help = 'all or a report category' },
+        { name = 'page' },
+    }, false, function(source, args)
+        local filters = { status = args[1], type = args[2], page = args[3] }
+        local staff = source == 0 or Admin.checkLevel(source, Config.reports.staffLevel)
+        if not staff then
+            filters.license = exports.kora_core:primary(source)
+            if not filters.license then return Admin.respond(source, false, 'you are not logged in') end
+            filters.status = filters.status or 'all'
+        else
+            filters.status = filters.status or 'open'
+            if Config.reports.command.ui and source ~= 0 and not Admin.commandContext(source) then
+                return TriggerClientEvent('qbadmin:client:openReports', source, Admin.getLevel(source), filters)
+            end
+        end
+
+        local rows = Admin.queryReports(filters)
+        if #rows == 0 then return Admin.chat(source, staff and 'No matching reports.' or 'You have no matching reports.') end
+        local text = Admin.formatReportList(rows)
+        Admin.chat(source, staff and text or (text .. '\nUse /reportstatus <id> to read a report.'))
+    end, OPTS_USER)
+end
 
 Admin.addCommand('reportclaim', 'Claim a player report', { { name = 'id' } }, true, function(source, args)
     local ok, err = Admin.claimReport(source, args[1])

@@ -25,20 +25,24 @@ dofile('config.lua')
 
 local commands, responses, events, logs = {}, {}, {}, {}
 local created, reply
+local isStaff, chats, queries = true, {}, {}
 Kora = {
     commands = { add = function(name, _, _, _, handler, options)
         commands[name] = { handler = handler, options = options }
     end },
 }
 Admin = {
-    checkLevel = function() return true end,
+    checkLevel = function() return isStaff end,
+    commandContext = function() return nil end,
+    getLevel = function() return 'support' end,
+    formatReportList = function(rows) return 'LIST:' .. #rows end,
     createReport = function(source, type_, message)
         created = { source = source, type = type_, message = message }
         return { id = 42 }
     end,
     getReport = function() return nil end,
     getReportMessages = function() return {} end,
-    queryReports = function() return {} end,
+    queryReports = function(filters) queries[#queries + 1] = filters return { { id = 1 } } end,
     replyToReport = function(source, id, message)
         reply = { source = source, id = id, message = message }
         return true
@@ -48,7 +52,7 @@ Admin = {
     respond = function(source, ok, message)
         responses[#responses + 1] = { source = source, ok = ok, message = message }
     end,
-    chat = function() end,
+    chat = function(_, message) chats[#chats + 1] = message end,
     resolveTarget = function(_, id)
         return tonumber(id), { citizenid = 'CID', license = 'license:test', name = 'Target' }
     end,
@@ -114,6 +118,33 @@ test('remote appearance commands call qbclothing with the selected service', fun
     commands.tattoomenu.handler(7, { '12' })
     equal(events[#events].service, 'tattoo', 'tattoo service')
     equal(commands.tattoomenu.options.permission, 'admin', 'remote appearance permission')
+end)
+
+test('/reports opens the Reports screen for staff and a chat list when ui is off', function()
+    equal(commands.reports.options.permission, 'user', '/reports is reachable by players')
+    isStaff, events, chats, queries = true, {}, {}, {}
+    commands.reports.handler(7, { 'claimed' })
+    equal(events[1].name, 'qbadmin:client:openReports', 'staff get the dedicated screen')
+    equal(events[1].args[2].status, 'claimed', 'status filter forwarded')
+    equal(#queries, 0, 'no chat dump when the screen opens')
+
+    commands.reports.handler(7, {})
+    equal(events[2].args[2].status, 'open', 'staff default to open reports')
+
+    Config.reports.command.ui = false
+    commands.reports.handler(7, {})
+    Config.reports.command.ui = true
+    equal(#events, 2, 'ui = false opens no screen')
+    equal(chats[1], 'LIST:1', 'chat list used instead')
+end)
+
+test('/reports shows non-staff players only their own reports', function()
+    isStaff, events, chats, queries = false, {}, {}, {}
+    commands.reports.handler(9, { 'open' })
+    equal(#events, 0, 'no staff screen for players')
+    equal(queries[1].license, 'license:test', 'query pinned to the caller licence')
+    truthy(chats[1]:find('/reportstatus', 1, true), 'points to /reportstatus')
+    isStaff = true
 end)
 
 print(('qbadmin reports/player tools: %d passed, %d failed'):format(passed, failed))

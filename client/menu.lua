@@ -492,8 +492,11 @@ local SECTIONS = {
         title = 'Player Reports',
         description = 'Review open reports, search the full queue, and manage a report without leaving this workspace.',
         items = {
-            { id = 'open', label = 'View Open Reports', level = Config.reports.staffLevel, run = appAction(function() end) },
-            { id = 'all', label = 'View All Reports', level = Config.reports.staffLevel, run = appAction(function() end) },
+            { id = 'open', label = 'Open', level = Config.reports.staffLevel, run = appAction(function() end) },
+            { id = 'claimed', label = 'Claimed', level = Config.reports.staffLevel, run = appAction(function() end) },
+            { id = 'resolved', label = 'Resolved', level = Config.reports.staffLevel, run = appAction(function() end) },
+            { id = 'dismissed', label = 'Dismissed', level = Config.reports.staffLevel, run = appAction(function() end) },
+            { id = 'all', label = 'All', level = Config.reports.staffLevel, run = appAction(function() end) },
             { id = 'filter', label = 'Filter Reports', level = Config.reports.staffLevel, run = filterReports },
         },
     },
@@ -675,6 +678,8 @@ local PAGE_LAYOUT = {
     { id = 'development', label = 'Development', icon = 'hammer', description = 'Builders and local captures', sections = { 'developer', 'medal' } },
 }
 
+local REPORT_STATUS_FILTERS = { open = true, claimed = true, resolved = true, dismissed = true, all = true }
+
 local function playerProfileRows(profile)
     local states = { 'Online' }
     if profile.dead then states[#states + 1] = 'Dead / last stand' end
@@ -716,11 +721,14 @@ local function formatTimestamp(value)
     return ok and formatted or tostring(value)
 end
 
-local function openRoot()
+---@param options? { reportsOnly?: boolean, filters?: table } reportsOnly opens a dedicated Reports app (the /reports screen) instead of the full admin menu.
+local function openRoot(options)
+    local reportsOnly = options and options.reportsOnly == true
+    local appId = reportsOnly and 'qbadmin:reports' or 'qbadmin:menu'
     local navigation = {}
     local selectedPlayerActions = {}
     local selectedReportActions = {}
-    local currentReportFilters = { status = 'open' }
+    local currentReportFilters = options and options.filters or { status = 'open' }
     local sectionsById = {}
     for _, section in ipairs(SECTIONS) do sectionsById[section.id] = section end
 
@@ -768,6 +776,7 @@ local function openRoot()
 
     for _, page in ipairs(PAGE_LAYOUT) do
         local tabs = {}
+        if reportsOnly and page.id ~= 'reports' then goto nextPage end
         for _, sectionId in ipairs(page.sections) do
             local section = sectionsById[sectionId]
             if section and Admin.hasLevel(section.level) then tabs[#tabs + 1] = sectionTab(section) end
@@ -782,6 +791,7 @@ local function openRoot()
                 tabs = tabs,
             }
         end
+        ::nextPage::
     end
 
     local function findView(id)
@@ -874,9 +884,9 @@ local function openRoot()
         for _, row in ipairs(rows) do
             tableRows[#tableRows + 1] = {
                 id = tostring(row.id), status = { label = row.status, badge = true,
-                    tone = row.status == 'open' and 'warning' or row.status == 'resolved' and 'success' or 'neutral' }, type = row.type,
-                reporter = row.reporter_name, assigned = row.claimed_by_name or '-',
-                message = row.message, updated = formatTimestamp(row.updated_at or row.created_at),
+                    tone = row.status == 'open' and 'warning' or row.status == 'resolved' and 'success' or 'neutral' },
+                type = row.category or row.type, reporter = row.reporter_name, assigned = row.claimed_by_name or '-',
+                subject = row.subject or row.message, age = row.age or '-',
             }
         end
         blocks[#blocks + 1] = {
@@ -884,9 +894,9 @@ local function openRoot()
             searchable = true, pageSize = 12,
             columns = {
                 { key = 'id', label = '#', sortable = true }, { key = 'status', label = 'Status', sortable = true },
-                { key = 'type', label = 'Type', sortable = true }, { key = 'reporter', label = 'Reporter', sortable = true },
-                { key = 'assigned', label = 'Assigned' }, { key = 'message', label = 'Report' },
-                { key = 'updated', label = 'Updated' },
+                { key = 'type', label = 'Category', sortable = true }, { key = 'reporter', label = 'Reporter', sortable = true },
+                { key = 'subject', label = 'Subject' }, { key = 'assigned', label = 'Assigned' },
+                { key = 'age', label = 'Age' },
             },
             rows = tableRows, empty = 'No matching reports', action = 'reports:select', idKey = 'id',
         }
@@ -981,6 +991,7 @@ local function openRoot()
                             id = 'selected-report-summary', type = 'details', title = 'Report summary', columns = 2,
                             items = {
                                 { label = 'Status', value = report.status, tone = report.status == 'open' and 'warning' or 'neutral' },
+                                { label = 'Category', value = report.category or report.type },
                                 { label = 'Reporter', value = report.reporter_name },
                                 { label = 'Assigned to', value = report.claimed_by_name or 'Unassigned' },
                                 { label = 'Resolution', value = report.resolution or 'Open' },
@@ -1257,18 +1268,22 @@ local function openRoot()
         return { update = { navigation = navigation }, navigate = { viewId = 'players', tabId = 'overview' } }
     end
 
-    activeNavigation = navigation
-    -- Seed the two live-data workspaces before registration so opening the
+    -- Seed the live-data workspaces before registration so opening the
     -- menu lands on useful tables immediately, without a blank first frame or
     -- an extra "view" click. The same functions handle refresh/back actions.
-    showPlayersInShell()
-    showReportsInShell({ status = 'open' })
-    refreshRegistryFields(activeNavigation)
+    if reportsOnly then
+        showReportsInShell(currentReportFilters)
+    else
+        activeNavigation = navigation
+        showPlayersInShell()
+        showReportsInShell({ status = 'open' })
+        refreshRegistryFields(activeNavigation)
+    end
     Kora.nui.registerApp({
-        id = 'qbadmin:menu',
-        title = 'Administration',
-        description = 'Server administration',
-        icon = 'shield-check',
+        id = appId,
+        title = reportsOnly and 'Player Reports' or 'Administration',
+        description = reportsOnly and 'Player support queue' or 'Server administration',
+        icon = reportsOnly and 'flag' or 'shield-check',
         defaultView = navigation[1] and navigation[1].id,
         navigation = navigation,
         footer = 'Every action is checked and audited by the server.',
@@ -1283,11 +1298,8 @@ local function openRoot()
                 selectedAction.run(context and context.value)
                 return {}
             end
-            if categoryId == 'reports' and itemId == 'open' then
-                return showReportsInShell({ status = 'open' })
-            end
-            if categoryId == 'reports' and itemId == 'all' then
-                return showReportsInShell({ status = 'all' })
+            if categoryId == 'reports' and REPORT_STATUS_FILTERS[itemId] then
+                return showReportsInShell({ status = itemId })
             end
             if categoryId == 'reports' and itemId == 'filter' then
                 return showReportsInShell(context and context.value or {})
@@ -1348,11 +1360,16 @@ local function openRoot()
             error('That administrative action is no longer available.')
         end,
     })
-    Kora.nui.openApp('qbadmin:menu')
+    Kora.nui.openApp(appId)
 end
 
 RegisterNetEvent('qbadmin:client:refreshMenuPlayerState', function(targetSrc)
     if Admin.refreshSelectedPlayerState then Admin.refreshSelectedPlayerState(targetSrc) end
+end)
+
+RegisterNetEvent('qbadmin:client:openReports', function(level, filters)
+    if type(level) == 'string' then Admin.level = level end
+    openRoot({ reportsOnly = true, filters = type(filters) == 'table' and filters or nil })
 end)
 
 RegisterNetEvent('qbadmin:client:openMenu', function(level)

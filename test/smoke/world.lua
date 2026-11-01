@@ -575,6 +575,7 @@ test('Reports list, detail, conversation, and management stay in the app shell',
             return { {
                 id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen',
                 message = 'Inventory button is stuck', created_at = createdAt, updated_at = createdAt,
+                category = 'Bug', subject = 'Inventory button is stuck', age = '5m',
             } }
         end
         if name == 'qbadmin:menuReport' then
@@ -592,8 +593,9 @@ test('Reports list, detail, conversation, and management stay in the app shell',
     menuPayload.onAction('reports:open', {})
     local queueTab = findTab(findView(menuPayload, 'reports'), 'reports')
     local queue = queueTab.content.blocks[#queueTab.content.blocks]
-    equal(queue.rows[1].updated, os.date('!%Y-%m-%d %H:%M:%S', createdAt / 1000),
-        'qbsql timestamps should be readable in the report queue')
+    equal(queue.rows[1].age, '5m', 'report queue shows the age')
+    equal(queue.rows[1].subject, 'Inventory button is stuck', 'report queue shows a one-line subject')
+    equal(queue.rows[1].type, 'Bug', 'report queue shows the category label')
     local selectedResult = menuPayload.onAction('reports:select', { itemId = '42' })
     equal(selectedResult.navigate.viewId, 'reports', 'report selection returns AppShell navigation')
     equal(selectedResult.navigate.tabId, 'overview', 'report selection opens the report overview')
@@ -631,6 +633,26 @@ test('Reports list, detail, conversation, and management stay in the app shell',
     local queue = findTab(reportWorkspace, 'reports').content.blocks[#findTab(reportWorkspace, 'reports').content.blocks]
     truthy(queue.searchable and queue.pageSize == 12, 'the restored report queue is searchable and paged')
     truthy(queue.rows[1].status.badge, 'report status uses a rich AppShell badge cell')
+end)
+
+test('/reports opens a dedicated Reports app with the existing queue handlers', function()
+    local seenFilters = {}
+    Kora.callback.trigger = function(name, filters)
+        if name == 'qbadmin:menuReports' then seenFilters[#seenFilters + 1] = filters end
+        return {}
+    end
+    menuPayload = nil
+    netEvents['qbadmin:client:openReports']('support', { status = 'claimed' })
+    equal(menuPayload.id, 'qbadmin:reports', 'dedicated app id')
+    equal(#menuPayload.navigation, 1, 'only the Reports view is registered')
+    equal(menuPayload.navigation[1].id, 'reports', 'Reports view')
+    equal(seenFilters[1].status, 'claimed', 'initial filter from the command')
+    menuPayload.onAction('reports:resolved', {})
+    equal(seenFilters[#seenFilters].status, 'resolved', 'status buttons reuse the queue loader')
+    local tab = findTab(findView(menuPayload, 'reports'), 'reports')
+    local labels = {}
+    for _, action in ipairs(tab.content.blocks[1].actions) do labels[action.label] = true end
+    truthy(labels.Open and labels.Claimed and labels.Resolved and labels.Dismissed and labels.All, 'status filter buttons')
 end)
 
 test('kora_broadcast notifies every player, but only from the console', function()

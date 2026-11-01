@@ -208,6 +208,14 @@ Players submit `/report <type> <message>` using the configured `player`, `bug`,
 `Config.reports.cooldownSeconds` submission delay limits spam without losing
 reports when kora_admin restarts.
 
+`/reports [status] [type] [page]` opens a dedicated **Player Reports** screen for
+staff (the same queue, status filters, detail view and actions as the **Reports**
+workspace in `/admin`). Rows show id, status, category, reporter, a one-line
+subject and age; report text is displayed as text, never rendered as HTML.
+`Config.reports.command = { enabled, ui }`: `ui = false` prints a short chat list
+instead, `enabled = false` removes the command. Players below
+`Config.reports.staffLevel` get a chat list of only their own reports.
+
 Staff at `Config.reports.staffLevel` see the **Reports** workspace in `/admin`.
 Reports can be filtered by status, type, reporter, and page. Selecting one
 opens separate Overview, Manage, and Online Reporter tabs for claiming,

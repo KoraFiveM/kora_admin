@@ -177,6 +177,10 @@ Config.reports = {
     staffLevel = 'support', -- minimum role that can see, claim, reply to, and close reports
     pageSize = 20, -- reports shown per admin-menu page or /reports output
     cooldownSeconds = 30, -- minimum delay between new reports from one connected player
+    -- /reports: ui = true opens the Reports screen for staff (same queue, filters and actions
+    -- as the admin menu's Reports tab); false prints a short chat list instead. Players who are
+    -- not staff only ever get a chat list of their own reports. enabled = false removes /reports.
+    command = { enabled = true, ui = true },
     maxMessageLength = 1000, -- applies to initial reports, replies, and staff resolution notes
 }
 
