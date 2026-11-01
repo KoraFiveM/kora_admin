@@ -675,6 +675,8 @@ end)
 test('announce plays the alert for everyone, and only when enabled', function()
     Kora.notify = { sendToAll = function() end }
     Admin.accessCommandAllowed = function() return true end
+    Admin.log = function() end
+    Admin.respond = function() end
     local before = #clientEvents
     commands.announce.handler(7, { 'hello', 'all' })
     equal(#clientEvents, before + 1, 'one sound event per announcement')
