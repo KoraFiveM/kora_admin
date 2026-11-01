@@ -17,7 +17,7 @@ end
 local function checksum(str)
     local a = fnv1a(str)
     local b = fnv1a(str:reverse())
-    return (('%016x%016x'):format(a, b) .. string.rep('0', 32))
+    return ('%016x%016x'):format(a, b) .. string.rep('0', 32)
 end
 
 CreateThread(function()
@@ -28,7 +28,7 @@ CreateThread(function()
     end
 
     local resource = GetCurrentResourceName()
-    local applied, err = Kora.sql.migrateFiles(resource, {
+    local _, err = Kora.sql.migrateFiles(resource, {
         { version = 1, name = 'admin_logs', file = 'sql/001_admin_logs.sql' },
         { version = 2, name = 'admin_reports', file = 'sql/002_admin_reports.sql' },
     }, checksum)

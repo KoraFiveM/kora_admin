@@ -6,8 +6,7 @@
 local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
 
 Admin.addCommand('aduty', 'Toggle admin on-duty status', nil, false, function(source)
-    local current = exports.kora_core:getMetaData(source, 'adminDuty')
-    local state = not current
+    local state = not exports.kora_core:getMetaData(source, 'adminDuty')
     exports.kora_core:setMetaData(source, 'adminDuty', state)
     Admin.respond(source, true, ('Admin duty %s'):format(state and 'enabled' or 'disabled'))
 end, OPTS_MOD)
@@ -50,6 +49,5 @@ Admin.addCommand('permission', "Show a player's permission level", { { name = 'i
         return Admin.respond(source, false, "admin level required to check another player's permission")
     end
 
-    local level = Admin.getLevel(targetSrc)
-    Admin.respond(source, true, ('%s: %s'):format(data.name, level))
+    Admin.respond(source, true, ('%s: %s'):format(data.name, Admin.getLevel(targetSrc)))
 end, OPTS_MOD)
