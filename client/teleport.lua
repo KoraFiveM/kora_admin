@@ -3,10 +3,9 @@
 -- qbadmin:client:teleportTo event; only WHO gets told and WHERE differs,
 -- resolved server-side in server/commands/teleport.lua.
 --
--- Ported to match txAdmin's own teleport algorithm exactly (its
+-- Matches txAdmin's own teleport algorithm (its
 -- resource/menu/client/cl_main_page.lua's teleportToCoords/handleTpNormally,
--- and cl_functions.lua's FindZForCoords) rather than this file's previous,
--- differently-shaped ground-snap pass -- every teleport (not just a
+-- and cl_functions.lua's FindZForCoords) -- every teleport (not just a
 -- ground-snapped one) launches at a fixed safe altitude first and waits for
 -- the ENGINE's own "still waiting for world collision" signal, and ground
 -- resolution is a repeated, drilling-down probe rather than a single check.

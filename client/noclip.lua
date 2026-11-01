@@ -1,9 +1,7 @@
 -- Admin noclip -- freezes ped physics (so gravity/collision stop fighting
 -- manual movement) and translates the ped each frame along the direction the
 -- player is already looking (GetGameplayCamRot), so mouse-look keeps working
--- for free without taking over the render camera. No kora_lib/qbcore export
--- covers this -- confirmed, no noclip code exists anywhere else in this
--- codebase.
+-- for free without taking over the render camera.
 
 local active = false
 
