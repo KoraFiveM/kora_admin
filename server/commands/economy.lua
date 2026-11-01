@@ -10,8 +10,7 @@ local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, r
 
 ---Shared shape for all three money commands: resolve target, parse amount,
 ---call the given kora_core export, log, respond. One function, three thin
----registrations below -- the DRY analogue of kora_admin's other command files,
----just parameterized over which export to call instead of split per file.
+---registrations below, parameterized over which export to call.
 ---@param name string
 ---@param help string
 ---@param exportFn fun(targetSrc:integer, account:string, amount:number, reason:string):boolean, string|nil

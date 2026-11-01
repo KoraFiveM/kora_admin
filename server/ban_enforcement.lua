@@ -1,7 +1,6 @@
 -- playerConnecting deferral -- the enforcement half of the ban system. The
 -- `bans` table (kora_core/sql/002_identifiers.sql) already exists but nothing in
--- kora_core checks it on connect (confirmed by search); this is genuinely new
--- ground, and kora_core has no playerConnecting hook of its own to order against.
+-- kora_core checks it on connect, and it has no playerConnecting hook to order against.
 
 AddEventHandler('playerConnecting', function(_name, _setKickReason, deferrals)
     local src = source
