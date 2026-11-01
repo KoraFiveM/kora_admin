@@ -49,6 +49,14 @@ Config.heal = {
     restoreNeeds = true,
 }
 
+Config.announcement = {
+    -- /announce (and the admin-menu Send Announcement action) plays a short frontend
+    -- alert for every player when the announcement arrives. Kora.notify is silent,
+    -- so this is the only sound. Set enabled = false for silent announcements.
+    -- name/set is any stock GTA frontend sound (PlaySoundFrontend).
+    sound = { enabled = true, name = "CHALLENGE_UNLOCKED", set = "HUD_AWARDS" },
+}
+
 Config.ban = {
     durationUnits = { m = 60, h = 3600, d = 86400, w = 604800 }, -- seconds per duration-string unit ('30m', '2d', ...)
     durationWords = { perm = true, permanent = true },           -- words treated as a permanent ban (expire = NULL)

@@ -96,6 +96,15 @@ the target's hunger and thirst to 100 through `kora_core`'s `setMetaData`, so th
 HUD updates immediately. `/revive` and `/selfrevive` never change hunger or
 thirst. Set `Config.heal.restoreNeeds = false` for health-only heals.
 
+## Announcement sound
+
+`/announce` (and the admin-menu Send Announcement action) plays a short alert on
+every client when the announcement arrives, because `Kora.notify` itself is
+silent. Configure it with `Config.announcement.sound = { enabled, name, set }`
+(default `CHALLENGE_UNLOCKED` / `HUD_AWARDS`, any stock `PlaySoundFrontend` pair).
+Set `enabled = false` for silent announcements. `kora_broadcast` restart warnings
+are unaffected.
+
 ## The `me` convention
 
 Every command that takes a player-id argument treats a missing argument, or

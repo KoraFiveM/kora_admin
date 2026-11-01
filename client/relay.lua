@@ -213,3 +213,10 @@ AddEventHandler('onClientResourceStop', function(resource)
     SetEntityInvincible(ped, false)
     SetEntityVisible(ped, true, false)
 end)
+
+-- Played alongside the /announce notification (Kora.notify has no sound of its own).
+RegisterNetEvent('kora_admin:client:announceSound', function()
+    local sound = Config.announcement.sound
+    if not sound.enabled then return end
+    Kora.sound.playFrontend(sound.name, sound.set)
+end)

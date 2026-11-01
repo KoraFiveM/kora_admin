@@ -672,5 +672,22 @@ test('kora_broadcast notifies every player, but only from the console', function
     equal(broadcasts[1].duration, 60000, 'restart warnings stay up long enough to notice')
 end)
 
+test('announce plays the alert for everyone, and only when enabled', function()
+    Kora.notify = { sendToAll = function() end }
+    Admin.accessCommandAllowed = function() return true end
+    local before = #clientEvents
+    commands.announce.handler(7, { 'hello', 'all' })
+    equal(#clientEvents, before + 1, 'one sound event per announcement')
+    local event = clientEvents[#clientEvents]
+    equal(event.name, 'kora_admin:client:announceSound', 'sound event')
+    equal(event.target, -1, 'every player hears it')
+
+    Config.announcement.sound.enabled = false
+    before = #clientEvents
+    commands.announce.handler(7, { 'quiet' })
+    equal(#clientEvents, before, 'disabled sound fires no event')
+    Config.announcement.sound.enabled = true
+end)
+
 print(('qbadmin world: %d passed, %d failed'):format(passed, failed))
 if failed > 0 then os.exit(1) end

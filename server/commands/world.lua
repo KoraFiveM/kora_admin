@@ -22,6 +22,9 @@ Admin.addCommand('announce', 'Broadcast a message to every player', { { name = '
     if message == '' then return Admin.respond(source, false, 'message required') end
 
     Kora.notify.sendToAll({ title = 'Announcement', message = message, type = 'info', duration = 8000 })
+    if Config.announcement.sound.enabled then
+        TriggerClientEvent('kora_admin:client:announceSound', -1)
+    end
     Admin.log(source, 'announce', nil, { message = message })
     Admin.respond(source, true, 'Announcement sent')
 end, OPTS_ADMIN)
