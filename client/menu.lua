@@ -119,24 +119,44 @@ local function openClothing(mode, service)
     end
 end
 
+---Grades arrive as a one-based array from the registry, but a record that
+---bypassed registry normalisation may key them "0", "1", ... (legacy QBCore) or
+---by number. Return them as one list sorted by level so the dropdown is never
+---empty for a job that does have grades.
+---@param grades table|nil
+---@return table[]
+local function sortedGrades(grades)
+    local entries = {}
+    for key, grade in pairs(type(grades) == 'table' and grades or {}) do
+        local level = tonumber(key)
+        if level and type(grade) == 'table' then entries[#entries + 1] = { level = level, grade = grade } end
+    end
+    table.sort(entries, function(a, b) return a.level < b.level end)
+    return entries
+end
+
 ---Build a role selector and its dependent grade selector from one registry
 ---snapshot. Reading each record directly from `all()` avoids a second lookup
----returning nil while a client mirror is being re-seeded.
+---returning nil while a client mirror is being re-seeded. Records are
+---deduplicated by name (first wins).
 ---@param kind 'jobs'|'gangs'
 ---@param label string
 ---@return table[]
 local function roleFields(kind, label)
-    local roles, gradesByRole = {}, {}
+    local roles, gradesByRole, seen = {}, {}, {}
     for _, role in ipairs(Kora.shared.all(kind)) do
-        roles[#roles + 1] = { value = role.name, label = role.label }
-        local grades = {}
-        for gradeNumber, grade in ipairs(role.grades or {}) do
-            grades[#grades + 1] = {
-                value = tostring(gradeNumber),
-                label = ('%d - %s'):format(gradeNumber, grade.name),
-            }
+        if not seen[role.name] then
+            seen[role.name] = true
+            roles[#roles + 1] = { value = role.name, label = role.label }
+            local grades = {}
+            for position, entry in ipairs(sortedGrades(role.grades)) do
+                grades[#grades + 1] = {
+                    value = tostring(position),
+                    label = ('%d - %s'):format(position, entry.grade.name),
+                }
+            end
+            gradesByRole[role.name] = grades
         end
-        gradesByRole[role.name] = grades
     end
 
     local firstRole = roles[1] and roles[1].value

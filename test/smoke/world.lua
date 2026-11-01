@@ -425,6 +425,10 @@ test('List Players selects a player before running their admin actions', functio
             { name = 'Cadet' }, { name = 'Officer' },
         } },
         { name = 'ambulance', label = 'EMS', grades = { { name = 'Recruit' } } },
+        -- Legacy string-keyed grades must still list, in level order.
+        { name = 'mechanic2', label = 'LS Customs', grades = { ['1'] = { name = 'Novice' }, ['0'] = { name = 'Recruit' } } },
+        -- A repeated job name is listed once.
+        { name = 'ambulance', label = 'EMS', grades = { { name = 'Recruit' } } },
     }
     local gangs = {
         { name = 'none', label = 'No Gang', grades = { { name = 'None' } } },
@@ -493,6 +497,9 @@ test('List Players selects a player before running their admin actions', functio
     equal(setJob.fields[2].default, '1', 'the first available grade should be selected')
     equal(#setJob.fields[2].optionsByValue.police, 2, 'the selected job should expose all of its grades')
     equal(setJob.fields[2].optionsByValue.police[2].label, '2 - Officer', 'grade choices should be labelled')
+    equal(#setJob.fields[1].options, 3, 'jobs should be listed once per name')
+    equal(setJob.fields[2].optionsByValue.mechanic2[1].label, '1 - Recruit', 'string-keyed grades should be sorted by level')
+    equal(#setJob.fields[2].optionsByValue.mechanic2, 2, 'string-keyed grades should not be dropped')
 
     local duty = findAction(menuPayload, 'player:target:setduty')
     equal(duty.label, 'Take Off Duty', 'selected-player duty action should name its result')
