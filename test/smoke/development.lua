@@ -77,7 +77,8 @@ test('entity picker launches only after the developer gate passes', function()
     equal(logs[#logs].action, 'entitypicker', 'entity picker request should be audited')
 end)
 
-test('creator commands reject until qbcore development mode is enabled', function()
+test('creator commands reject until Kora Development Mode is enabled', function()
+    Config.developer.requireDevMode = true
     devMode = false
     local before = #clientEvents
     commands.devplacement.handler(7, { 'prop_barrel_02a' })
@@ -239,7 +240,8 @@ local function developerItem(id)
     end
 end
 
-test('Builders tab reflects qbcore dev mode and gates creator shortcuts', function()
+test('Builders tab reflects Kora dev mode and gates creator shortcuts', function()
+    Config.developer.requireDevMode = true
     localDevMode = false
     selectedMenuResult = { cancelled = true }
     netEvents['qbadmin:client:openMenu'](Config.developer.menuLevel)

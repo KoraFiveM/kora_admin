@@ -14,7 +14,7 @@ local function developmentReady(source)
     if not Config.developer.requireDevMode then return true end
     if exports.kora_core:isDevMode(source) then return true end
 
-    Admin.respond(source, false, 'enable qbcore development mode before using creator tools')
+    Admin.respond(source, false, 'enable Kora Development Mode before using creator tools')
     return false
 end
 

@@ -334,8 +334,8 @@ player's token-authenticated clothing request; clients cannot mint it.
 /devzone <box|sphere|poly>     -- capture and copy a kora_lib zone definition
 ```
 The selected player's **Development** group toggles kora_core development mode
-for yourself or another player through `/devmode`. With the default
-`Config.developer.requireDevMode = true`, creator commands reject until the
+for yourself or another player through `/devmode`. With
+`Config.developer.requireDevMode = true` (the default is `false`), creator commands reject until the
 caller enables their own development mode. Neither creator persists its
 preview or registers a live zone.
 

@@ -250,13 +250,13 @@ picker by default (both are rebindable in FiveM settings). The tab also launches
 `Kora.placement.start(model)` and opens the kora_lib box/sphere/poly zone creator.
 Development mode for yourself or another player is changed from that selected
 player's **Development** group. When
-`Config.developer.requireDevMode` is enabled, the builder shortcuts remain
+`Config.developer.requireDevMode` is set to `true` (default `false`), the builder shortcuts remain
 disabled until the caller enables their own development mode. Each greyed button is labelled "(turn Development Mode on first)", and the tab
 has a **Turn Development Mode On** toggle for yourself that unlocks them.
 
 The menu executes the permission-checked `/entitypicker`, `/devplacement`, and `/devzone`
 commands. Their server handlers verify both the configured admin tier and the
-qbcore-owned development-mode state before relaying to the client. The two creator tools
+Kora-owned Development Mode state before relaying to the client. The two creator tools
 are data-capture utilities: placement deletes its preview, and zone creation
 returns/copies a definition without registering a live zone.
 

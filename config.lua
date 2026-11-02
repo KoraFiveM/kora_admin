@@ -130,9 +130,10 @@ Config.developer = {
     -- and run its creator commands. The commands still re-check this on the
     -- server; the client-side menu gate is only presentation.
     menuLevel = 'admin',
-    -- When enabled, the caller must turn on kora_core's per-player development
-    -- mode before launching kora_lib's placement or zone creators.
-    requireDevMode = true,
+    -- When true, the caller must turn on kora_core's per-player development
+    -- mode before launching kora_lib's placement or zone creators. Default false
+    -- leaves Inspect/Place/Zone tools always available.
+    requireDevMode = false,
 }
 
 Config.entityPicker = {
