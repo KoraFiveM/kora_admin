@@ -238,6 +238,28 @@ local function personalVehicleFields(catalogue)
     }
 end
 
+-- kora_lib calls onAction from its own resource, so FiveM msgpack-encodes the
+-- returned table, and that encoder sends any table nested 16 or more levels
+-- deep as nil. In a returned { update = { navigation } } a dependent select's
+-- choices (field.optionsByValue[value][i]) sit at exactly level 16, so every
+-- Set Job / Set Gang grade list reached the NUI empty while the job list (one
+-- level shallower) survived. updateApp carries the same navigation as an
+-- export argument, two levels shallower, so push updates that way and return
+-- only what is left (navigate/notice/close).
+---@param appId string
+---@param handler fun(actionId: string, context: table): table|nil
+---@return fun(actionId: string, context: table): table|nil
+local function pushActionUpdates(appId, handler)
+    return function(actionId, context)
+        local result = handler(actionId, context)
+        if type(result) == 'table' and result.update ~= nil and Kora.nui.updateApp then
+            Kora.nui.updateApp(appId, result.update)
+            result.update = nil
+        end
+        return result
+    end
+end
+
 -- AppShell receives its action fields as a snapshot. The kora_core registry
 -- snapshot can arrive just after this resource builds the menu, which would
 -- leave catalogue and role fields permanently empty for that menu session.
@@ -1327,7 +1349,7 @@ local function openRoot(options)
         defaultView = navigation[1] and navigation[1].id,
         navigation = navigation,
         footer = 'Every action is checked and audited by the server.',
-        onAction = function(actionId, context)
+        onAction = pushActionUpdates(appId, function(actionId, context)
             local categoryId, itemId = actionId:match('^([^:]+):(.+)$')
             if categoryId == 'reports' and itemId == 'select' and context and context.itemId then
                 return showSelectedReport(context.itemId)
@@ -1398,7 +1420,7 @@ local function openRoot(options)
                 end
             end
             error('That administrative action is no longer available.')
-        end,
+        end),
     })
     Kora.nui.openApp(appId)
 end

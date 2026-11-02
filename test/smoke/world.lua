@@ -567,6 +567,78 @@ test('List Players selects a player before running their admin actions', functio
     Kora.shared.all, Kora.shared.get = previousSharedAll, previousSharedGet
 end)
 
+-- kora_lib calls onAction from its own resource, so FiveM msgpack-encodes the
+-- result; its encoder sends any table nested MSGPACK_MAX_NESTING or more levels
+-- deep as nil. Returns the deepest level that holds a table.
+local MSGPACK_MAX_NESTING = 16
+local function deepestTableLevel(value, level)
+    if type(value) ~= 'table' then return -1 end
+    assert(level < 64, 'unexpectedly deep or cyclic table')
+    local deepest = level
+    for _, child in pairs(value) do
+        deepest = math.max(deepest, deepestTableLevel(child, level + 1))
+    end
+    return deepest
+end
+
+test('Set Job grades for mechanic and EMS jobs survive the trip to the NUI', function()
+    local previousSharedAll, previousTrigger, previousUpdate = Kora.shared.all, Kora.callback.trigger, Kora.nui.updateApp
+    -- Registry shapes as kora_core seeds them: one-based arrays (ambulance,
+    -- mechanic) and the legacy upstream "0".."4" map (bennys).
+    local jobs = {
+        { name = 'ambulance', label = 'EMS', grades = {
+            { name = 'Recruit' }, { name = 'EMT' }, { name = 'Paramedic' }, { name = 'Supervisor' }, { name = 'Chief', isboss = true },
+        } },
+        { name = 'mechanic', label = 'Mechanic', grades = {
+            { name = 'Apprentice' }, { name = 'Mechanic' }, { name = 'Boss', isboss = true },
+        } },
+        { name = 'bennys', label = "Benny's Original Motor Works", grades = {
+            ['0'] = { name = 'Recruit' }, ['1'] = { name = 'Novice' }, ['2'] = { name = 'Experienced' },
+            ['3'] = { name = 'Advanced' }, ['4'] = { name = 'Manager', isboss = true },
+        } },
+    }
+    Kora.shared.all = function(name) return name == 'jobs' and jobs or {} end
+    Kora.callback.trigger = function(name)
+        if name == 'qbadmin:menuPlayers' then return { { id = '7', name = 'Admin', job = 'Mechanic', ping = 12 } } end
+        if name == 'qbadmin:menuPlayerProfile' then
+            return {
+                id = '7', name = 'Admin', citizenid = 'TEST123', job = 'Mechanic (Boss)', gang = 'None',
+                money = 'bank: 5000', ping = 12, health = 200, armor = 0, hunger = 80, thirst = 70,
+                dead = false, cuffed = false, onDuty = true, frozen = false, godMode = false,
+                invisible = false, devMode = false,
+            }
+        end
+        return {}
+    end
+    local pushed = {}
+    Kora.nui.updateApp = function(id, update) pushed[#pushed + 1] = { id = id, update = update } end
+
+    netEvents['qbadmin:client:openMenu']('god')
+    for index = #pushed, 1, -1 do pushed[index] = nil end
+    local result = menuPayload.onAction('player:select', { itemId = '7' })
+
+    equal(result.navigate.tabId, 'overview', 'selection still navigates to the profile')
+    equal(result.update, nil, 'the workspace is not returned through the action result')
+    -- FiveM packs a function-reference result as { result }, so the result sits at level 1.
+    truthy(deepestTableLevel({ result }, 0) < MSGPACK_MAX_NESTING, 'the action result fits under the msgpack nesting cap')
+    equal(#pushed, 1, 'the selected-player workspace is pushed through updateApp')
+    equal(pushed[1].id, 'qbadmin:menu', 'the push targets the admin menu')
+    local update = pushed[1].update
+    truthy(deepestTableLevel(update, 0) < MSGPACK_MAX_NESTING, 'the pushed navigation fits under the msgpack nesting cap')
+    truthy(deepestTableLevel({ { update = update } }, 0) >= MSGPACK_MAX_NESTING,
+        'returning the same navigation would lose its grade choices (the original bug)')
+
+    local setJob = findAction({ navigation = update.navigation }, 'player:target:setjob')
+    local grades = setJob.fields[2].optionsByValue
+    equal(#grades.mechanic, 3, 'Mechanic lists all of its grades')
+    equal(grades.mechanic[1].label, '1 - Apprentice', 'Mechanic grades are labelled')
+    equal(#grades.ambulance, 5, 'EMS lists all of its grades')
+    equal(#grades.bennys, 5, 'string-keyed upstream grades list too')
+    equal(grades.bennys[5].label, '5 - Manager', 'string-keyed grades keep level order')
+
+    Kora.shared.all, Kora.callback.trigger, Kora.nui.updateApp = previousSharedAll, previousTrigger, previousUpdate
+end)
+
 test('Reports list, detail, conversation, and management stay in the app shell', function()
     local createdAt = 1788744746000
     local repliedAt = 1788744806
@@ -683,8 +755,18 @@ test('the open Reports screen reloads live without losing the selected report', 
         end
     end
 
+    -- Actions push their own navigation through updateApp; drop that push so
+    -- the counts below are only the background reloads.
+    local function act(actionId, context)
+        local before = #updates
+        local result = menuPayload.onAction(actionId, context)
+        equal(#updates, before + 1, 'an action pushes its navigation through updateApp')
+        equal(result.update, nil, 'the pushed navigation is not also returned')
+        table.remove(updates)
+    end
+
     netEvents['qbadmin:client:openReports']('support', { status = 'open' })
-    menuPayload.onAction('reports:select', { itemId = '42' })
+    act('reports:select', { itemId = '42' })
     messages[#messages + 1] = { id = 2, author_name = 'Support', author_role = 'staff', message = 'Please retry <b>now</b>', created_at = 1788744900 }
     netEvents['qbadmin:client:reportChanged'](42)
     equal(#updates, 1, 'a change to the open report pushes one update')
@@ -705,7 +787,7 @@ test('the open Reports screen reloads live without losing the selected report', 
     equal(toasts, 0, 'a failed background reload does not raise an error toast')
     failing = false
 
-    menuPayload.onAction('reports:back', {})
+    act('reports:back', {})
     netEvents['qbadmin:client:reportChanged'](42)
     equal(#updates, 2, 'back on the queue, any report change reloads the queue')
     local queueView = findView({ navigation = updates[2].update.navigation }, 'reports')

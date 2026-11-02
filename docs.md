@@ -408,3 +408,16 @@ that call fails. `Config.roles` trims the job list without changing any job:
   label "LS Customs", so only one is offered.
 
 Hidden jobs still work with `/setjob`, and players who hold them keep them.
+
+### Why menu screens are pushed with `updateApp`
+
+kora_lib runs the menu's `onAction` from its own resource, so FiveM
+msgpack-encodes whatever the handler returns, and that encoder silently turns
+any table nested 16 or more levels deep into `nil`. Inside a returned
+`{ update = { navigation = ... } }` the Grade choices
+(`field.optionsByValue[job][i]`) sit at exactly level 16, so every Set Job and
+Set Gang grade list reached the NUI empty while the job list, one level
+shallower, still showed. `onAction` therefore sends any `update` through
+`Kora.nui.updateApp` (an export argument, two levels shallower) and returns
+only `navigate`/`notice`/`close`. Keep new screens on that path rather than
+returning large navigation trees.
