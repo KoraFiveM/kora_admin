@@ -655,6 +655,70 @@ test('/reports opens a dedicated Reports app with the existing queue handlers', 
     truthy(labels.Open and labels.Claimed and labels.Resolved and labels.Dismissed and labels.All, 'status filter buttons')
 end)
 
+test('the open Reports screen reloads live without losing the selected report', function()
+    local messages = { { id = 1, author_name = 'Support', author_role = 'staff', message = 'Looking into it', created_at = 1788744806 } }
+    local failing, toasts = false, 0
+    Kora.callback.trigger = function(name)
+        if failing then return nil, 'gone' end
+        if name == 'qbadmin:menuReports' then
+            return { { id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen', message = 'Stuck', category = 'Bug', subject = 'Stuck', age = '1m' } }
+        end
+        if name == 'qbadmin:menuReport' then
+            return { id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen', message = 'Stuck', created_at = 1788744746, messages = messages }
+        end
+        return {}
+    end
+    local previousNotify, previousUpdate = Kora.notify.send, Kora.nui.updateApp
+    Kora.notify.send = function() toasts = toasts + 1 end
+    local updates = {}
+    Kora.nui.updateApp = function(id, update) updates[#updates + 1] = { id = id, update = update } end
+    Kora.nui.isAppOpen = function() return true end
+
+    local function conversation(update)
+        local view = findView({ navigation = update.navigation }, 'reports')
+        for _, tab in ipairs(view.tabs) do
+            for _, block in ipairs(tab.content.blocks) do
+                if block.id == 'selected-report-conversation' then return block, view end
+            end
+        end
+    end
+
+    netEvents['qbadmin:client:openReports']('support', { status = 'open' })
+    menuPayload.onAction('reports:select', { itemId = '42' })
+    messages[#messages + 1] = { id = 2, author_name = 'Support', author_role = 'staff', message = 'Please retry <b>now</b>', created_at = 1788744900 }
+    netEvents['qbadmin:client:reportChanged'](42)
+    equal(#updates, 1, 'a change to the open report pushes one update')
+    equal(updates[1].id, 'qbadmin:reports', 'the update targets the dedicated Reports app')
+    equal(updates[1].update.navigate, nil, 'a live update must not navigate away from the current tab')
+    local block, view = conversation(updates[1].update)
+    equal(#block.items, 3, 'the reply appears in the conversation without reopening')
+    equal(block.items[3].description, 'Please retry <b>now</b>', 'text is passed through as plain data, not markup')
+    equal(view.defaultTab, 'overview', 'the selected report stays selected')
+    equal(#view.tabs, 2, 'the report detail tabs are kept')
+
+    netEvents['qbadmin:client:reportChanged'](43)
+    equal(#updates, 1, 'a change to a different report leaves the open report alone')
+
+    failing = true
+    netEvents['qbadmin:client:reportChanged'](42)
+    equal(#updates, 1, 'a failed background reload keeps what is on screen')
+    equal(toasts, 0, 'a failed background reload does not raise an error toast')
+    failing = false
+
+    menuPayload.onAction('reports:back', {})
+    netEvents['qbadmin:client:reportChanged'](42)
+    equal(#updates, 2, 'back on the queue, any report change reloads the queue')
+    local queueView = findView({ navigation = updates[2].update.navigation }, 'reports')
+    truthy(findTab(queueView, 'reports'), 'the queue tab is refreshed, not the report detail')
+    equal(#queueView.tabs, 1, 'the queue is not replaced by a report detail')
+
+    Kora.nui.isAppOpen = function() return false end
+    netEvents['qbadmin:client:reportChanged'](42)
+    equal(#updates, 2, 'nothing is pushed once the Reports screen is closed')
+
+    Kora.nui.isAppOpen, Kora.nui.updateApp, Kora.notify.send = nil, previousUpdate, previousNotify
+end)
+
 test('kora_broadcast notifies every player, but only from the console', function()
     Kora.notify = { sendToAll = function(payload) broadcasts[#broadcasts + 1] = payload end }
     local command = consoleCommands.kora_broadcast

@@ -728,6 +728,7 @@ local function openRoot(options)
     local navigation = {}
     local selectedPlayerActions = {}
     local selectedReportActions = {}
+    local selectedReportId
     local currentReportFilters = options and options.filters or { status = 'open' }
     local sectionsById = {}
     for _, section in ipairs(SECTIONS) do sectionsById[section.id] = section end
@@ -865,15 +866,19 @@ local function openRoot(options)
         return { update = { navigation = navigation }, navigate = { viewId = 'players', tabId = tab.id, replace = true } }
     end
 
-    local function showReportsInShell(filters)
+    ---`quiet` is a background reload: no error toast, and it gives way if a report
+    ---was opened while the queue was loading.
+    local function showReportsInShell(filters, quiet)
         local view = findView('reports')
         if not view then return {} end
         currentReportFilters = filters or currentReportFilters
         local rows, err = Kora.callback.trigger('qbadmin:menuReports', currentReportFilters)
+        if quiet and selectedReportId then return {} end
         if not rows then
-            Kora.notify.send({ type = 'error', message = err or 'Could not load reports' })
+            if not quiet then Kora.notify.send({ type = 'error', message = err or 'Could not load reports' }) end
             return {}
         end
+        selectedReportId = nil
         local tab = sectionTab(sectionsById.reports)
         tab.badge = #rows
         view.defaultTab = tab.id
@@ -903,10 +908,13 @@ local function openRoot(options)
         return { update = { navigation = navigation }, navigate = { viewId = 'reports', tabId = tab.id, replace = true } }
     end
 
-    local function showSelectedReport(id)
+    ---`quiet` is a background reload of the report already open: no error toast,
+    ---and it gives way if the user went Back or opened another report meanwhile.
+    local function showSelectedReport(id, quiet)
         local report, err = Kora.callback.trigger('qbadmin:menuReport', id)
+        if quiet and selectedReportId ~= tostring(id) then return {} end
         if not report then
-            Kora.notify.send({ type = 'error', message = err or 'Could not load report' })
+            if not quiet then Kora.notify.send({ type = 'error', message = err or 'Could not load report' }) end
             return {}
         end
         local view = findView('reports')
@@ -969,7 +977,7 @@ local function openRoot(options)
         }
         for index, reply in ipairs(report.messages or {}) do
             conversation[#conversation + 1] = {
-                id = 'reply-' .. index, title = reply.author_name, description = reply.message,
+                id = 'reply-' .. (reply.id or index), title = reply.author_name, description = reply.message,
                 timestamp = formatTimestamp(reply.created_at), icon = 'message-square',
                 tone = reply.author_role == 'staff' and 'success' or 'neutral',
                 metadata = { { label = 'Role', value = reply.author_role or 'unknown' } },
@@ -1025,7 +1033,39 @@ local function openRoot(options)
         end
         view.defaultTab = 'overview'
         view.tabs = tabs
+        selectedReportId = tostring(report.id)
         return { update = { navigation = navigation }, navigate = { viewId = 'reports', tabId = 'overview' } }
+    end
+
+    -- Server pushes (qbadmin:client:reportChanged) land here. The open report's
+    -- conversation reloads when it is the one that changed, otherwise the queue
+    -- reloads. Only `update` is applied -- never `navigate` -- so the staff
+    -- member keeps their tab, and the shell keeps any half-typed reply in its
+    -- form drafts. Bursts are folded into one reload at a time.
+    local liveRefreshing, livePending = false, {}
+    local function refreshReportsLive(pending)
+        local result
+        if selectedReportId then
+            if not pending[selectedReportId] then return end
+            result = showSelectedReport(selectedReportId, true)
+        else
+            result = showReportsInShell(currentReportFilters, true)
+        end
+        if result.update and Kora.nui.updateApp then Kora.nui.updateApp(appId, result.update) end
+    end
+
+    Admin.refreshOpenReports = function(changedId)
+        if Kora.nui.isAppOpen and not Kora.nui.isAppOpen(appId) then return end
+        livePending[tostring(changedId)] = true
+        if liveRefreshing then return end
+        liveRefreshing = true
+        while next(livePending) do
+            local pending = livePending
+            livePending = {}
+            local ok, refreshErr = pcall(refreshReportsLive, pending)
+            if not ok then print(('^1[qbadmin]^7 live report refresh failed: %s'):format(tostring(refreshErr))) end
+        end
+        liveRefreshing = false
     end
 
     -- Selecting a row is the player-first workflow.  It exposes every
@@ -1365,6 +1405,10 @@ end
 
 RegisterNetEvent('qbadmin:client:refreshMenuPlayerState', function(targetSrc)
     if Admin.refreshSelectedPlayerState then Admin.refreshSelectedPlayerState(targetSrc) end
+end)
+
+RegisterNetEvent('qbadmin:client:reportChanged', function(id)
+    if Admin.refreshOpenReports then Admin.refreshOpenReports(id) end
 end)
 
 RegisterNetEvent('qbadmin:client:openReports', function(level, filters)

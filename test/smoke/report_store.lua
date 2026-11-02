@@ -94,6 +94,8 @@ Admin = {
     end,
 }
 function GetPlayerName(src) return players[src] and players[src].name end
+local pushes = {}
+function TriggerClientEvent(name, target, ...) pushes[#pushes + 1] = { name = name, target = target, args = { ... } } end
 function AddEventHandler() end
 function SetTimeout() end
 
@@ -160,6 +162,50 @@ test('queryReports can limit a listing to one reporter licence and adds age/subj
     truthy(found, 'licence passed as a bound parameter')
     local rows = Admin.queryReports({ status = 'all' })
     truthy(rows[1].category and rows[1].subject and rows[1].age, 'rows are decorated for list views')
+end)
+
+test('every report change is pushed to the staff viewing reports, and always to the actor', function()
+    pushes = {}
+    local staff = { [7] = true, [8] = true }
+    local previousPlayers, previousCheck = exports.kora_core.getPlayers, Admin.checkLevel
+    exports.kora_core.getPlayers = function() return { 7, 8, 9, 10 } end
+    Admin.checkLevel = function(src) return staff[src] == true end
+    Admin.reportCooldowns = {}
+    players[8] = { citizenid = 'STAFF2', name = 'Support Two' }
+
+    local function targets()
+        local list = {}
+        for _, push in ipairs(pushes) do
+            equal(push.name, 'qbadmin:client:reportChanged', 'push event name')
+            list[#list + 1] = push.target .. ':' .. tostring(push.args[1])
+        end
+        pushes = {}
+        table.sort(list)
+        return table.concat(list, ',')
+    end
+
+    local report = assert(Admin.createReport(9, 'bug', 'Live update check'))
+    equal(targets(), ('7:%s,8:%s'):format(report.id, report.id), 'a new report reaches every staff member, not players')
+    equal(Admin.replyToReport(7, report.id, 'Staff reply'), true, 'staff reply')
+    equal(targets(), ('7:%s,8:%s'):format(report.id, report.id), 'a staff reply reaches the sender and other staff')
+    equal(Admin.replyToReport(9, report.id, 'Reporter reply'), true, 'reporter reply')
+    equal(targets(), ('7:%s,8:%s'):format(report.id, report.id), 'a reporter reply reaches staff')
+    equal(Admin.claimReport(8, report.id), true, 'claim')
+    equal(targets(), ('7:%s,8:%s'):format(report.id, report.id), 'a claim reaches staff')
+    equal(Admin.setReportStatus(8, report.id, 'resolved', 'Done'), true, 'resolve')
+    equal(targets(), ('7:%s,8:%s'):format(report.id, report.id), 'a status change reaches staff')
+    equal(Admin.replyToReport(7, report.id, 'Too late'), false, 'a closed report rejects replies')
+    equal(targets(), '', 'a rejected reply pushes nothing')
+
+    Config.reports.liveUpdates = false
+    equal(Admin.setReportStatus(8, report.id, 'open'), true, 'reopen')
+    equal(targets(), ('8:%s'):format(report.id), 'with liveUpdates off only the actor is refreshed')
+    equal(Admin.replyToReport(7, report.id, 'Back again'), true, 'reply after reopen')
+    equal(targets(), ('7:%s'):format(report.id), 'the replying staff member still sees their own reply')
+    Config.reports.liveUpdates = true
+
+    exports.kora_core.getPlayers, Admin.checkLevel = previousPlayers, previousCheck
+    players[8] = nil
 end)
 
 print(('qbadmin report store: %d passed, %d failed'):format(passed, failed))

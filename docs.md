@@ -232,6 +232,13 @@ replying, resolving, dismissing, reopening, and player shortcuts. Players
 receive status and staff-reply notifications and can read or continue their
 own conversation with `/reportstatus <id>` and `/reportreply <id> <message>`.
 
+The Reports screen updates while it is open: after **Reply to Reporter** the
+conversation shows the new message at once, and new reports, the reporter's own
+replies, claims and status changes made by other staff appear without reopening.
+The queue or the open report reloads in the background; the selected tab and any
+reply being typed are kept. `Config.reports.liveUpdates = false` limits the push
+to the staff member who made the change.
+
 ### Development workspace
 
 The **Development → Builders** tab is available at

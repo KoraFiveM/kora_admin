@@ -190,6 +190,10 @@ Config.reports = {
     -- not staff only ever get a chat list of their own reports. enabled = false removes /reports.
     command = { enabled = true, ui = true },
     maxMessageLength = 1000, -- applies to initial reports, replies, and staff resolution notes
+    -- true: every staff member with the Reports screen open sees new reports, replies (including
+    -- the reporter's own), claims and status changes as they happen. false: only the staff member
+    -- who made a change sees the screen update; others see it after reopening or going Back.
+    liveUpdates = true,
 }
 
 Config.roles = {

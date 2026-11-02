@@ -98,10 +98,28 @@ function Admin.reporterSource(row)
     end
 end
 
-local function notifyStaff(payload)
+local function eachStaff(fn)
     for _, playerSrc in ipairs(exports.kora_core:getPlayers()) do
-        if Admin.checkLevel(playerSrc, Config.reports.staffLevel) then Kora.notify.send(playerSrc, payload) end
+        if Admin.checkLevel(playerSrc, Config.reports.staffLevel) then fn(playerSrc) end
     end
+end
+
+local function notifyStaff(payload)
+    eachStaff(function(playerSrc) Kora.notify.send(playerSrc, payload) end)
+end
+
+---Tell staff clients that report `id` changed (new report, reply, claim, status)
+---so an open Reports screen reloads it. The staff member who made the change
+---always gets the push, which is what refreshes their own conversation after
+---"Reply to Reporter"; everyone else only when Config.reports.liveUpdates is on.
+---@param id any
+---@param actor integer|nil
+local function broadcastReportChange(id, actor)
+    eachStaff(function(playerSrc)
+        if playerSrc == actor or Config.reports.liveUpdates then
+            TriggerClientEvent('qbadmin:client:reportChanged', playerSrc, id)
+        end
+    end)
 end
 
 local function notifyReporter(row, payload)
@@ -146,6 +164,7 @@ function Admin.createReport(src, typeId, message)
         message = ('%s: %s'):format(reporterName, message),
         type = definition.id == 'exploit' and 'error' or 'info',
     })
+    broadcastReportChange(id, src)
     return report or { id = id, type = definition.id, status = 'open', reporter_name = reporterName, message = message }
 end
 
@@ -250,6 +269,7 @@ function Admin.replyToReport(src, id, message)
     else
         notifyStaff({ title = ('Report #%s updated'):format(row.id), message = ('%s: %s'):format(name, message), type = 'info' })
     end
+    broadcastReportChange(row.id, src)
     return true
 end
 
@@ -270,6 +290,7 @@ function Admin.claimReport(src, id)
     if updated == nil then return false, dbErr or 'could not claim report' end
     Admin.log(src, 'report_claim', reportTarget(row), { reportId = row.id })
     notifyReporter(row, { title = ('Report #%s claimed'):format(row.id), message = ('%s is handling your report.'):format(name), type = 'info' })
+    broadcastReportChange(row.id, src)
     return true
 end
 
@@ -304,6 +325,7 @@ function Admin.setReportStatus(src, id, status, note)
         message = note or (status == 'open' and ('Reopened by %s'):format(actorName) or ('Updated by %s'):format(actorName)),
         type = status == 'dismissed' and 'error' or 'info',
     })
+    broadcastReportChange(row.id, src)
     return true
 end
 
