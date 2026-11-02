@@ -275,6 +275,23 @@ local function toggleVariant(enabled)
     return enabled and 'outline' or 'primary'
 end
 
+-- The builder tools are gated on kora_core development mode when
+-- Config.developer.requireDevMode is set. Say so on the button instead of
+-- leaving a silent grey one, and offer a self toggle in the same section.
+local function devGateActive()
+    return Config.developer.requireDevMode == true and not Admin.isDevMode()
+end
+
+local function gatedLabel(label)
+    return devGateActive() and (label .. ' (turn Development Mode on first)') or label
+end
+
+local DEV_TOOLS = {
+    ['developer:entitypicker'] = 'Inspect Entity',
+    ['developer:devplacement'] = 'Place Entity / Model',
+    ['developer:devzone'] = 'Create Zone',
+}
+
 local function adminDutyLabel()
     return toggleLabel('Admin Duty', Admin.isAdminDuty())
 end
@@ -333,6 +350,14 @@ local function refreshAppActionStates()
                         action.label = toggleLabel('Noclip', active)
                         action.variant = toggleVariant(active)
                         action.state = active
+                    elseif action.id == 'developer:selfdevmode' then
+                        local active = Admin.isDevMode()
+                        action.label = toggleLabel('Development Mode', active)
+                        action.variant = toggleVariant(active)
+                        action.state = active
+                    elseif DEV_TOOLS[action.id] then
+                        action.label = gatedLabel(DEV_TOOLS[action.id])
+                        action.disabled = devGateActive() or not Admin.hasLevel(Config.developer.menuLevel)
                     elseif action.id == 'teleport:spectateStop' then
                         action.state = Admin.isSpectating()
                         action.disabled = not Admin.isSpectating()
@@ -660,24 +685,39 @@ local SECTIONS = {
         description = 'Inspect world entities, place models, build zones, and clean up entities created during your current session.',
         items = {
             {
-                id = 'entitypicker', label = 'Inspect Entity', icon = 'scan-search',
+                id = 'selfdevmode',
+                label = function() return toggleLabel('Development Mode', Admin.isDevMode()) end,
+                variant = function() return toggleVariant(Admin.isDevMode()) end,
+                state = function() return Admin.isDevMode() end,
+                icon = 'hammer', level = 'admin',
+                visible = function() return Config.developer.requireDevMode == true end,
+                run = appAction(function()
+                    runCommand('devmode', tostring(Kora.cache.serverId()))
+                    -- kora_core mirrors the new state to this client asynchronously.
+                    SetTimeout(750, function()
+                        if Admin.refreshAppActionStates then Admin.refreshAppActionStates() end
+                    end)
+                end),
+            },
+            {
+                id = 'entitypicker', label = function() return gatedLabel('Inspect Entity') end, icon = 'scan-search',
                 description = 'Aim at a prop, ped, or vehicle to see and copy its real model name',
                 level = Config.developer.menuLevel,
-                disabled = function() return Config.developer.requireDevMode and not Admin.isDevMode() end,
+                disabled = devGateActive,
                 run = withFields('entitypicker', nil, nil, true),
             },
             {
-                id = 'devplacement', label = 'Place Entity / Model', icon = 'box',
+                id = 'devplacement', label = function() return gatedLabel('Place Entity / Model') end, icon = 'box',
                 description = 'Position any valid ped, vehicle, or object and copy its transform',
                 level = Config.developer.menuLevel,
-                disabled = function() return Config.developer.requireDevMode and not Admin.isDevMode() end,
+                disabled = devGateActive,
                 run = withFields('devplacement', function() return { placementModelField() } end, 'Entity Placement Creator', true),
             },
             {
-                id = 'devzone', label = 'Create Zone', icon = 'map',
+                id = 'devzone', label = function() return gatedLabel('Create Zone') end, icon = 'map',
                 description = 'Open kora_lib’s box, sphere, or polygon creator',
                 level = Config.developer.menuLevel,
-                disabled = function() return Config.developer.requireDevMode and not Admin.isDevMode() end,
+                disabled = devGateActive,
                 run = withFields('devzone', function() return { zoneTypeField() } end, 'Zone Creator', true),
             },
             { id = 'deleteLastEntity', actionGroup = 'self', label = 'Delete Last Spawned Entity', icon = 'trash-2', variant = 'destructive', level = 'admin',
