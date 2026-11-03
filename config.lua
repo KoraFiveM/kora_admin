@@ -82,6 +82,8 @@ Config.noclip = {
     baseSpeed = 2.0,       -- metres/tick at normal speed
     fastMultiplier = 3.0,  -- speed multiplier while Shift is held
     slowMultiplier = 0.35, -- precision speed multiplier while Alt is held
+    adMode = 'strafe',     -- what A and D do: 'strafe' slides sideways relative to the camera, 'turn' yaws the view
+    turnSpeed = 2.0,       -- degrees/frame the view turns while A or D is held and adMode is 'turn'
 }
 
 Config.world = {
@@ -221,4 +223,19 @@ Config.keybind = {
 }
 
 -- Registers this resource-owned configuration with kora_lib without changing its public Config table.
-if Kora and Kora.config and Kora.config.adopt then Config = Kora.config.adopt(Config) end
+if Kora and Kora.config and Kora.config.adopt then
+    Config = Kora.config.adopt(Config)
+    if Kora.config.extend then
+        Kora.config.extend({
+            noclip = {
+                adMode = Kora.config.enum('strafe', { options = {
+                    { value = 'strafe', label = 'Strafe sideways' },
+                    { value = 'turn', label = 'Turn the view' },
+                }, live = true, label = 'Noclip A / D behaviour',
+                    description = 'Strafe slides left/right relative to the camera heading; Turn rotates the view on the spot. The mouse always looks around.' }),
+                turnSpeed = Kora.config.number(2.0, { live = true, min = 0.1, max = 10.0, label = 'Noclip turn speed',
+                    description = 'Degrees per frame the view turns while A or D is held and A / D behaviour is Turn.' }),
+            },
+        })
+    end
+end

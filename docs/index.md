@@ -394,7 +394,7 @@ ladder), optional `discordRoles`, `temporaryGrant`, and
 default `license`); `Config.ban.durationUnits`/`durationWords` (`30m`, `2h`,
 `7d`, `1w`, or `perm`); `Config.teleport` fade/collision timing and
 `waypointLaunchHeight`/`groundZAttempts`/`groundZRetryDelay` (the ground-snap
-algorithm used by `/tpm`, ported from txAdmin's own); `Config.noclip.baseSpeed`/`fastMultiplier`/`slowMultiplier`;
+algorithm used by `/tpm`, ported from txAdmin's own); `Config.noclip.baseSpeed`/`fastMultiplier`/`slowMultiplier`, and `adMode` (`strafe` default: A/D slide sideways relative to the camera; `turn`: A/D yaw the view, at `turnSpeed` degrees/frame);
 `Config.world.weatherTypes`, `timePresets` (the ordered `/time` preset words
 and their hour/minute -- change these to change what `night` means here) and
 `syncOnPlayerLoaded`; `Config.vehicle.spawnOffset` and
