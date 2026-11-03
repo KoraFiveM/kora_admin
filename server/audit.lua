@@ -2,7 +2,7 @@
 -- logEvent is an in-memory 500-entry ring buffer only (confirmed in
 -- kora_core/modules/logging/server.lua) -- not durable, not queryable later, so
 -- "who banned/kicked/teleported whom, when" needs kora_admin's own table.
--- Migrated via server/migrate.lua.
+-- Declared in server/schema.lua.
 
 ---@param actorSrc integer  -- 0 for console
 ---@param action string

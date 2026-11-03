@@ -339,7 +339,7 @@ its history (reason, who banned, original date) survives for `/adminlog`.
 
 ## Audit log
 
-`admin_logs` (migrated by `server/migrate.lua`, `sql/001_admin_logs.sql`) is
+`admin_logs` (declared in `server/schema.lua`, applied by `server/migrate.lua`) is
 the durable audit trail -- kora_core's own `logEvent` is an in-memory 500-entry
 ring buffer only, unsuitable for "who banned whom, when" lookups later.
 `/adminlog [action] [target] [page]` and the **Server → Audit Log** tab both

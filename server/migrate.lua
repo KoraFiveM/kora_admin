@@ -1,24 +1,4 @@
--- Runs kora_admin's own SQL migration at boot via kora_sql's migration runner.
--- Mirrors kora_core/modules/persistence/migrate.lua's pattern exactly, including
--- the checksum function -- no shared checksum utility exists in kora_lib/qbcore
--- to reuse (kora_core's own copy is private too), so this is consistent
--- duplication, not an oversight.
-
-local function fnv1a(str)
-    local hash = 0xCBF29CE484222325
-    local prime = 0x100000001B3
-    for i = 1, #str do
-        hash = hash ~ string.byte(str, i)
-        hash = (hash * prime) & 0xFFFFFFFFFFFFFFFF
-    end
-    return hash
-end
-
-local function checksum(str)
-    local a = fnv1a(str)
-    local b = fnv1a(str:reverse())
-    return ('%016x%016x'):format(a, b) .. string.rep('0', 32)
-end
+-- Declares kora_admin's tables at boot through kora_sql's schema handler.
 
 CreateThread(function()
     local ok = Kora.sql.ready(60000)
@@ -27,14 +7,15 @@ CreateThread(function()
         return
     end
 
-    local resource = GetCurrentResourceName()
-    local _, err = Kora.sql.migrateFiles(resource, {
-        { version = 1, name = 'admin_logs', file = 'sql/001_admin_logs.sql' },
-        { version = 2, name = 'admin_reports', file = 'sql/002_admin_reports.sql' },
-    }, checksum)
+    local reports, err = Kora.sql.ensureTables(QBAdminSchema)
     if err then
-        print(('^1[qbadmin:migrate]^7 migration failed: %s'):format(tostring(err)))
-    else
-        print('^2[qbadmin:migrate]^7 schema up to date.')
+        print(('^1[qbadmin:migrate]^7 schema failed: %s'):format(tostring(err)))
+        return
     end
+    for _, report in ipairs(reports or {}) do
+        for _, warning in ipairs(report.warnings or {}) do
+            print(('^3[qbadmin:migrate]^7 %s: %s'):format(tostring(report.table), tostring(warning)))
+        end
+    end
+    print('^2[qbadmin:migrate]^7 schema up to date.')
 end)

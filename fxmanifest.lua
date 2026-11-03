@@ -48,6 +48,7 @@ server_scripts {
     'server/audit.lua',
     'server/reports.lua',
     'server/menu_data.lua',
+    'server/schema.lua',
     'server/migrate.lua',
     'server/ban_enforcement.lua',
     'server/commands/player.lua',

@@ -28,7 +28,7 @@ ensure kora_core
 ensure kora_vehiclekeys
 ensure kora_admin
 ```
-kora_admin migrates its own `admin_logs` table (`sql/001_admin_logs.sql`) on
+kora_admin migrates its own `admin_logs` table (`server/schema.lua`) on
 first boot via kora_sql's migration runner — no manual schema import needed.
 
 Grant permission roles with ACE principals in `server.cfg` (`Support <
