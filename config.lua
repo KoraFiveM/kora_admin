@@ -144,6 +144,11 @@ Config.entityPicker = {
     closeKey = 'X', -- default for closing the active entity picker
 }
 
+Config.spectate = {
+    stopKey = 'BACK', -- default key that exits spectating (rebindable in FiveM settings; empty = unbound)
+    showHint = true,   -- show an on-screen "stop spectating" key hint while spectating
+}
+
 Config.medal = {
     -- Medal's public key is intentionally safe to distribute to clients. Set
     -- it here, or preferably add `setr qbadmin_medal_public_key "..."` to

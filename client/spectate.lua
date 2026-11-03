@@ -4,12 +4,15 @@
 -- immediately.
 
 local spectating = nil
+local hint = nil
 
 local function stop()
     if not spectating then return end
     NetworkSetInSpectatorMode(false, PlayerPedId())
     spectating = nil
     Admin.spectating = false
+    if hint then Kora.textui.hide(hint); hint = nil end
+    if Admin.refreshAppActionStates then Admin.refreshAppActionStates() end
 end
 
 local function start(targetSrc)
@@ -34,6 +37,9 @@ local function start(targetSrc)
     NetworkSetInSpectatorMode(true, ped)
     spectating = targetSrc
     Admin.spectating = true
+    if Config.spectate.showHint and not hint then
+        hint = Kora.textui.show('Stop spectating', { key = Config.spectate.stopKey ~= '' and Config.spectate.stopKey or nil, icon = 'eye-off' })
+    end
 end
 
 RegisterNetEvent('qbadmin:client:spectate', function(targetSrc)
@@ -41,9 +47,27 @@ RegisterNetEvent('qbadmin:client:spectate', function(targetSrc)
         stop()
         return
     end
+    -- Selecting Spectate on the player already being spectated toggles it off.
+    if spectating == targetSrc then
+        stop()
+        Kora.notify.send({ title = 'Admin', message = 'Stopped spectating', type = 'info' })
+        return
+    end
     start(targetSrc)
     if Admin.refreshAppActionStates then Admin.refreshAppActionStates() end
 end)
+
+Kora.keybind.add({
+    name = 'kora_admin_spectate_stop',
+    description = 'Admin: Stop Spectating',
+    defaultMapper = 'keyboard',
+    defaultKey = Config.spectate.stopKey,
+    onPressed = function()
+        if not spectating then return end
+        stop()
+        Kora.notify.send({ title = 'Admin', message = 'Stopped spectating', type = 'info' })
+    end,
+})
 
 AddEventHandler('onResourceStop', function(resourceName)
     if resourceName == GetCurrentResourceName() then stop() end
