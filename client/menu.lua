@@ -1360,6 +1360,11 @@ local function openRoot(options)
                 }
             end
         end
+        -- Keep the Online list as the first tab: the shell's header Back returns to the
+        -- point the profile was opened from (this list). Without it the target tab is
+        -- gone and the shell falls back to the profile's first tab, so Back seems dead.
+        local listTab = findTab(view, 'player')
+        if listTab then table.insert(tabs, 1, listTab) end
         view.defaultTab = 'overview'
         view.tabs = tabs
         Admin.refreshSelectedPlayerState = function(updatedTarget)
