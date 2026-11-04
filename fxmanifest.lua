@@ -36,7 +36,7 @@ files {
 
 -- Explicit, never globbed -- matches every sibling resource's own rationale.
 -- Helpers (permissions/target/response/audit) must load before any
--- commands/*.lua file that calls them; migrate.lua and ban_enforcement.lua
+-- commands/*.lua file that calls them; migrate.lua (schema setup) and ban_enforcement.lua
 -- have no such dependency and can load anywhere after core.lua.
 server_scripts {
     'server/config.lua',
