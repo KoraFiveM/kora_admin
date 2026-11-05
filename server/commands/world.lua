@@ -137,10 +137,10 @@ Admin.addCommand('adminlog', 'View the admin audit log', { { name = 'action' }, 
         local rows = Admin.queryLogs({ action = args[1], target = args[2], page = tonumber(args[3]) })
         if #rows == 0 then return Admin.respond(source, false, 'no matching log entries') end
 
-        local lines = {}
         for _, row in ipairs(rows) do
-            lines[#lines + 1] = ('%s | %s | %s -> %s | %s'):format(
-                tostring(row.created_at), row.action, row.actor_name, row.target_name or '-', row.details or '')
+            local epoch = tonumber(row.created_epoch)
+            local when = epoch and os.date('!%Y-%m-%d %H:%M:%S', math.floor(epoch)) or '-'
+            Admin.chat(source, ('%s | %s | %s -> %s | %s'):format(
+                when, row.action, row.actor_name, row.target_name or '-', row.details or ''))
         end
-        Admin.chat(source, table.concat(lines, '\n'))
     end, OPTS_ADMIN)

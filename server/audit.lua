@@ -58,7 +58,7 @@ function Admin.queryLogs(filters)
     local page = math.max(1, tonumber(filters.page) or 1)
     local offset = (page - 1) * pageSize
 
-    local sql = 'SELECT * FROM `admin_logs`'
+    local sql = 'SELECT *, UNIX_TIMESTAMP(`created_at`) AS `created_epoch` FROM `admin_logs`'
     if #where > 0 then sql = sql .. ' WHERE ' .. table.concat(where, ' AND ') end
     sql = sql .. ' ORDER BY `created_at` DESC LIMIT ? OFFSET ?'
     params[#params + 1] = pageSize

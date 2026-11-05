@@ -33,7 +33,15 @@ Admin.addCommand('reportstatus', 'View one of your reports and its replies', { {
         ('From %s: %s'):format(report.reporter_name, report.message),
     }
     for _, reply in ipairs(Admin.getReportMessages(report.id)) do
-        lines[#lines + 1] = ('[%s] %s: %s'):format(reply.created_at or '-', reply.author_name, reply.message)
+        local created = reply.created_at
+        if type(created) == 'number' then
+            if math.abs(created) >= 100000000000 then created = created / 1000 end
+            local ok, formatted = pcall(os.date, '!%Y-%m-%d %H:%M:%S', math.floor(created))
+            created = ok and formatted or tostring(reply.created_at)
+        elseif type(created) ~= 'string' or created == '' then
+            created = '-'
+        end
+        lines[#lines + 1] = ('[%s] %s: %s'):format(created, tostring(reply.author_name or '-'), tostring(reply.message or ''))
     end
     if report.resolution then lines[#lines + 1] = 'Resolution: ' .. report.resolution end
     Admin.chat(source, table.concat(lines, '\n'))

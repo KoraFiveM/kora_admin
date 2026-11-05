@@ -49,12 +49,19 @@ Config.heal = {
     restoreNeeds = true,
 }
 
+-- /revive also sets hunger and thirst to 100. Default false keeps revive health-only.
+Config.HealRestoreNeeds = false
+
 Config.announcement = {
     -- /announce (and the admin-menu Send Announcement action) plays a short frontend
     -- alert for every player when the announcement arrives. Kora.notify is silent,
     -- so this is the only sound. Set enabled = false for silent announcements.
     -- name/set is any stock GTA frontend sound (PlaySoundFrontend).
     sound = { enabled = true, name = "CHALLENGE_UNLOCKED", set = "HUD_AWARDS" },
+}
+
+Config.moderation = {
+    blockSelfTarget = true, -- /warn, /kick and /ban refuse when the target is the staff member running them
 }
 
 Config.ban = {
@@ -211,6 +218,11 @@ Config.roles = {
     -- List one job per label, first in registry order wins. Hides placeholder
     -- duplicates such as the upstream qb-core mechanic2/mechanic3 "LS Customs".
     hideDuplicateLabels = true,
+}
+
+Config.menu = {
+    -- false: opening a player profile adds no header "<" arrow; use the Online tab or "Back to Online Players". true: old arrow.
+    playerProfileHeaderBack = false,
 }
 
 Config.keybind = {

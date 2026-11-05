@@ -109,11 +109,17 @@ Kora.callback.register('qbadmin:menuAuditLog', function(src, filters)
     -- The client may choose filters for convenience, but queryLogs still
     -- parameterises all values and permission is decided here, on the server.
     filters = type(filters) == 'table' and filters or {}
-    return Admin.queryLogs({
+    local rows = Admin.queryLogs({
         action = type(filters.action) == 'string' and filters.action ~= '' and filters.action or nil,
         target = type(filters.target) == 'string' and filters.target ~= '' and filters.target or nil,
         page = math.max(1, tonumber(filters.page) or 1),
     })
+    -- Client Lua has no `os`, so format the time here (UTC, same as /adminlog).
+    for _, row in ipairs(rows) do
+        local epoch = tonumber(row.created_epoch)
+        row.created_text = epoch and os.date('!%Y-%m-%d %H:%M:%S', math.floor(epoch)) or nil
+    end
+    return rows
 end)
 
 Kora.callback.register('qbadmin:menuReports', function(src, filters)

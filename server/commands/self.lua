@@ -20,10 +20,19 @@ Admin.addCommand('vec4', 'Copy your current vector4 coordinates to the clipboard
 end, OPTS_MOD)
 
 Admin.addCommand('health', 'Set your own health percentage (0-100, default: 100)', { { name = 'percentage' } }, false, function(source, args)
-    TriggerClientEvent('qbadmin:client:setHealth', source, tonumber(args[1]))
+    local pct = tonumber(args[1])
+    -- Downed state lives in ambulance metadata, which the client relay can't
+    -- clear; non-zero health on a downed player must revive like /selfrevive.
+    if (pct == nil or pct > 0) and (exports.kora_core:getMetaData(source, 'isdead') or exports.kora_core:getMetaData(source, 'inlaststand')) then
+        exports.kora_core:setMetaData(source, 'isdead', false)
+        exports.kora_core:setMetaData(source, 'inlaststand', false)
+        TriggerClientEvent('qbadmin:client:revive', source)
+        Admin.fullReviveAmbulance(source)
+    end
+    TriggerClientEvent('qbadmin:client:setHealth', source, pct)
 end, OPTS_MOD)
 
-Admin.addCommand('armor', 'Set your own armor (default: full)', { { name = 'value' } }, false, function(source, args)
+Admin.addCommand('armor', 'Set your own armor percentage (0-100, default: 100)', { { name = 'percentage' } }, false, function(source, args)
     TriggerClientEvent('qbadmin:client:setArmor', source, tonumber(args[1]))
 end, OPTS_MOD)
 

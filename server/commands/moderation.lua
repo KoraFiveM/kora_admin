@@ -26,6 +26,9 @@ end
 Admin.addCommand('warn', 'Warn a player', { { name = 'id' }, { name = 'reason' } }, true, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
+    if Config.moderation.blockSelfTarget and targetSrc == source then
+        return Admin.respond(source, false, 'you cannot warn yourself')
+    end
     local reason = table.concat(args, ' ', 2)
     if reason == '' then return Admin.respond(source, false, 'a reason is required') end
 
@@ -57,6 +60,9 @@ Admin.addCommand('kick', 'Kick a player', { { name = 'id', help = 'server id, or
     function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
         if not targetSrc then return Admin.respond(source, false, err) end
+        if Config.moderation.blockSelfTarget and targetSrc == source then
+            return Admin.respond(source, false, 'you cannot kick yourself')
+        end
         local reason = table.concat(args, ' ', 2)
         if reason == '' then reason = 'Kicked by an administrator' end
 
@@ -69,6 +75,12 @@ Admin.addCommand('ban', 'Ban a player, online or offline', { { name = 'target' }
     function(source, args)
         local citizenid, name, identifiers, resolveErr = Admin.resolveOfflineTarget(args[1])
         if not citizenid then return Admin.respond(source, false, resolveErr) end
+        if Config.moderation.blockSelfTarget and source ~= 0 then
+            local actor = exports.kora_core:getPlayer(source)
+            if actor and actor.citizenid == citizenid then
+                return Admin.respond(source, false, 'you cannot ban yourself')
+            end
+        end
 
         local expire, durationErr = parseDuration(args[2])
         if durationErr then return Admin.respond(source, false, durationErr) end
@@ -173,6 +185,10 @@ Admin.addCommand('revive', 'Revive a downed player', { { name = 'id' } }, false,
     exports.kora_core:setMetaData(targetSrc, 'isdead', false)
     exports.kora_core:setMetaData(targetSrc, 'inlaststand', false)
     Admin.fullReviveAmbulance(targetSrc)
+    if Config.HealRestoreNeeds then
+        exports.kora_core:setMetaData(targetSrc, 'hunger', 100)
+        exports.kora_core:setMetaData(targetSrc, 'thirst', 100)
+    end
     Admin.log(source, 'revive', data)
     Admin.respond(source, true, ('Revived %s'):format(data.name))
 end, OPTS_MOD)

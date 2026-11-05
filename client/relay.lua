@@ -127,6 +127,17 @@ RegisterNetEvent('qbadmin:client:enterVehicle', function(netId, seat)
         if not NetworkDoesEntityExistWithNetworkId(netId) then return end
         local vehicle = NetworkGetEntityFromNetworkId(netId)
         if vehicle == 0 or not DoesEntityExist(vehicle) then return end
+        -- The server-created vehicle can still be migrating to this client.
+        -- Warping in before that settles leaves vehicle listeners (HUD, core
+        -- vehicle events) holding a handle that stops resolving a tick later.
+        attempts = 0
+        while not (DoesEntityExist(vehicle) and NetworkHasControlOfEntity(vehicle)) and attempts < 20 do
+            if DoesEntityExist(vehicle) then NetworkRequestControlOfEntity(vehicle) end
+            Wait(50)
+            attempts = attempts + 1
+            vehicle = NetworkGetEntityFromNetworkId(netId)
+        end
+        if vehicle == 0 or not DoesEntityExist(vehicle) then return end
         SetVehicleHasBeenOwnedByPlayer(vehicle, true)
         SetVehicleNeedsToBeHotwired(vehicle, false)
         SetVehicleFuelLevel(vehicle, 100.0)

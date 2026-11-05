@@ -776,6 +776,7 @@ end
 local function formatTimestamp(value)
     if type(value) == 'string' and value ~= '' then return value end
     if type(value) ~= 'number' then return '-' end
+    if not os then return tostring(value) end -- FiveM client Lua has no `os`
 
     local seconds = value
     if math.abs(seconds) >= 100000000000 then seconds = seconds / 1000 end
@@ -885,7 +886,7 @@ local function openRoot(options)
         for _, row in ipairs(rows) do
             tableRows[#tableRows + 1] = {
                 action = row.action or 'unknown', actor = row.actor_name or 'unknown',
-                target = row.target_name or '-', created = formatTimestamp(row.created_at), details = row.details or '',
+                target = row.target_name or '-', created = formatTimestamp(row.created_text or row.created_at), details = row.details or '',
             }
         end
         blocks[#blocks + 1] = {
@@ -1360,9 +1361,8 @@ local function openRoot(options)
                 }
             end
         end
-        -- Keep the Online list as the first tab: the shell's header Back returns to the
-        -- point the profile was opened from (this list). Without it the target tab is
-        -- gone and the shell falls back to the profile's first tab, so Back seems dead.
+        -- Keep the Online list as the first tab: it is the one-click way back to the
+        -- list, and the old header Back (Config.menu.playerProfileHeaderBack) targets it.
         local listTab = findTab(view, 'player')
         if listTab then table.insert(tabs, 1, listTab) end
         view.defaultTab = 'overview'
@@ -1372,7 +1372,11 @@ local function openRoot(options)
             local refreshed = showSelectedPlayer({ id = target })
             if refreshed.update and Kora.nui.updateApp then Kora.nui.updateApp('qbadmin:menu', refreshed.update) end
         end
-        return { update = { navigation = navigation }, navigate = { viewId = 'players', tabId = 'overview' } }
+        -- The shell's header "<" is its own history, not scoped to this view: it stays on
+        -- Reports/Server and vanishes after one use while the profile tabs remain. Replace
+        -- instead so no stray, dead arrow is left behind.
+        local headerBack = Config.menu and Config.menu.playerProfileHeaderBack == true
+        return { update = { navigation = navigation }, navigate = { viewId = 'players', tabId = 'overview', replace = not headerBack } }
     end
 
     -- Seed the live-data workspaces before registration so opening the
