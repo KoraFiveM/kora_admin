@@ -207,6 +207,9 @@ end
 function PlayerPedId() return 1 end
 function GetEntityHeading() return 90.0 end
 function GetGameTimer() return 0 end
+local drawnRects = {}
+function GetAspectRatio() return 16 / 9 end
+function DrawRect(x, y, w, h, r, g, b, a) drawnRects[#drawnRects + 1] = { x = x, y = y, w = w, h = h, g = g } end
 
 dofile('client/core.lua')
 Admin.level = Config.developer.menuLevel
@@ -266,6 +269,8 @@ end)
 test('entity picker displays and copies the real prop archetype name', function()
     netEvents['qbadmin:client:startEntityPicker']()
     truthy(textUi.text:find('prop_actual_map_name', 1, true), 'HUD should prefer the game archetype name')
+    local dot = drawnRects[#drawnRects]
+    truthy(dot and dot.x == 0.5 and dot.y == 0.5, 'a centre aim dot is drawn while the picker runs')
 
     keybinds.qbadmin_entitypicker_copy.onPressed()
     equal(copiedText, 'prop_actual_map_name', 'copy binding should copy the real prop name')

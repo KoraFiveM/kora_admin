@@ -17,7 +17,9 @@ Admin.addCommand('report', 'Send a report to server staff', {
 }, true, function(source, args)
     local report, err = Admin.createReport(source, args[1], table.concat(args, ' ', 2))
     if not report then return Admin.respond(source, false, err) end
-    Admin.respond(source, true, ('Report #%s submitted. Staff have been notified.'):format(report.id), { title = 'Report sent' })
+    local chat = Admin.reportChat()
+    local hint = chat and chat.playerUi ~= false and ' Use /reports to chat with staff.' or ''
+    Admin.respond(source, true, ('Report #%s submitted. Staff have been notified.%s'):format(report.id, hint), { title = 'Report sent' })
 end, OPTS_USER)
 
 Admin.addCommand('reportstatus', 'View one of your reports and its replies', { { name = 'id' } }, true, function(source, args)
@@ -33,18 +35,19 @@ Admin.addCommand('reportstatus', 'View one of your reports and its replies', { {
         ('From %s: %s'):format(report.reporter_name, report.message),
     }
     for _, reply in ipairs(Admin.getReportMessages(report.id)) do
-        local created = reply.created_at
+        local created = tonumber(reply.created_epoch) or reply.created_at
         if type(created) == 'number' then
             if math.abs(created) >= 100000000000 then created = created / 1000 end
             local ok, formatted = pcall(os.date, '!%Y-%m-%d %H:%M:%S', math.floor(created))
-            created = ok and formatted or tostring(reply.created_at)
+            created = ok and formatted or '-'
         elseif type(created) ~= 'string' or created == '' then
             created = '-'
         end
         lines[#lines + 1] = ('[%s] %s: %s'):format(created, tostring(reply.author_name or '-'), tostring(reply.message or ''))
     end
     if report.resolution then lines[#lines + 1] = 'Resolution: ' .. report.resolution end
-    Admin.chat(source, table.concat(lines, '\n'))
+    -- Report text is player/staff input and chat renders markup, so neutralise brackets.
+    Admin.chat(source, Admin.chatSafe(table.concat(lines, '\n')))
 end, OPTS_USER)
 
 Admin.addCommand('reportreply', 'Reply to your report (staff may reply to any report)', {
@@ -68,6 +71,10 @@ if Config.reports.command.enabled then
         if not staff then
             filters.license = exports.kora_core:primary(source)
             if not filters.license then return Admin.respond(source, false, 'you are not logged in') end
+            local chat = Admin.reportChat()
+            if chat and chat.playerUi ~= false and source ~= 0 and not Admin.commandContext(source) then
+                return TriggerClientEvent('qbadmin:client:openMyReports', source, tonumber(args[1]))
+            end
             filters.status = filters.status or 'all'
         else
             filters.status = filters.status or 'open'

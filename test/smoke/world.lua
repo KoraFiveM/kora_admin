@@ -289,6 +289,7 @@ function GetClockMinutes() return clockMinute end
 dofile('client/core.lua')
 Admin.level = 'god'
 dofile('client/development.lua')
+dofile('client/report_chat.lua')
 dofile('client/menu.lua')
 
 local function findView(definition, id)
@@ -640,6 +641,9 @@ test('Set Job grades for mechanic and EMS jobs survive the trip to the NUI', fun
 end)
 
 test('Reports list, detail, conversation, and management stay in the app shell', function()
+    -- The legacy timeline + Manage > Reply path (Config.reports.chat.enabled = false).
+    local chatWas = Config.reports.chat.enabled
+    Config.reports.chat.enabled = false
     local createdAt = 1788744746000
     local repliedAt = 1788744806
     Kora.callback.trigger = function(name)
@@ -705,6 +709,7 @@ test('Reports list, detail, conversation, and management stay in the app shell',
     local queue = findTab(reportWorkspace, 'reports').content.blocks[#findTab(reportWorkspace, 'reports').content.blocks]
     truthy(queue.searchable and queue.pageSize == 12, 'the restored report queue is searchable and paged')
     truthy(queue.rows[1].status.badge, 'report status uses a rich AppShell badge cell')
+    Config.reports.chat.enabled = chatWas
 end)
 
 test('/reports opens a dedicated Reports app with the existing queue handlers', function()
@@ -728,6 +733,8 @@ test('/reports opens a dedicated Reports app with the existing queue handlers', 
 end)
 
 test('the open Reports screen reloads live without losing the selected report', function()
+    local chatWas = Config.reports.chat.enabled
+    Config.reports.chat.enabled = false
     local messages = { { id = 1, author_name = 'Support', author_role = 'staff', message = 'Looking into it', created_at = 1788744806 } }
     local failing, toasts = false, 0
     Kora.callback.trigger = function(name)
@@ -799,6 +806,125 @@ test('the open Reports screen reloads live without losing the selected report', 
     equal(#updates, 2, 'nothing is pushed once the Reports screen is closed')
 
     Kora.nui.isAppOpen, Kora.nui.updateApp, Kora.notify.send = nil, previousUpdate, previousNotify
+    Config.reports.chat.enabled = chatWas
+end)
+
+test('with the live chat the report opens on a chat block whose composer sends through the callback', function()
+    local messages = { { id = 5, author_name = 'Citizen', author_role = 'player', message = 'still <b>stuck</b>', created_text = '2026-11-06 10:00 UTC', unread = true } }
+    local sent, liveFlags, sendError = {}, {}, nil
+    local previousTrigger, previousUpdate = Kora.callback.trigger, Kora.nui.updateApp
+    Kora.callback.trigger = function(name, a, b)
+        if name == 'qbadmin:menuReports' then
+            return { { id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen', category = 'Bug', subject = 'Stuck', age = '1m', unread = 2 } }
+        end
+        if name == 'qbadmin:menuReport' then
+            liveFlags[#liveFlags + 1] = type(b) == 'table' and b.live
+            return { id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen', message = 'Stuck', created_text = '2026-11-06 09:59 UTC', messages = messages }
+        end
+        if name == 'qbadmin:reportChatSend' then
+            sent[#sent + 1] = { id = a, message = b }
+            if sendError then return nil, sendError end
+            messages[#messages + 1] = { id = 6, author_name = 'Support', author_role = 'staff', message = b, created_text = '2026-11-06 10:01 UTC' }
+            return true
+        end
+        return {}
+    end
+    local updates = {}
+    Kora.nui.updateApp = function(id, update) updates[#updates + 1] = { id = id, update = update } end
+
+    netEvents['qbadmin:client:openReports']('support', { status = 'open' })
+    local queueTab = findTab(findView(menuPayload, 'reports'), 'reports')
+    local queue = queueTab.content.blocks[#queueTab.content.blocks]
+    local hasUnread
+    for _, column in ipairs(queue.columns) do if column.key == 'unread' then hasUnread = true end end
+    truthy(hasUnread, 'the queue has an unread column')
+    equal(queue.rows[1].unread.label, '2', 'unread count shown as a badge')
+
+    menuPayload.onAction('reports:select', { itemId = '42' })
+    equal(liveFlags[#liveFlags], false, 'opening a report is not a live refresh, so unread is flagged')
+    local view = findView(menuPayload, 'reports')
+    local chat, management
+    for _, tab in ipairs(view.tabs) do
+        for _, block in ipairs(tab.content.blocks) do
+            if block.type == 'chat' then chat = block end
+            if block.id == 'selected-report-management' then management = block end
+        end
+    end
+    truthy(chat, 'the conversation is a chat block')
+    equal(#chat.messages, 2, 'the report itself and the reply')
+    equal(chat.messages[2].text, 'still <b>stuck</b>', 'message text is passed as data')
+    equal(chat.messages[2].unread, true, 'unread flag forwarded')
+    equal(chat.messages[2].mine, false, 'player messages are on the other side for staff')
+    equal(chat.messages[2].timestamp, '2026-11-06 10:00 UTC', 'server-formatted timestamp')
+    equal(chat.composer.action.id, 'reports:chat:send', 'composer action')
+    equal(chat.composer.maxLength, Config.reports.chat.maxLength, 'composer length limit follows config')
+    for _, action in ipairs(management.actions) do truthy(action.id ~= 'reports:selected:reply', 'no separate reply form with the chat') end
+
+    local result = menuPayload.onAction('reports:chat:send', { value = { message = 'On it' } })
+    equal(sent[1].id, '42', 'sent to the selected report')
+    equal(sent[1].message, 'On it', 'message forwarded unchanged')
+    equal(result.notice, nil, 'no error notice on success')
+    equal(liveFlags[#liveFlags], true, 'the refresh after sending is a live one')
+
+    sendError = 'you are sending messages too quickly; wait 3 seconds'
+    result = menuPayload.onAction('reports:chat:send', { value = { message = 'again' } })
+    equal(result.notice.tone, 'destructive', 'a rejected message keeps the draft via a destructive notice')
+    equal(result.notice.message, sendError, 'server reason shown')
+
+    Kora.callback.trigger, Kora.nui.updateApp = previousTrigger, previousUpdate
+end)
+
+test('My Reports: players chat in their own window and get a toast only while it is closed', function()
+    local report = { id = 7, type = 'question', category = 'Question / Help', status = 'claimed', reporter_name = 'Citizen',
+        message = 'How?', created_text = '2026-11-06 09:00 UTC', claimed_by_name = 'Support', messages = {
+            { id = 3, author_name = 'Support', author_role = 'staff', message = 'Like this', created_text = '2026-11-06 09:01 UTC', unread = true },
+        } }
+    local sent = {}
+    local previousTrigger, previousUpdate, previousNotify = Kora.callback.trigger, Kora.nui.updateApp, Kora.notify.send
+    Kora.callback.trigger = function(name, a, b)
+        if name == 'qbadmin:myReports' then return { { id = 7, status = 'claimed', category = 'Question / Help', subject = 'How?', age = '1m', unread = 1 } } end
+        if name == 'qbadmin:myReport' then return tonumber(a) == 7 and report or nil, 'report not found' end
+        if name == 'qbadmin:reportChatSend' then sent[#sent + 1] = { id = a, message = b } return true end
+        return {}
+    end
+    local updates, toasts = {}, {}
+    Kora.nui.updateApp = function(id, update) updates[#updates + 1] = { id = id, update = update } end
+    Kora.notify.send = function(payload) toasts[#toasts + 1] = payload end
+    menuPayload = nil
+
+    netEvents['qbadmin:client:openMyReports'](7)
+    equal(menuPayload.id, 'qbadmin:myreports', 'player app id')
+    equal(menuPayload.defaultView, 'report', 'an id opens straight onto that report')
+    local chat
+    for _, view in ipairs(menuPayload.navigation) do
+        for _, block in ipairs(view.content and view.content.blocks or {}) do if block.type == 'chat' then chat = block end end
+    end
+    truthy(chat, 'the report view holds the chat block')
+    equal(chat.messages[1].mine, true, 'the report text is the player\'s own message')
+    equal(chat.messages[2].mine, false, 'staff replies are on the other side')
+    equal(chat.composer.action.id, 'my:send', 'player composer action')
+
+    menuPayload.onAction('my:select', { itemId = '7' })
+    menuPayload.onAction('my:send', { value = { message = 'Thanks' } })
+    equal(sent[1].id, '7', 'sent to the selected report')
+    equal(sent[1].message, 'Thanks', 'message forwarded')
+    local ok = pcall(menuPayload.onAction, 'my:other', {})
+    equal(ok, false, 'undeclared actions are refused')
+
+    Kora.nui.isAppOpen = function() return true end
+    local before = #updates
+    netEvents['qbadmin:client:myReportChanged'](7, { kind = 'reply', author = 'Support', preview = 'More info' })
+    equal(#updates, before + 1, 'an open window refreshes in place')
+    equal(#toasts, 0, 'no toast while the window is open')
+
+    Kora.nui.isAppOpen = function() return false end
+    netEvents['qbadmin:client:myReportChanged'](7, { kind = 'reply', author = 'Support', preview = 'More info' })
+    equal(#toasts, 1, 'a staff reply toasts while the window is closed')
+    truthy(toasts[1].message:find('/reports', 1, true), 'the toast says how to open the chat')
+    netEvents['qbadmin:client:myReportChanged'](7, { kind = 'status' })
+    equal(#toasts, 1, 'status pushes do not add a second toast (the server already sends one)')
+
+    Kora.nui.isAppOpen, Kora.callback.trigger, Kora.nui.updateApp, Kora.notify.send = nil, previousTrigger, previousUpdate, previousNotify
 end)
 
 test('kora_broadcast notifies every player, but only from the console', function()

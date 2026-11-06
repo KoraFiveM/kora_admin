@@ -13,7 +13,9 @@ dofile('config.lua')
 Config.reports.cooldownSeconds = 30
 
 local reports, messages, nextReport, nextMessage = {}, {}, 1, 1
-local notices, logs = {}, {}
+local notices, logs, reads = {}, {}, {}
+local clock = 0
+function GetGameTimer() return clock end
 local lastQuery
 local players = {
     [7] = { citizenid = 'STAFF', name = 'Support' },
@@ -60,7 +62,15 @@ Kora = {
             for _, row in pairs(reports) do out[#out + 1] = copy(row) end
             return out
         end,
+        scalar = function(sql, params)
+            if sql:find('`admin_report_reads`', 1, true) then return reads[tostring(params[1]) .. '|' .. tostring(params[2])] end
+        end,
         update = function(sql, params)
+            if sql:find('`admin_report_reads`', 1, true) then
+                local key = tostring(params[1]) .. '|' .. tostring(params[2])
+                reads[key] = math.max(reads[key] or 0, params[3])
+                return 1
+            end
             local id = tonumber(params[#params])
             local row = reports[id]
             if not row then return 0 end
@@ -171,13 +181,18 @@ test('every report change is pushed to the staff viewing reports, and always to 
     exports.kora_core.getPlayers = function() return { 7, 8, 9, 10 } end
     Admin.checkLevel = function(src) return staff[src] == true end
     Admin.reportCooldowns = {}
+    Admin.reportChatSends = {}
     players[8] = { citizenid = 'STAFF2', name = 'Support Two' }
 
     local function targets()
         local list = {}
         for _, push in ipairs(pushes) do
-            equal(push.name, 'qbadmin:client:reportChanged', 'push event name')
-            list[#list + 1] = push.target .. ':' .. tostring(push.args[1])
+            if push.name == 'qbadmin:client:reportChanged' then
+                list[#list + 1] = push.target .. ':' .. tostring(push.args[1])
+            else
+                equal(push.name, 'qbadmin:client:myReportChanged', 'push event name')
+                equal(push.target, 9, 'reporter pushes only reach the reporter')
+            end
         end
         pushes = {}
         table.sort(list)
@@ -206,6 +221,56 @@ test('every report change is pushed to the staff viewing reports, and always to 
 
     exports.kora_core.getPlayers, Admin.checkLevel = previousPlayers, previousCheck
     players[8] = nil
+end)
+
+test('live chat: length, rate limit, reporter push instead of toast, and per-reader unread', function()
+    Admin.reportCooldowns, Admin.reportChatSends, pushes, notices = {}, {}, {}, {}
+    clock = 1000000
+    local report = assert(Admin.createReport(9, 'question', 'How do I chat?'))
+    notices = {}
+    local ok, err = Admin.replyToReport(9, report.id, ('x'):rep(Config.reports.chat.maxLength + 1), { chat = true })
+    equal(ok, false, 'an over-long chat message is refused')
+    truthy(err:find('too long', 1, true), 'length reason')
+    equal(Admin.replyToReport(10, report.id, 'not mine', { chat = true }), false, 'another player cannot post')
+
+    pushes = {}
+    equal(Admin.replyToReport(7, report.id, 'Hi <b>there</b>\r\n\n\n\nsecond', { chat = true }), true, 'staff chat reply')
+    local stored = messages[#messages].message
+    equal(stored, 'Hi <b>there</b>\n\nsecond', 'CRLF and blank-line runs are normalised, text kept as typed')
+    local reporterPush
+    for _, push in ipairs(pushes) do if push.name == 'qbadmin:client:myReportChanged' then reporterPush = push end end
+    truthy(reporterPush and reporterPush.target == 9, 'the reporter is pushed the change')
+    equal(reporterPush.args[2].kind, 'reply', 'push kind')
+    equal(reporterPush.args[2].author, 'Support', 'staff name in the preview')
+    for _, notice in ipairs(notices) do truthy(notice.target ~= 9, 'no server toast for the reporter; their client decides') end
+
+    -- Unread: the reporter has not opened it yet, so the staff reply is unread for them.
+    local view = Admin.reportConversation(9, Admin.getReport(report.id), 'player')
+    equal(view.reporter_license, nil, 'player view drops identifiers')
+    equal(view.messages[#view.messages].unread, true, 'staff reply unread for the reporter')
+    view = Admin.reportConversation(9, Admin.getReport(report.id), 'player')
+    equal(view.messages[#view.messages].unread, nil, 'opening it marked it read')
+
+    -- Rate limit: 5 per 15s per sender.
+    Admin.reportChatSends = {}
+    for index = 1, Config.reports.chat.rateLimit.messages do
+        equal(Admin.replyToReport(9, report.id, 'msg ' .. index, { chat = true }), true, 'within the limit')
+    end
+    ok, err = Admin.replyToReport(9, report.id, 'one too many', { chat = true })
+    equal(ok, false, 'over the limit')
+    truthy(err:find('too quickly', 1, true), 'rate limit reason')
+    clock = clock + Config.reports.chat.rateLimit.seconds * 1000 + 1
+    equal(Admin.replyToReport(9, report.id, 'after the window', { chat = true }), true, 'the window slides')
+
+    local enabled = Config.reports.chat.enabled
+    Config.reports.chat.enabled = false
+    pushes, notices = {}, {}
+    equal(Admin.replyToReport(7, report.id, 'chat off'), true, 'reply with chat off')
+    for _, push in ipairs(pushes) do truthy(push.name ~= 'qbadmin:client:myReportChanged', 'no reporter push with chat off') end
+    local toasted
+    for _, notice in ipairs(notices) do if notice.target == 9 then toasted = true end end
+    truthy(toasted, 'chat off keeps the old reporter toast')
+    Config.reports.chat.enabled = enabled
 end)
 
 print(('qbadmin report store: %d passed, %d failed'):format(passed, failed))

@@ -79,5 +79,6 @@ client_scripts {
     'client/teleport.lua',
     'client/noclip.lua',
     'client/spectate.lua',
+    'client/report_chat.lua',
     'client/menu.lua'
 }

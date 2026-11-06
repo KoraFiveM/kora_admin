@@ -239,6 +239,35 @@ The queue or the open report reloads in the background; the selected tab and any
 reply being typed are kept. `Config.reports.liveUpdates = false` limits the push
 to the staff member who made the change.
 
+#### Live report chat (`Config.reports.chat`)
+
+With `chat.enabled` (default on) every report has a two-way chat. Staff see the
+conversation on the report's Overview tab as message bubbles with a message box
+and Send button underneath (Enter sends, Shift+Enter adds a line); it replaces
+Manage > Reply to Reporter. Players type `/reports` (or `/reports <id>`) to open
+**My Reports**: their own reports with an unread count, and the same chat for
+each one. New messages appear on both sides without reopening; the view sticks
+to the newest message unless you scrolled up, in which case a "N new messages"
+button appears. A "New" divider marks the first unread message, and the staff
+queue gets a **New** column (unread player messages since you last opened that
+report). Read markers live in `admin_report_reads` (report, reader licence, last
+message id); messages stay in `admin_report_messages` with the report.
+
+When staff reply while My Reports is closed, the player gets a kora_lib toast
+with a preview and a pointer to `/reports`; with it open the chat just updates.
+
+Every message goes through `qbadmin:reportChatSend` and `Admin.replyToReport`,
+which check that the sender owns the report (stored reporter licence) or holds
+`Config.reports.staffLevel`, that the report is open, the length
+(`chat.maxLength`, refused rather than cut) and a per-sender sliding window
+(`chat.rateLimit`, which also covers `/reportreply`). Text is stored as typed
+(control characters stripped, blank-line runs collapsed) and always rendered as
+text; `/reportstatus` output is bracket-escaped for chat. `chat.playerUi = false`
+keeps players on the chat-list commands, `chat.showStaffNames = false` shows
+"Staff" instead of names, and `chat.notifyStaff = 'claimer'` limits reporter
+message toasts to the claiming staff member. `chat.enabled = false` restores the
+previous screens. Live staff updates still follow `Config.reports.liveUpdates`.
+
 ### Development workspace
 
 The **Development → Builders** tab is available at

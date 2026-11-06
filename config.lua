@@ -49,8 +49,8 @@ Config.heal = {
     restoreNeeds = true,
 }
 
--- /revive also sets hunger and thirst to 100. Default false keeps revive health-only.
-Config.HealRestoreNeeds = false
+-- /revive also sets hunger and thirst to 100. Set false to keep revive health-only.
+Config.HealRestoreNeeds = true
 
 Config.announcement = {
     -- /announce (and the admin-menu Send Announcement action) plays a short frontend
@@ -151,6 +151,7 @@ Config.entityPicker = {
     maxDistance = 50.0, -- maximum camera-ray distance when inspecting an entity
     copyKey = 'H', -- default for copying the aimed entity's actual model/archetype name
     closeKey = 'X', -- default for closing the active entity picker
+    crosshair = true, -- draw a centre dot while the picker is active (green when on an entity)
 }
 
 Config.spectate = {
@@ -209,6 +210,19 @@ Config.reports = {
     -- the reporter's own), claims and status changes as they happen. false: only the staff member
     -- who made a change sees the screen update; others see it after reopening or going Back.
     liveUpdates = true,
+    -- Live two-way chat on each report. enabled = false restores the old screens exactly: the
+    -- staff Conversation timeline plus Manage > Reply to Reporter, and chat-list-only /reports for
+    -- players. Messages are stored with the report (admin_report_messages) either way.
+    chat = {
+        enabled = true,
+        playerUi = true, -- /reports opens a "My Reports" chat window for players (false: chat list as before)
+        maxLength = 500, -- per chat message; longer messages are refused, never cut (must be <= maxMessageLength)
+        rateLimit = { messages = 5, seconds = 15 }, -- per player/staff member, across all reports
+        showStaffNames = true, -- false: players see "Staff" instead of the staff member's name
+        -- Who gets a toast when the reporter writes: 'all' staff (as before) or only the 'claimer'
+        -- once a report is claimed (unclaimed reports still notify all staff).
+        notifyStaff = 'all',
+    },
 }
 
 Config.roles = {
@@ -221,8 +235,8 @@ Config.roles = {
 }
 
 Config.menu = {
-    -- false: opening a player profile adds no header "<" arrow; use the Online tab or "Back to Online Players". true: old arrow.
-    playerProfileHeaderBack = false,
+    -- true: opening a player profile adds a header "<" step back to the Online list (the shell clears it on other views). false: no arrow; use the Online tab.
+    playerProfileHeaderBack = true,
 }
 
 Config.keybind = {

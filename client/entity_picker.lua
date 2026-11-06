@@ -140,6 +140,20 @@ local function copyModelName()
     end
 end
 
+-- The ray follows the screen centre, but on foot GTA shows no reticle unless a
+-- weapon is aimed, so the picker draws a small dot there: green while an entity
+-- is under it, white otherwise. Its height is scaled by the aspect ratio so it
+-- stays square on any resolution.
+local function drawCrosshair(onEntity)
+    local width = 0.003
+    local height = width * GetAspectRatio(false)
+    if onEntity then
+        DrawRect(0.5, 0.5, width, height, 80, 220, 100, 230)
+    else
+        DrawRect(0.5, 0.5, width, height, 255, 255, 255, 200)
+    end
+end
+
 local function startPicker()
     if state.active then
         return notify('info', 'Entity picker is already active')
@@ -168,6 +182,17 @@ local function startPicker()
             Wait(0)
         end
     end)
+
+    -- Own thread: the raycast above waits a frame or more for each shape test,
+    -- and DrawRect only lasts one frame, so drawing there would flicker.
+    if Config.entityPicker.crosshair ~= false then
+        CreateThread(function()
+            while state.active do
+                drawCrosshair(state.snapshot ~= nil)
+                Wait(0)
+            end
+        end)
+    end
 end
 
 Kora.keybind.add({

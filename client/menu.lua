@@ -949,23 +949,29 @@ local function openRoot(options)
         local blocks = tab.content.blocks
 
         local tableRows = {}
+        local chatOn = Config.reports.chat and Config.reports.chat.enabled == true
         for _, row in ipairs(rows) do
+            local unread = tonumber(row.unread) or 0
             tableRows[#tableRows + 1] = {
                 id = tostring(row.id), status = { label = row.status, badge = true,
                     tone = row.status == 'open' and 'warning' or row.status == 'resolved' and 'success' or 'neutral' },
                 type = row.category or row.type, reporter = row.reporter_name, assigned = row.claimed_by_name or '-',
                 subject = row.subject or row.message, age = row.age or '-',
+                unread = unread > 0 and { label = tostring(unread), badge = true, tone = 'primary' } or '',
             }
         end
+        local columns = {
+            { key = 'id', label = '#', sortable = true }, { key = 'status', label = 'Status', sortable = true },
+            { key = 'type', label = 'Category', sortable = true }, { key = 'reporter', label = 'Reporter', sortable = true },
+            { key = 'subject', label = 'Subject' }, { key = 'assigned', label = 'Assigned' },
+            { key = 'age', label = 'Age' },
+        }
+        -- Live chat: unread player messages since this staff member last opened the report.
+        if chatOn then table.insert(columns, 5, { key = 'unread', label = 'New', align = 'center' }) end
         blocks[#blocks + 1] = {
             id = 'report-list', type = 'table', title = 'Player Reports',
             searchable = true, pageSize = 12,
-            columns = {
-                { key = 'id', label = '#', sortable = true }, { key = 'status', label = 'Status', sortable = true },
-                { key = 'type', label = 'Category', sortable = true }, { key = 'reporter', label = 'Reporter', sortable = true },
-                { key = 'subject', label = 'Subject' }, { key = 'assigned', label = 'Assigned' },
-                { key = 'age', label = 'Age' },
-            },
+            columns = columns,
             rows = tableRows, empty = 'No matching reports', action = 'reports:select', idKey = 'id',
         }
         return { update = { navigation = navigation }, navigate = { viewId = 'reports', tabId = tab.id, replace = true } }
@@ -974,8 +980,9 @@ local function openRoot(options)
     ---`quiet` is a background reload of the report already open: no error toast,
     ---and it gives way if the user went Back or opened another report meanwhile.
     local function showSelectedReport(id, quiet)
-        local report, err = Kora.callback.trigger('qbadmin:menuReport', id)
+        local report, err = Kora.callback.trigger('qbadmin:menuReport', id, { live = quiet == true })
         if quiet and selectedReportId ~= tostring(id) then return {} end
+        local chatOn = Config.reports.chat and Config.reports.chat.enabled == true
         if not report then
             if not quiet then Kora.notify.send({ type = 'error', message = err or 'Could not load report' }) end
             return {}
@@ -1001,9 +1008,12 @@ local function openRoot(options)
         local management = {}
         if report.status == 'open' or report.status == 'claimed' then
             management[#management + 1] = add('claim', report.status == 'claimed' and 'Take Over Report' or 'Claim Report', action('reportclaim'))
-            management[#management + 1] = add('reply', 'Reply to Reporter', action('reportreply', {
-                { id = 'message', label = 'Reply', type = 'textarea', required = true },
-            }))
+            -- With the live chat the composer under the conversation replaces this form.
+            if not chatOn then
+                management[#management + 1] = add('reply', 'Reply to Reporter', action('reportreply', {
+                    { id = 'message', label = 'Reply', type = 'textarea', required = true },
+                }))
+            end
             management[#management + 1] = add('resolve', 'Resolve Report', action('reportresolve', {
                 { id = 'note', label = 'Resolution', type = 'textarea', required = true },
             }, 'Resolve this report?'))
@@ -1035,13 +1045,13 @@ local function openRoot(options)
 
         local conversation = {
             { id = 'report', title = report.reporter_name, description = report.message,
-                timestamp = formatTimestamp(report.created_at), icon = 'message-square', tone = 'primary',
+                timestamp = formatTimestamp(report.created_text or report.created_at), icon = 'message-square', tone = 'primary',
                 metadata = { { label = 'Role', value = 'player' } } },
         }
         for index, reply in ipairs(report.messages or {}) do
             conversation[#conversation + 1] = {
                 id = 'reply-' .. (reply.id or index), title = reply.author_name, description = reply.message,
-                timestamp = formatTimestamp(reply.created_at), icon = 'message-square',
+                timestamp = formatTimestamp(reply.created_text or reply.created_at), icon = 'message-square',
                 tone = reply.author_role == 'staff' and 'success' or 'neutral',
                 metadata = { { label = 'Role', value = reply.author_role or 'unknown' } },
             }
@@ -1052,7 +1062,8 @@ local function openRoot(options)
                 id = 'overview', label = 'Overview',
                 content = {
                     title = ('Report #%s · %s'):format(report.id, report.type),
-                    description = 'Review the report conversation and current assignment before taking action.',
+                    description = chatOn and 'Chat with the reporter live. Claim, resolve or dismiss from Manage.'
+                        or 'Review the report conversation and current assignment before taking action.',
                     blocks = {
                         {
                             id = 'selected-report-back', type = 'actions',
@@ -1068,7 +1079,7 @@ local function openRoot(options)
                                 { label = 'Resolution', value = report.resolution or 'Open' },
                             },
                         },
-                        {
+                        chatOn and Admin.reportChatBlock(report, 'staff', 'reports:chat:send') or {
                             id = 'selected-report-conversation', type = 'timeline', title = 'Conversation',
                             items = conversation,
                         },
@@ -1372,9 +1383,9 @@ local function openRoot(options)
             local refreshed = showSelectedPlayer({ id = target })
             if refreshed.update and Kora.nui.updateApp then Kora.nui.updateApp('qbadmin:menu', refreshed.update) end
         end
-        -- The shell's header "<" is its own history, not scoped to this view: it stays on
-        -- Reports/Server and vanishes after one use while the profile tabs remain. Replace
-        -- instead so no stray, dead arrow is left behind.
+        -- Push a history step so the shell's header "<" returns to the Online list. The shell
+        -- now clears history on view switches and skips dead entries, so the arrow no longer
+        -- leaks onto other views. Option false replaces instead and shows no arrow.
         local headerBack = Config.menu and Config.menu.playerProfileHeaderBack == true
         return { update = { navigation = navigation }, navigate = { viewId = 'players', tabId = 'overview', replace = not headerBack } }
     end
@@ -1402,6 +1413,13 @@ local function openRoot(options)
             local categoryId, itemId = actionId:match('^([^:]+):(.+)$')
             if categoryId == 'reports' and itemId == 'select' and context and context.itemId then
                 return showSelectedReport(context.itemId)
+            end
+            if categoryId == 'reports' and itemId == 'chat:send' then
+                if not selectedReportId then error('Open a report first.') end
+                local sendErr = Admin.sendReportChat(selectedReportId, context and type(context.value) == 'table' and context.value.message)
+                if sendErr then return { notice = { tone = 'destructive', message = sendErr } } end
+                local refreshed = showSelectedReport(selectedReportId, true)
+                return { update = refreshed.update }
             end
             if categoryId == 'reports' and itemId:match('^selected:') then
                 local selectedAction = selectedReportActions[itemId:sub(#'selected:' + 1)]

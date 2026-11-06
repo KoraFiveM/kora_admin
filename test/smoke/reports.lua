@@ -34,6 +34,10 @@ Kora = {
 Admin = {
     checkLevel = function() return isStaff end,
     commandContext = function() return nil end,
+    reportChat = function()
+        return Config.reports.chat and Config.reports.chat.enabled == true and Config.reports.chat or nil
+    end,
+    chatSafe = function(text) return (text:gsub('<', '‹'):gsub('>', '›')) end,
     getLevel = function() return 'support' end,
     formatReportList = function(rows) return 'LIST:' .. #rows end,
     createReport = function(source, type_, message)
@@ -138,9 +142,21 @@ test('/reports opens the Reports screen for staff and a chat list when ui is off
     equal(chats[1], 'LIST:1', 'chat list used instead')
 end)
 
+test('/reports opens My Reports for players when the live chat is on', function()
+    isStaff, events, chats, queries = false, {}, {}, {}
+    commands.reports.handler(9, { '42' })
+    equal(events[1].name, 'qbadmin:client:openMyReports', 'players get their own chat window')
+    equal(events[1].args[1], 42, 'an id opens that report (ownership is checked by the callback)')
+    equal(#queries, 0, 'no chat dump when the window opens')
+    isStaff = true
+end)
+
 test('/reports shows non-staff players only their own reports', function()
     isStaff, events, chats, queries = false, {}, {}, {}
+    local playerUi = Config.reports.chat.playerUi
+    Config.reports.chat.playerUi = false
     commands.reports.handler(9, { 'open' })
+    Config.reports.chat.playerUi = playerUi
     equal(#events, 0, 'no staff screen for players')
     equal(queries[1].license, 'license:test', 'query pinned to the caller licence')
     truthy(chats[1]:find('/reportstatus', 1, true), 'points to /reportstatus')

@@ -127,20 +127,71 @@ Kora.callback.register('qbadmin:menuReports', function(src, filters)
     if not ok then return nil, err end
 
     filters = type(filters) == 'table' and filters or {}
+    local chat = Admin.reportChat()
     return Admin.queryReports({
         status = type(filters.status) == 'string' and filters.status or 'open',
         type = type(filters.type) == 'string' and filters.type or nil,
         reporter = type(filters.reporter) == 'string' and filters.reporter ~= '' and filters.reporter or nil,
         page = math.max(1, tonumber(filters.page) or 1),
+        unreadFor = chat and exports.kora_core:primary(src) or nil,
+        unreadRole = chat and 'player' or nil,
     })
 end)
 
-Kora.callback.register('qbadmin:menuReport', function(src, id)
+-- Opening (or live-refreshing) a report marks it read for this staff member.
+-- `opts.live` is a refresh of a conversation already on screen: nothing is flagged unread.
+Kora.callback.register('qbadmin:menuReport', function(src, id, opts)
     local ok, err = allowed(src, Config.reports.staffLevel)
     if not ok then return nil, err end
 
     local report = Admin.getReport(id)
     if not report then return nil, 'report not found' end
+    if Admin.reportChat() then
+        return Admin.reportConversation(src, report, 'staff', type(opts) == 'table' and opts.live == true)
+    end
     report.messages = Admin.getReportMessages(report.id)
     return report
 end)
+
+-- Player side of the report chat. Ownership is always the reporter licence on the
+-- stored row (never a client-supplied id or name); staff use the staff callbacks.
+local function playerLicense(src)
+    if not Admin.reportChat() or Admin.reportChat().playerUi == false then return nil, 'report chat is disabled' end
+    local license = exports.kora_core:primary(src)
+    if not license then return nil, 'you are not logged in' end
+    return license
+end
+
+Kora.callback.register('qbadmin:myReports', function(src, page)
+    local license, err = playerLicense(src)
+    if not license then return nil, err end
+    local rows = Admin.queryReports({
+        status = 'all', license = license, page = math.max(1, math.floor(tonumber(page) or 1)),
+        unreadFor = license, unreadRole = 'staff',
+    })
+    local out = {}
+    for index, row in ipairs(rows) do
+        out[index] = { id = row.id, status = row.status, category = row.category, subject = row.subject, age = row.age, unread = row.unread }
+    end
+    return out
+end, { rateLimit = { max = 20, window = 10000 } })
+
+Kora.callback.register('qbadmin:myReport', function(src, id, opts)
+    local license, err = playerLicense(src)
+    if not license then return nil, err end
+    local report = Admin.getReport(id)
+    if not report or report.reporter_license ~= license then return nil, 'report not found' end
+    return Admin.reportConversation(src, report, 'player', type(opts) == 'table' and opts.live == true)
+end, { rateLimit = { max = 30, window = 10000 } })
+
+-- The chat composer (staff screen and My Reports). replyToReport re-checks that the
+-- sender owns the report or holds Config.reports.staffLevel, that it is still open,
+-- the message length and the per-sender rate limit, and writes the audit entry.
+Kora.callback.register('qbadmin:reportChatSend', function(src, id, message)
+    if not Admin.reportChat() then return nil, 'report chat is disabled' end
+    if type(message) ~= 'string' then return nil, 'message required' end
+    if #message > 8 * Config.reports.maxMessageLength then return nil, 'message too long' end
+    local ok, err = Admin.replyToReport(src, id, message, { chat = true })
+    if not ok then return nil, err end
+    return true
+end, { rateLimit = { max = 10, window = 10000 } })

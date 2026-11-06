@@ -68,4 +68,22 @@ QBAdminSchema = {
               ref_columns = { 'id' }, on_delete = 'CASCADE' },
         },
     },
+    -- Read markers for the report chat's unread counts: the newest message id each reader
+    -- (reporter or staff member, by licence) has seen on each report. New table only; the
+    -- existing report tables are not altered.
+    {
+        name = 'admin_report_reads',
+        collate = 'utf8mb4_unicode_ci',
+        columns = {
+            { name = 'report_id', type = 'int', unsigned = true },
+            { name = 'reader_license', type = 'varchar(60)' },
+            { name = 'last_message_id', type = 'int', unsigned = true, default = 0 },
+            { name = 'updated_at', type = 'timestamp', default = { raw = 'CURRENT_TIMESTAMP' }, on_update = 'CURRENT_TIMESTAMP' },
+        },
+        primary = { 'report_id', 'reader_license' },
+        foreign = {
+            { name = 'fk_admin_report_reads_report', columns = { 'report_id' }, ref_table = 'admin_reports',
+              ref_columns = { 'id' }, on_delete = 'CASCADE' },
+        },
+    },
 }

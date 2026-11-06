@@ -3,6 +3,15 @@
 -- have identical validation, notifications, and audit history.
 
 Admin.reportCooldowns = Admin.reportCooldowns or {}
+Admin.reportChatSends = Admin.reportChatSends or {}
+
+---The live-chat settings, or nil when the chat is switched off (or missing from an
+---older config.lua), in which case every report screen behaves exactly as before.
+---@return table|nil
+function Admin.reportChat()
+    local chat = Config.reports.chat
+    if type(chat) == 'table' and chat.enabled == true then return chat end
+end
 
 local VALID_STATUSES = { open = true, claimed = true, resolved = true, dismissed = true }
 
@@ -57,6 +66,31 @@ end
 local function chatSafe(text)
     return (text:gsub('<', '‹'):gsub('>', '›'))
 end
+Admin.chatSafe = chatSafe
+
+---Server-formatted message time. Both SQL drivers' date shapes are avoided by
+---selecting UNIX_TIMESTAMP(...) and formatting here (FiveM client Lua has no os.date).
+---@param epoch any
+---@return string|nil
+function Admin.formatReportTime(epoch)
+    epoch = tonumber(epoch)
+    if not epoch then return nil end
+    local ok, formatted = pcall(os.date, '!%Y-%m-%d %H:%M', math.floor(epoch))
+    return ok and (formatted .. ' UTC') or nil
+end
+
+---Chat text: CRLF to LF, control characters other than newline and tab removed,
+---runs of blank lines collapsed, outer whitespace trimmed. Markup is kept as typed
+---text: AppShell renders it as a text node and chat output goes through chatSafe.
+---@param value any
+---@return string|nil
+function Admin.cleanChatMessage(value)
+    if type(value) ~= 'string' then return nil end
+    value = value:gsub('\r\n?', '\n'):gsub('[%z\1-\8\11-\31\127]', ''):gsub('\n%s*\n[%s\n]*', '\n\n')
+    value = value:gsub('^%s+', ''):gsub('%s+$', '')
+    if value == '' then return nil end
+    return value
+end
 
 ---One readable chat line per report: id, status, category, reporter, subject, age.
 ---@param rows table[]
@@ -104,8 +138,21 @@ local function eachStaff(fn)
     end
 end
 
-local function notifyStaff(payload)
-    eachStaff(function(playerSrc) Kora.notify.send(playerSrc, payload) end)
+local function notifyStaff(payload, onlySrc)
+    eachStaff(function(playerSrc)
+        if not onlySrc or playerSrc == onlySrc then Kora.notify.send(playerSrc, payload) end
+    end)
+end
+
+---The online staff member who claimed `row`, when the chat is set to notify only them.
+---@param row table
+---@return integer|nil
+local function claimerSource(row)
+    local chat = Admin.reportChat()
+    if not chat or chat.notifyStaff ~= 'claimer' or not row.claimed_by_license then return nil end
+    for _, playerSrc in ipairs(exports.kora_core:getPlayers()) do
+        if exports.kora_core:primary(playerSrc) == row.claimed_by_license then return playerSrc end
+    end
 end
 
 ---Tell staff clients that report `id` changed (new report, reply, claim, status)
@@ -125,6 +172,18 @@ end
 local function notifyReporter(row, payload)
     local src = Admin.reporterSource(row)
     if src then Kora.notify.send(src, payload) end
+end
+
+---With the chat on, tell the reporter's own client that their report changed so an
+---open My Reports window reloads it. `info` carries a staff reply's preview, which
+---the client shows as a toast only while that window is closed. The client
+---re-fetches through qbadmin:myReport, which re-checks ownership.
+---@param row table
+---@param info table|nil
+local function pushReporter(row, info)
+    if not Admin.reportChat() then return end
+    local src = Admin.reporterSource(row)
+    if src then TriggerClientEvent('qbadmin:client:myReportChanged', src, row.id, info) end
 end
 
 ---@param src integer
@@ -173,10 +232,11 @@ end
 function Admin.getReport(id)
     id = Admin.finiteNumber(id, 1, nil, true)
     if not id then return nil end
-    local row = Kora.sql.single('SELECT * FROM `admin_reports` WHERE `id` = ? LIMIT 1', { id })
+    local row = Kora.sql.single('SELECT *,UNIX_TIMESTAMP(`created_at`) AS `created_epoch` FROM `admin_reports` WHERE `id` = ? LIMIT 1', { id })
     if row then
         row.reporter_source = Admin.reporterSource(row)
         row.category = categoryLabel(row.type)
+        row.created_text = Admin.formatReportTime(row.created_epoch)
     end
     return row
 end
@@ -186,10 +246,74 @@ end
 function Admin.getReportMessages(id)
     id = Admin.finiteNumber(id, 1, nil, true)
     if not id then return {} end
-    return Kora.sql.query(
-        'SELECT `id`,`author_name`,`author_role`,`message`,`created_at` FROM `admin_report_messages` WHERE `report_id` = ? ORDER BY `created_at`,`id`',
+    local rows = Kora.sql.query(
+        'SELECT `id`,`author_name`,`author_role`,`message`,`created_at`,UNIX_TIMESTAMP(`created_at`) AS `created_epoch` FROM `admin_report_messages` WHERE `report_id` = ? ORDER BY `created_at`,`id`',
         { id }
     ) or {}
+    for _, row in ipairs(rows) do row.created_text = Admin.formatReportTime(row.created_epoch) end
+    return rows
+end
+
+---The newest message id `license` has seen on report `id` (0 when never opened).
+---@param id integer
+---@param license string|nil
+---@return integer
+function Admin.reportLastRead(id, license)
+    if not license then return 0 end
+    local value = Kora.sql.scalar('SELECT `last_message_id` FROM `admin_report_reads` WHERE `report_id` = ? AND `reader_license` = ? LIMIT 1',
+        { id, license })
+    return math.floor(tonumber(value) or 0)
+end
+
+---Record that `license` has seen report `id` up to message `lastId`. Never moves backwards.
+---@param id integer
+---@param license string|nil
+---@param lastId integer|nil
+function Admin.markReportRead(id, license, lastId)
+    lastId = math.floor(tonumber(lastId) or 0)
+    if not license or lastId <= 0 then return end
+    Kora.sql.update(
+        'INSERT INTO `admin_report_reads` (`report_id`,`reader_license`,`last_message_id`) VALUES (?,?,?) ON DUPLICATE KEY UPDATE `last_message_id` = GREATEST(`last_message_id`, VALUES(`last_message_id`))',
+        { id, license, lastId })
+end
+
+---Report `id` with its conversation shaped for one reader, and marks it read for
+---them. `viewerRole` is 'staff' or 'player' and decides which side's messages count
+---as unread ("the other side's messages after my read marker"). The caller has
+---already checked that `src` may read the report. Player views drop identifiers.
+---@param src integer
+---@param row table
+---@param viewerRole 'staff'|'player'
+---@param live boolean|nil true for a refresh of an already open conversation (nothing is flagged unread)
+---@return table
+function Admin.reportConversation(src, row, viewerRole, live)
+    local license = src ~= 0 and exports.kora_core:primary(src) or nil
+    local lastRead = Admin.reportLastRead(row.id, license)
+    local chat = Admin.reportChat() or {}
+    local otherRole = viewerRole == 'staff' and 'player' or 'staff'
+    local messages, newest = {}, 0
+    for _, message in ipairs(Admin.getReportMessages(row.id)) do
+        local messageId = math.floor(tonumber(message.id) or 0)
+        if messageId > newest then newest = messageId end
+        local author = message.author_name
+        if viewerRole == 'player' and message.author_role == 'staff' and chat.showStaffNames == false then author = 'Staff' end
+        messages[#messages + 1] = {
+            id = messageId, author_name = author, author_role = message.author_role, message = message.message,
+            created_text = message.created_text,
+            unread = not live and message.author_role == otherRole and messageId > lastRead or nil,
+        }
+    end
+    Admin.markReportRead(row.id, license, newest)
+    row.messages = messages
+    if viewerRole == 'player' then
+        return {
+            id = row.id, type = row.type, category = row.category, status = row.status, message = row.message,
+            reporter_name = row.reporter_name, created_text = row.created_text, resolution = row.resolution,
+            claimed_by_name = row.claimed_by_name and (chat.showStaffNames == false and 'Staff' or row.claimed_by_name) or nil,
+            messages = messages,
+        }
+    end
+    return row
 end
 
 ---@param filters table|nil
@@ -219,7 +343,16 @@ function Admin.queryReports(filters)
     end
 
     local page = math.max(1, math.floor(tonumber(filters.page) or 1))
-    local sql = 'SELECT `id`,`type`,`status`,`reporter_name`,`claimed_by_name`,`message`,`created_at`,`updated_at`,UNIX_TIMESTAMP(`created_at`) AS `created_epoch` FROM `admin_reports`'
+    local sql = 'SELECT `id`,`type`,`status`,`reporter_name`,`claimed_by_name`,`message`,`created_at`,`updated_at`,UNIX_TIMESTAMP(`created_at`) AS `created_epoch`'
+    local selectParams = {}
+    -- Unread for one reader: the other side's messages after that reader's marker.
+    if filters.unreadFor and (filters.unreadRole == 'staff' or filters.unreadRole == 'player') then
+        sql = sql .. ',(SELECT COUNT(*) FROM `admin_report_messages` `m` WHERE `m`.`report_id` = `admin_reports`.`id` AND `m`.`author_role` = ?'
+            .. ' AND `m`.`id` > COALESCE((SELECT `rr`.`last_message_id` FROM `admin_report_reads` `rr` WHERE `rr`.`report_id` = `admin_reports`.`id` AND `rr`.`reader_license` = ?), 0)) AS `unread`'
+        selectParams = { filters.unreadRole, filters.unreadFor }
+    end
+    sql = sql .. ' FROM `admin_reports`'
+    for index = #selectParams, 1, -1 do table.insert(params, 1, selectParams[index]) end
     if #where > 0 then sql = sql .. ' WHERE ' .. table.concat(where, ' AND ') end
     sql = sql .. ' ORDER BY FIELD(`status`,\'open\',\'claimed\',\'resolved\',\'dismissed\'), `updated_at` DESC LIMIT ? OFFSET ?'
     params[#params + 1] = Config.reports.pageSize
@@ -230,6 +363,7 @@ function Admin.queryReports(filters)
         row.category = categoryLabel(row.type)
         row.subject = Admin.reportSubject(row.message, 60)
         row.age = Admin.formatReportAge(tonumber(row.created_epoch) and now - tonumber(row.created_epoch))
+        row.unread = tonumber(row.unread) and math.floor(tonumber(row.unread)) or nil
     end
     return rows
 end
@@ -240,20 +374,55 @@ local function canRead(src, row)
     if license and row.reporter_license == license then return true, 'player' end
     return false
 end
+Admin.canReadReport = canRead
+
+---Sliding-window chat rate limit per sender (Config.reports.chat.rateLimit).
+---@param src integer
+---@return boolean ok
+---@return string|nil err
+local function takeChatSlot(src)
+    local chat = Admin.reportChat()
+    if not chat or src == 0 or type(chat.rateLimit) ~= 'table' then return true end
+    local limit = math.floor(tonumber(chat.rateLimit.messages) or 0)
+    local window = (tonumber(chat.rateLimit.seconds) or 0) * 1000
+    if limit < 1 or window <= 0 then return true end
+    local now = GetGameTimer()
+    local kept = {}
+    for _, at in ipairs(Admin.reportChatSends[src] or {}) do
+        if now - at < window then kept[#kept + 1] = at end
+    end
+    if #kept >= limit then
+        Admin.reportChatSends[src] = kept
+        return false, ('you are sending messages too quickly; wait %d seconds'):format(math.max(1, math.ceil((window - (now - kept[1])) / 1000)))
+    end
+    kept[#kept + 1] = now
+    Admin.reportChatSends[src] = kept
+    return true
+end
 
 ---@param src integer
 ---@param id any
 ---@param message string
+---@param opts table|nil { chat = true } from the chat composer: over-long text is refused rather than cut
 ---@return boolean
 ---@return string|nil
-function Admin.replyToReport(src, id, message)
+function Admin.replyToReport(src, id, message, opts)
     local row = Admin.getReport(id)
     if not row then return false, 'report not found' end
     local allowed, role = canRead(src, row)
     if not allowed then return false, 'you cannot reply to that report' end
     if row.status == 'resolved' or row.status == 'dismissed' then return false, 'reopen the report before replying' end
-    message = cleanMessage(message)
+    local chat = Admin.reportChat()
+    message = chat and Admin.cleanChatMessage(message) or cleanMessage(message)
     if not message then return false, 'reply required' end
+    if chat and opts and opts.chat then
+        local max = math.min(math.floor(tonumber(chat.maxLength) or Config.reports.maxMessageLength), Config.reports.maxMessageLength)
+        if (utf8.len(message) or #message) > max then return false, ('message too long (max %d characters)'):format(max) end
+    else
+        message = message:sub(1, Config.reports.maxMessageLength)
+    end
+    local slotOk, slotErr = takeChatSlot(src)
+    if not slotOk then return false, slotErr end
 
     local license, name = actorIdentity(src)
     local inserted, dbErr = Kora.sql.insert(
@@ -264,10 +433,17 @@ function Admin.replyToReport(src, id, message)
     Kora.sql.update('UPDATE `admin_reports` SET `updated_at` = CURRENT_TIMESTAMP WHERE `id` = ?', { row.id })
 
     if role == 'staff' then
-        notifyReporter(row, { title = ('Report #%s reply'):format(row.id), message = message, type = 'info' })
+        if chat then
+            -- The reporter's client toasts only while My Reports is closed; open, it just refreshes.
+            local shownName = chat.showStaffNames == false and 'Staff' or name
+            pushReporter(row, { kind = 'reply', author = shownName, preview = Admin.reportSubject(message, 120) })
+        else
+            notifyReporter(row, { title = ('Report #%s reply'):format(row.id), message = message, type = 'info' })
+        end
         Admin.log(src, 'report_reply', reportTarget(row), { reportId = row.id })
     else
-        notifyStaff({ title = ('Report #%s updated'):format(row.id), message = ('%s: %s'):format(name, message), type = 'info' })
+        notifyStaff({ title = ('Report #%s updated'):format(row.id), message = ('%s: %s'):format(name, chat and Admin.reportSubject(message, 200) or message), type = 'info' }, claimerSource(row))
+        pushReporter(row, { kind = 'own' })
     end
     broadcastReportChange(row.id, src)
     return true
@@ -290,6 +466,7 @@ function Admin.claimReport(src, id)
     if updated == nil then return false, dbErr or 'could not claim report' end
     Admin.log(src, 'report_claim', reportTarget(row), { reportId = row.id })
     notifyReporter(row, { title = ('Report #%s claimed'):format(row.id), message = ('%s is handling your report.'):format(name), type = 'info' })
+    pushReporter(row, { kind = 'status' })
     broadcastReportChange(row.id, src)
     return true
 end
@@ -325,10 +502,12 @@ function Admin.setReportStatus(src, id, status, note)
         message = note or (status == 'open' and ('Reopened by %s'):format(actorName) or ('Updated by %s'):format(actorName)),
         type = status == 'dismissed' and 'error' or 'info',
     })
+    pushReporter(row, { kind = 'status' })
     broadcastReportChange(row.id, src)
     return true
 end
 
 AddEventHandler('playerDropped', function()
     Admin.reportCooldowns[source] = nil
+    Admin.reportChatSends[source] = nil
 end)
