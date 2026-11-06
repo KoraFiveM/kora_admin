@@ -440,7 +440,7 @@ function Admin.replyToReport(src, id, message, opts)
         else
             notifyReporter(row, { title = ('Report #%s reply'):format(row.id), message = message, type = 'info' })
         end
-        Admin.log(src, 'report_reply', reportTarget(row), { reportId = row.id })
+        Admin.log(src, 'report_reply', reportTarget(row), { reportId = row.id, message = message })
     else
         notifyStaff({ title = ('Report #%s updated'):format(row.id), message = ('%s: %s'):format(name, chat and Admin.reportSubject(message, 200) or message), type = 'info' }, claimerSource(row))
         pushReporter(row, { kind = 'own' })

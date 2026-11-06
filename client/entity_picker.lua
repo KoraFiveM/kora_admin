@@ -18,6 +18,9 @@ local ENTITY_KINDS = {
     [3] = { label = 'Object', lookupKind = 'object' },
 }
 
+-- StartShapeTestRay intersect mask: vehicles (2) + peds (8) + objects (16).
+local ENTITY_RAY_FLAGS = 26
+
 local function notify(kind, message)
     Kora.notify.send({ title = 'Entity picker', type = kind, message = message })
 end
@@ -28,6 +31,9 @@ end
 
 local function actualArchetypeName(entity)
     if type(GetEntityArchetypeName) ~= 'function' then return nil end
+    -- The native raises an unrecoverable engine exception (pcall cannot catch it)
+    -- for peds and vehicles, killing the picker thread. Only query real objects.
+    if GetEntityType(entity) ~= 3 then return nil end
 
     local ok, name = pcall(GetEntityArchetypeName, entity)
     if ok and type(name) == 'string' and name ~= '' and name ~= 'NULL' then return name end
@@ -50,12 +56,19 @@ end
 local function inspectEntity(entity, hitCoords)
     if type(entity) ~= 'number' or entity == 0 or not DoesEntityExist(entity) then return nil end
 
+    -- Map buildings and other non-ped/vehicle/object handles make GetEntityModel
+    -- (native 0x9F47B058362C84B5, GET_ENTITY_MODEL) throw inside gta-streaming-five.dll,
+    -- which aborted every picker frame. Only peds (1), vehicles (2) and objects (3) pass.
+    if not ENTITY_KINDS[GetEntityType(entity)] then return nil end
+
     local kind = entityKind(entity)
-    local model = GetEntityModel(entity)
+    local okModel, model = pcall(GetEntityModel, entity)
+    if not okModel or type(model) ~= 'number' then return nil end
     local catalogueName, record = lookupModelName(model, kind)
     -- GetEntityArchetypeName is the game's own name for the *specific* object
     -- instance. Prefer it over a lookup result so map props retain their real
     -- archetype even when they are not creatable/catalogued by kora_lib.
+    -- Peds and vehicles use the catalogue name only (see actualArchetypeName).
     local modelName = actualArchetypeName(entity) or catalogueName
     local coords = GetEntityCoords(entity)
 
@@ -69,6 +82,14 @@ local function inspectEntity(entity, hitCoords)
         heading = GetEntityHeading(entity),
         distance = distance(GetEntityCoords(PlayerPedId()), hitCoords),
     }
+end
+
+-- A handle the game cannot describe (a building, or an entity streamed out between
+-- the ray and the read) is "no entity", not an error: protect the whole read so one
+-- bad hit neither aborts the other ray's result nor stalls the picker loop.
+local function safeInspect(entity, hitCoords)
+    local ok, snapshot = pcall(inspectEntity, entity, hitCoords)
+    if ok then return snapshot end
 end
 
 local function hudText(snapshot)
@@ -135,8 +156,11 @@ local function copyModelName()
         end, function()
             notify('error', 'Could not copy the model name')
         end)
-    else
+    elseif result == true then
         notify('success', ('Copied %s'):format(snapshot.modelName))
+    else
+        -- Exports hand back the settled boolean; false means the write failed.
+        notify('error', 'Could not copy the model name')
     end
 end
 
@@ -177,8 +201,24 @@ local function startPicker()
 
     CreateThread(function()
         while state.active do
-            local hit, hitCoords, entity = Kora.raycast.fromCamera(Config.entityPicker.maxDistance)
-            updateHud(hit and inspectEntity(entity, hitCoords) or nil)
+            -- Fire the entity-only ray and the catch-all ray together so they settle
+            -- in the same frame. The entity mask (peds, vehicles, objects) is what
+            -- kora_target uses; the catch-all alone can stop on foliage, glass or
+            -- map collision and report entity 0 even with a prop under the dot.
+            local ok, err = pcall(function()
+                local maxDistance = Config.entityPicker.maxDistance
+                local entityRay = Kora.raycast.startFromCamera(maxDistance, ENTITY_RAY_FLAGS)
+                local anyRay = Kora.raycast.startFromCamera(maxDistance)
+                local hit, hitCoords, entity = Kora.raycast.await(entityRay)
+                local snapshot = hit and safeInspect(entity, hitCoords) or nil
+                local anyHit, anyCoords, anyEntity = Kora.raycast.await(anyRay)
+                if not snapshot and anyHit then snapshot = safeInspect(anyEntity, anyCoords) end
+                updateHud(snapshot)
+            end)
+            if not ok then
+                print(('[kora_admin] entity picker raycast failed: %s'):format(tostring(err)))
+                Wait(1000)
+            end
             Wait(0)
         end
     end)

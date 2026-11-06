@@ -135,7 +135,11 @@ Kora = {
         vehicle = function() return false end,
     },
     callback = { trigger = function() return {} end },
-    raycast = { fromCamera = function() return true, { x = 3.0, y = 4.0, z = 0.0 }, 99 end },
+    raycast = {
+        fromCamera = function() return true, { x = 3.0, y = 4.0, z = 0.0 }, 99 end,
+        startFromCamera = function() return 1 end,
+        await = function() return true, { x = 3.0, y = 4.0, z = 0.0 }, 99 end,
+    },
     lookup = { model = function() return { name = 'prop_catalogue', label = 'Catalogue prop' } end },
     shared = {
         all = function() return {} end,

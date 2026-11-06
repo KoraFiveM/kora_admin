@@ -12,6 +12,12 @@ local function chatConfig()
     if type(chat) == 'table' and chat.enabled == true then return chat end
 end
 
+---True when the chat screens use the fixed, non-scrolling layout (Config.reports.chat.fixedLayout).
+function Admin.reportChatFixedLayout()
+    local chat = chatConfig()
+    return chat ~= nil and chat.fixedLayout ~= false
+end
+
 ---@param report table conversation from qbadmin:menuReport / qbadmin:myReport
 ---@param viewerRole 'staff'|'player'
 ---@param sendAction string action id of the composer
@@ -42,6 +48,9 @@ function Admin.reportChatBlock(report, viewerRole, sendAction)
     return {
         id = 'report-chat-' .. tostring(report.id), type = 'chat', title = 'Conversation',
         empty = 'No messages yet',
+        -- Fixed layout: the block fills the screen, only its messages scroll, newest always shown.
+        scrollable = Admin.reportChatFixedLayout() or nil,
+        follow = Admin.reportChatFixedLayout() or nil,
         messages = messages,
         composer = {
             action = { id = sendAction, label = 'Send', icon = 'send' },
@@ -113,6 +122,22 @@ end
 local function reportView(id, live)
     local report, err = Kora.callback.trigger('qbadmin:myReport', id, { live = live == true })
     if not report then return nil, err end
+    local title = ('Report #%s · %s'):format(report.id, report.category or report.type or '')
+    local description = report.claimed_by_name and ('Handled by %s · %s'):format(report.claimed_by_name, report.status)
+        or ('Status: %s · waiting for staff'):format(report.status)
+    local back = { id = 'my:back', label = 'Back to My Reports', icon = 'arrow-left', variant = 'ghost' }
+    if Admin.reportChatFixedLayout() then
+        -- One fixed screen: Back beside the title, the resolution in the header line, and the
+        -- chat filling the rest (only its message list scrolls).
+        if report.resolution then description = ('%s · Resolution: %s'):format(description, tostring(report.resolution)) end
+        return {
+            id = 'report', label = ('Report #%s'):format(report.id), icon = 'message-square',
+            content = {
+                title = title, description = description, actions = { back }, scrollable = false,
+                blocks = { Admin.reportChatBlock(report, 'player', 'my:send') },
+            },
+        }, report
+    end
     return {
         id = 'report', label = ('Report #%s'):format(report.id), icon = 'message-square',
         content = {

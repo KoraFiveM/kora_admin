@@ -469,8 +469,16 @@ test('List Players selects a player before running their admin actions', functio
     local selectedActionGroups, profileDetails, onlinePlayers, back = {}, nil, nil, nil
     local playerWorkspace = findView(menuPayload, 'players')
     equal(playerWorkspace.defaultTab, 'overview', 'a selected player should open on a concise overview')
-    equal(#playerWorkspace.tabs, 6, 'the player detail should be split into manageable tabs')
-    for _, tab in ipairs(playerWorkspace.tabs) do
+    equal(#playerWorkspace.tabs, 7, 'the Online list plus the player detail split into manageable tabs')
+    equal(selectedResult.navigate.replace, true, 'opening a player records no shell history step')
+    equal(playerWorkspace.tabs[1].id, 'player', 'the Online list stays the first tab')
+    equal(playerWorkspace.tabs[1].back, nil, 'the Online tab shows no header back arrow')
+    for index = 2, #playerWorkspace.tabs do
+        equal(playerWorkspace.tabs[index].back, 'player:back',
+            'every per-player tab header arrow deselects the player like Back to Online Players')
+    end
+    for index = 2, #playerWorkspace.tabs do
+        local tab = playerWorkspace.tabs[index]
         for _, block in ipairs(tab.content.blocks) do
                 if block.id and block.id:match('^selected%-player%-actions') then
                     selectedActionGroups[block.title] = block.actions
@@ -480,9 +488,10 @@ test('List Players selects a player before running their admin actions', functio
                 if block.id == 'selected-player-back' then back = block end
         end
     end
+    -- (the Online tab keeps the list; the per-player tabs above must not repeat it)
     truthy(profileDetails and profileDetails.type == 'details' and #profileDetails.items >= 10,
         'clicking a player should open their full profile as structured details')
-    equal(onlinePlayers, nil, 'the player list should be replaced by the profile')
+    equal(onlinePlayers, nil, 'the per-player tabs should not repeat the Online list')
     truthy(back and back.actions[1].id == 'player:back', 'the profile should offer a back button')
     truthy(selectedActionGroups['Profile'], 'profile controls should have their own category')
     truthy(selectedActionGroups['Movement & Spectating'], 'movement commands should have their own category')
@@ -564,6 +573,8 @@ test('List Players selects a player before running their admin actions', functio
     truthy(onlinePlayers, 'Back should return to the online-player browser')
     truthy(onlinePlayers.searchable and onlinePlayers.pageSize == 12,
         'the restored online-player table is searchable and paged')
+    netEvents['qbadmin:client:refreshMenuPlayerState']('7')
+    equal(#findView(menuPayload, 'players').tabs, 1, 'a state push for the deselected player must not bring its tabs back')
 
     Kora.shared.all, Kora.shared.get = previousSharedAll, previousSharedGet
 end)
@@ -859,6 +870,14 @@ test('with the live chat the report opens on a chat block whose composer sends t
     equal(chat.composer.action.id, 'reports:chat:send', 'composer action')
     equal(chat.composer.maxLength, Config.reports.chat.maxLength, 'composer length limit follows config')
     for _, action in ipairs(management.actions) do truthy(action.id ~= 'reports:selected:reply', 'no separate reply form with the chat') end
+    local overview = findTab(view, 'overview').content
+    equal(overview.scrollable, false, 'fixed layout: the report overview itself never scrolls')
+    equal(#overview.blocks, 1, 'fixed layout: the chat is the only block, so it gets the remaining height')
+    equal(overview.actions[1].id, 'reports:back', 'fixed layout: Back sits beside the title')
+    truthy(overview.description:find('Reporter: Citizen', 1, true) and overview.description:find('Assigned to: Unassigned', 1, true),
+        'fixed layout: the report summary moves into the header line')
+    equal(chat.scrollable, true, 'fixed layout: only the chat message list scrolls')
+    equal(chat.follow, true, 'fixed layout: the chat always shows the newest message')
 
     local result = menuPayload.onAction('reports:chat:send', { value = { message = 'On it' } })
     equal(sent[1].id, '42', 'sent to the selected report')
@@ -903,6 +922,11 @@ test('My Reports: players chat in their own window and get a toast only while it
     equal(chat.messages[1].mine, true, 'the report text is the player\'s own message')
     equal(chat.messages[2].mine, false, 'staff replies are on the other side')
     equal(chat.composer.action.id, 'my:send', 'player composer action')
+    local reportContent = findView(menuPayload, 'report').content
+    equal(reportContent.scrollable, false, 'fixed layout: the player report window never scrolls')
+    equal(#reportContent.blocks, 1, 'fixed layout: the chat fills the player window')
+    equal(reportContent.actions[1].id, 'my:back', 'fixed layout: Back sits beside the title')
+    equal(chat.scrollable, true, 'fixed layout: only the player chat message list scrolls')
 
     menuPayload.onAction('my:select', { itemId = '7' })
     menuPayload.onAction('my:send', { value = { message = 'Thanks' } })

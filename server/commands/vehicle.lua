@@ -104,6 +104,9 @@ Admin.addCommand('veh', 'Spawn a vehicle for a player', { { name = 'id' }, { nam
 
     local _, spawnErr = spawnFor(targetSrc, model)
     if spawnErr then return Admin.respond(source, false, spawnErr) end
+    if Config.vehicle.notifyTarget and targetSrc ~= source then
+        Kora.notify.send(targetSrc, { message = ('You received a %s and its keys'):format(model), type = 'success' })
+    end
     Admin.log(source, 'veh', data, { model = model })
     Admin.respond(source, true, ('Spawned %s for %s'):format(model, data.name))
 end, OPTS_ADMIN)
@@ -140,6 +143,9 @@ Admin.addCommand('givekeys', 'Give a player keys to the vehicle they are driving
         return Admin.respond(source, false, 'could not grant vehicle keys')
     end
 
+    if Config.vehicle.notifyTarget and targetSrc ~= source then
+        Kora.notify.send(targetSrc, { message = 'You received keys to your current vehicle', type = 'success' })
+    end
     Admin.log(source, 'givekeys', data, { plate = GetVehicleNumberPlateText(vehicle) })
     Admin.respond(source, true, ('Gave %s the keys to their current vehicle'):format(data.name))
 end, OPTS_ADMIN)

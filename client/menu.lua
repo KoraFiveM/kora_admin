@@ -910,6 +910,9 @@ local function openRoot(options)
             return {}
         end
 
+        -- Back on the list means no player is selected: a later state push for the old
+        -- target must not bring its tabs back.
+        Admin.refreshSelectedPlayerState = nil
         local tab = sectionTab(sectionsById.player)
         tab.badge = #players
         view.defaultTab = tab.id
@@ -1057,10 +1060,27 @@ local function openRoot(options)
             }
         end
 
+        local overview
+        if chatOn and Admin.reportChatFixedLayout() then
+            -- Config.reports.chat.fixedLayout: one screen that never scrolls. The summary moves
+            -- into the header line and Back beside the title, so the chat gets the remaining
+            -- height and only its message list scrolls.
+            local summary = ('%s · %s · Reporter: %s · Assigned to: %s'):format(tostring(report.status),
+                tostring(report.category or report.type), tostring(report.reporter_name), tostring(report.claimed_by_name or 'Unassigned'))
+            if report.resolution then summary = ('%s · Resolution: %s'):format(summary, tostring(report.resolution)) end
+            overview = {
+                title = ('Report #%s · %s'):format(report.id, report.type),
+                description = summary .. '. Claim, resolve or dismiss from Manage.',
+                actions = { { id = 'reports:back', label = 'Back to Report Queue', icon = 'arrow-left', variant = 'ghost' } },
+                scrollable = false,
+                blocks = { Admin.reportChatBlock(report, 'staff', 'reports:chat:send') },
+            }
+        end
+
         local tabs = {
             {
                 id = 'overview', label = 'Overview',
-                content = {
+                content = overview or {
                     title = ('Report #%s · %s'):format(report.id, report.type),
                     description = chatOn and 'Chat with the reporter live. Claim, resolve or dismiss from Manage.'
                         or 'Review the report conversation and current assignment before taking action.',
@@ -1372,8 +1392,14 @@ local function openRoot(options)
                 }
             end
         end
-        -- Keep the Online list as the first tab: it is the one-click way back to the
-        -- list, and the old header Back (Config.menu.playerProfileHeaderBack) targets it.
+        -- The header "<" (Config.menu.playerProfileHeaderBack) is the same action as
+        -- "Back to Online Players": it clears the selected player, so these per-player
+        -- tabs disappear. It is set on the per-player tabs only, never on the Online tab.
+        local headerBack = Config.menu and Config.menu.playerProfileHeaderBack == true
+        if headerBack then
+            for _, playerTab in ipairs(tabs) do playerTab.back = 'player:back' end
+        end
+        -- Keep the Online list as the first tab: it is the one-click way back to the list.
         local listTab = findTab(view, 'player')
         if listTab then table.insert(tabs, 1, listTab) end
         view.defaultTab = 'overview'
@@ -1383,11 +1409,9 @@ local function openRoot(options)
             local refreshed = showSelectedPlayer({ id = target })
             if refreshed.update and Kora.nui.updateApp then Kora.nui.updateApp('qbadmin:menu', refreshed.update) end
         end
-        -- Push a history step so the shell's header "<" returns to the Online list. The shell
-        -- now clears history on view switches and skips dead entries, so the arrow no longer
-        -- leaks onto other views. Option false replaces instead and shows no arrow.
-        local headerBack = Config.menu and Config.menu.playerProfileHeaderBack == true
-        return { update = { navigation = navigation }, navigate = { viewId = 'players', tabId = 'overview', replace = not headerBack } }
+        -- No history step: the per-player tabs carry their own header back action (above),
+        -- so the shell's history arrow cannot outlive the selected player.
+        return { update = { navigation = navigation }, navigate = { viewId = 'players', tabId = 'overview', replace = true } }
     end
 
     -- Seed the live-data workspaces before registration so opening the

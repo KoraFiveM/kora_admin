@@ -118,6 +118,8 @@ Config.world = {
 Config.vehicle = {
     -- /veh spawns this far in front of the target so it doesn't land on top of them.
     spawnOffset = 3.0,
+    -- Notify the receiving player when an admin gives them a vehicle (/veh) or keys (/givekeys).
+    notifyTarget = true,
 }
 
 Config.dv = {
@@ -222,6 +224,10 @@ Config.reports = {
         -- Who gets a toast when the reporter writes: 'all' staff (as before) or only the 'claimer'
         -- once a report is claimed (unclaimed reports still notify all staff).
         notifyStaff = 'all',
+        -- true: the staff report Overview and the player's report window fit the window: only the
+        -- message list scrolls (always jumping to the newest message), the message box stays at the
+        -- bottom and the report details sit in the header line. false: the old scrolling page.
+        fixedLayout = true,
     },
 }
 
@@ -235,7 +241,7 @@ Config.roles = {
 }
 
 Config.menu = {
-    -- true: opening a player profile adds a header "<" step back to the Online list (the shell clears it on other views). false: no arrow; use the Online tab.
+    -- true: a selected player's tabs show a header "<" that works like "Back to Online Players" (clears the player, hides their tabs). false: no arrow.
     playerProfileHeaderBack = true,
 }
 
