@@ -154,6 +154,7 @@ Config.entityPicker = {
     copyKey = 'H', -- default for copying the aimed entity's actual model/archetype name
     closeKey = 'X', -- default for closing the active entity picker
     crosshair = true, -- draw a centre dot while the picker is active (green when on an entity)
+    manualCopyFallback = true, -- when the automatic copy fails, open a text box with the name to copy by hand
 }
 
 Config.spectate = {

@@ -792,6 +792,7 @@ local function openRoot(options)
     local selectedPlayerActions = {}
     local selectedReportActions = {}
     local selectedReportId
+    local selectedPlayerId
     local currentReportFilters = options and options.filters or { status = 'open' }
     local sectionsById = {}
     for _, section in ipairs(SECTIONS) do sectionsById[section.id] = section end
@@ -913,6 +914,7 @@ local function openRoot(options)
         -- Back on the list means no player is selected: a later state push for the old
         -- target must not bring its tabs back.
         Admin.refreshSelectedPlayerState = nil
+        selectedPlayerId = nil
         local tab = sectionTab(sectionsById.player)
         tab.badge = #players
         view.defaultTab = tab.id
@@ -1167,14 +1169,18 @@ local function openRoot(options)
     -- id fixed into the action so staff never have to choose the same person
     -- twice.  The table includes the caller too, so self actions work through
     -- exactly the same screen.
-    local function showSelectedPlayer(player)
+    ---`quiet` is a background state refresh: it gives way if the user went Back or
+    ---picked another player while it was loading, so it cannot bring old tabs back.
+    local function showSelectedPlayer(player, quiet)
         local profile, profileErr = Kora.callback.trigger('qbadmin:menuPlayerProfile', player.id)
+        if quiet and selectedPlayerId ~= tostring(player.id) then return {} end
         if not profile then
             Kora.notify.send({ type = 'error', message = profileErr or 'That player is no longer online' })
             return {}
         end
 
         local roles = Kora.callback.trigger('qbadmin:menuRoles')
+        if quiet and selectedPlayerId ~= tostring(player.id) then return {} end
         if type(roles) == 'table' then roleCatalogue = roles end
 
         local view = findView('players')
@@ -1404,9 +1410,10 @@ local function openRoot(options)
         if listTab then table.insert(tabs, 1, listTab) end
         view.defaultTab = 'overview'
         view.tabs = tabs
+        selectedPlayerId = target
         Admin.refreshSelectedPlayerState = function(updatedTarget)
             if tostring(updatedTarget) ~= target then return end
-            local refreshed = showSelectedPlayer({ id = target })
+            local refreshed = showSelectedPlayer({ id = target }, true)
             if refreshed.update and Kora.nui.updateApp then Kora.nui.updateApp('qbadmin:menu', refreshed.update) end
         end
         -- No history step: the per-player tabs carry their own header back action (above),

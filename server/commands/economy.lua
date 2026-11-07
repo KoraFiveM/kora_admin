@@ -63,9 +63,9 @@ Admin.addCommand('giveitem', 'Give a player an item', { { name = 'id' }, { name 
         if not amount then return Admin.respond(source, false, 'amount must be a positive whole number') end
         local info
         if args[4] then
-            local decoded, decodeErr = pcall(json.decode, args[4])
-            if not decoded then return Admin.respond(source, false, ('invalid item metadata JSON: %s'):format(tostring(decodeErr))) end
-            info = decodeErr
+            local ok, decoded = pcall(json.decode, args[4])
+            if not ok then return Admin.respond(source, false, ('invalid item metadata JSON: %s'):format(tostring(decoded))) end
+            info = decoded
             if type(info) ~= 'table' then return Admin.respond(source, false, 'item metadata must decode to an object') end
         end
 

@@ -20,7 +20,6 @@ dependency 'kora_vehiclekeys'
 -- Kora.sql.* directly for the bans table and admin_logs.
 shared_script '@kora_lib/init.lua'
 shared_script '@kora_core/init.lua'
-shared_script '@kora_sql/init.lua'
 
 shared_scripts {
     'config.lua'
@@ -39,6 +38,7 @@ files {
 -- commands/*.lua file that calls them; migrate.lua (schema setup) and ban_enforcement.lua
 -- have no such dependency and can load anywhere after core.lua.
 server_scripts {
+    '@kora_sql/init.lua',
     'server/config.lua',
     'server/core.lua',
     'server/command_registry.lua',

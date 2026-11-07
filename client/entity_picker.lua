@@ -135,6 +135,23 @@ local function stopPicker(message)
     if message then notify('info', message) end
 end
 
+-- The browser can refuse the programmatic copy (execCommand needs a focused page and
+-- gives no error when it does not), so a failed copy offers the name in a focused
+-- text field: the player's own Ctrl+A / Ctrl+C there is a real user copy that always works.
+local function copyFailed(modelName)
+    notify('error', ('Could not copy the model name; it is %s'):format(modelName))
+    if Config.entityPicker.manualCopyFallback == false or state.manualCopyOpen then return end
+    if type(Kora.nui.openInputDialog) ~= 'function' then return end
+
+    state.manualCopyOpen = true
+    CreateThread(function()
+        pcall(Kora.nui.openInputDialog, {
+            { id = 'model', label = 'Model name', type = 'text', default = modelName },
+        }, 'Entity picker', 'Select the name and press Ctrl+C, then close this dialog.')
+        state.manualCopyOpen = false
+    end)
+end
+
 local function copyModelName()
     local snapshot = state.snapshot
     if not state.active then return end
@@ -145,22 +162,23 @@ local function copyModelName()
         return notify('error', ('No model name is available; use hash %s instead'):format(tostring(snapshot.model)))
     end
 
-    local result = Kora.nui.copyToClipboard(snapshot.modelName)
+    local modelName = snapshot.modelName
+    local result = Kora.nui.copyToClipboard(modelName)
     if type(result) == 'table' and type(result.next) == 'function' then
         result:next(function(copied)
             if copied then
-                notify('success', ('Copied %s'):format(snapshot.modelName))
+                notify('success', ('Copied %s'):format(modelName))
             else
-                notify('error', 'Could not copy the model name')
+                copyFailed(modelName)
             end
         end, function()
-            notify('error', 'Could not copy the model name')
+            copyFailed(modelName)
         end)
     elseif result == true then
-        notify('success', ('Copied %s'):format(snapshot.modelName))
+        notify('success', ('Copied %s'):format(modelName))
     else
         -- Exports hand back the settled boolean; false means the write failed.
-        notify('error', 'Could not copy the model name')
+        copyFailed(modelName)
     end
 end
 
