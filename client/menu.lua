@@ -680,7 +680,7 @@ local SECTIONS = {
         },
     },
     {
-        id = 'developer', label = 'Builders', level = Config.developer.menuLevel,
+        id = 'developer', label = 'Developer Tools', level = Config.developer.menuLevel,
         title = 'Development Tools',
         description = 'Inspect world entities, place models, build zones, and clean up entities created during your current session.',
         items = {
@@ -725,6 +725,10 @@ local SECTIONS = {
         },
     },
     {
+        id = 'resource_versions', label = 'Resources', level = Config.developer.menuLevel,
+        title = 'Resources', items = {},
+    },
+    {
         id = 'medal', label = 'Medal Clips', level = Config.medal.menuLevel,
         title = 'Medal Clips',
         description = 'Capture a configured highlight from your local Medal replay buffer.',
@@ -737,7 +741,7 @@ local PAGE_LAYOUT = {
     { id = 'reports', label = 'Reports', icon = 'flag', description = 'Player support queue', sections = { 'reports' } },
     { id = 'tools', label = 'My Tools', icon = 'wrench', description = 'Personal and in-world utilities', sections = { 'self', 'teleport', 'vehicle', 'appearance' } },
     { id = 'server', label = 'Server', icon = 'database', description = 'World control and oversight', sections = { 'environment', 'server', 'moderation', 'audit', 'configuration' } },
-    { id = 'development', label = 'Development', icon = 'hammer', description = 'Builders and local captures', sections = { 'developer', 'medal' } },
+    { id = 'development', label = 'Developer Tools', icon = 'hammer', description = 'Developer utilities and local captures', sections = { 'developer', 'resource_versions', 'medal' } },
 }
 
 local REPORT_STATUS_FILTERS = { open = true, claimed = true, resolved = true, dismissed = true, all = true }
@@ -792,6 +796,7 @@ local function openRoot(options)
     local selectedPlayerActions = {}
     local selectedReportActions = {}
     local selectedReportId
+    local koraOnlyResources = true
     local currentReportFilters = options and options.filters or { status = 'open' }
     local sectionsById = {}
     for _, section in ipairs(SECTIONS) do sectionsById[section.id] = section end
@@ -899,6 +904,74 @@ local function openRoot(options)
             rows = tableRows, empty = 'No matching audit entries',
         }
         return { update = { navigation = navigation }, navigate = { viewId = 'server', tabId = 'audit' } }
+    end
+
+    local function showResourcesInShell(koraOnly)
+        if koraOnly ~= nil then koraOnlyResources = koraOnly == true end
+        -- Kora modules are export proxies, so method presence can't be checked
+        -- with type(). Probe the optional capability and fall back for older lib builds.
+        local capabilityOk, supportsHeaderControls = pcall(Kora.nui.supportsAppTableHeaderControls)
+        supportsHeaderControls = capabilityOk and supportsHeaderControls == true
+        local resources, err = Kora.callback.trigger('qbadmin:menuResources')
+        if not resources then
+            Kora.notify.send({ type = 'error', message = err or 'Could not load resources' })
+            return {}
+        end
+        local tab = findTab(findView('development'), 'resource_versions')
+        if not tab then return {} end
+        tab.content.title = nil
+        tab.content.description = nil
+        local blocks = tab.content.blocks
+        for index = #blocks, 1, -1 do
+            if blocks[index].id == 'resource-versions' or blocks[index].id == 'resource-filters' then
+                table.remove(blocks, index)
+            end
+        end
+        local rows = {}
+        for _, resource in ipairs(resources) do
+            if not koraOnlyResources or resource.name:sub(1, 5) == 'kora_' then
+                local isKora = resource.name:match('^kora_[%w_%-]+$') ~= nil
+                local repositoryUrl = isKora and ('https://github.com/KoraFiveM/%s'):format(resource.name) or nil
+                local commitUrl = resource.url
+                if repositoryUrl and type(resource.fullCommit) == 'string'
+                    and ( #resource.fullCommit == 40 or #resource.fullCommit == 64 )
+                    and resource.fullCommit:match('^[%da-fA-F]+$') then
+                    commitUrl = ('%s/commit/%s'):format(repositoryUrl, resource.fullCommit)
+                end
+                rows[#rows + 1] = {
+                    resource = isKora
+                        and { value = resource.name, label = resource.name, tone = 'primary', badge = true, href = repositoryUrl }
+                        or resource.name,
+                    state = resource.state,
+                    branch = resource.branch or 'Unavailable',
+                    commit = resource.commit and {
+                        value = resource.commit,
+                        description = resource.message or 'Commit message unavailable',
+                        href = commitUrl,
+                        copyText = commitUrl,
+                    } or 'Unavailable',
+                }
+            end
+        end
+        local resourceTable = {
+            id = 'resource-versions', type = 'table', title = ('Resources (%d)'):format(#rows),
+            searchable = true, pageSize = 20,
+            columns = {
+                { key = 'resource', label = 'Resource', sortable = true },
+                { key = 'state', label = 'State', sortable = true },
+                { key = 'branch', label = 'Branch', sortable = true },
+                { key = 'commit', label = 'Commit ref', sortable = true },
+            },
+            rows = rows, empty = 'No resources found',
+        }
+        if supportsHeaderControls then
+            resourceTable.headerToggle = {
+                label = 'Kora only', checked = koraOnlyResources, action = 'developer:resources:toggle',
+            }
+            resourceTable.refreshAction = 'resource_versions:refresh'
+        end
+        blocks[#blocks + 1] = resourceTable
+        return { update = { navigation = navigation }, navigate = { viewId = 'development', tabId = 'resource_versions' } }
     end
 
     local function showPlayersInShell()
@@ -1423,6 +1496,7 @@ local function openRoot(options)
         activeNavigation = navigation
         showPlayersInShell()
         showReportsInShell({ status = 'open' })
+        if Admin.hasLevel(Config.developer.menuLevel) then showResourcesInShell() end
         refreshRegistryFields(activeNavigation)
     end
     Kora.nui.registerApp({
@@ -1494,6 +1568,10 @@ local function openRoot(options)
             if categoryId == 'audit' and itemId == 'adminlog' then return showAuditInShell() end
             if categoryId == 'audit' and itemId == 'adminlogfilter' then
                 return showAuditInShell(context and context.value or {})
+            end
+            if categoryId == 'resource_versions' and itemId == 'refresh' then return showResourcesInShell() end
+            if categoryId == 'developer' and itemId == 'resources:toggle' then
+                return showResourcesInShell(context and context.value == true)
             end
             for _, section in ipairs(SECTIONS) do
                 for _, item in ipairs(section.items) do
