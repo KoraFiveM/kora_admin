@@ -265,6 +265,45 @@ test('Builders tab reflects Kora dev mode and gates creator shortcuts', function
     equal(developerItem('entitypicker').disabled, false, 'entity picker should enable in dev mode')
 end)
 
+test('resources tab defaults to Kora and can show all resources', function()
+    selectedMenuResult = { cancelled = true }
+    local originalTrigger = Kora.callback.trigger
+    Kora.callback.trigger = function(name)
+        if name == 'qbadmin:menuResources' then
+            return {
+                { name = 'kora_example', state = 'started', commit = '123456789abc', fullCommit = '123456789abcdef0123456789abcdef012345678' },
+                { name = 'other_resource', state = 'stopped' },
+            }
+        end
+        return {}
+    end
+    netEvents['qbadmin:client:openMenu'](Config.developer.menuLevel)
+    local function resourceTable()
+        for _, tab in ipairs(developerCategory().tabs) do
+            if tab.id == 'resource_versions' then
+                for _, block in ipairs(tab.content.blocks) do
+                    if block.id == 'resource-versions' then return block end
+                end
+            end
+        end
+    end
+    truthy(resourceTable(), 'resource table should be visible')
+    equal(developerCategory().tabs[1].id, 'developer', 'developer tools tab comes first')
+    equal(developerCategory().tabs[2].id, 'resource_versions', 'resources tab comes second')
+    equal(developerCategory().tabs[3].id, 'medal', 'Medal tab comes third')
+    equal(#resourceTable().rows, 1, 'Kora filter should be selected initially')
+    truthy(resourceTable().headerToggle.checked, 'Kora checkbox should be checked')
+    equal(resourceTable().refreshAction, 'resource_versions:refresh', 'refresh should be in the table header')
+    equal(resourceTable().rows[1].resource.value, 'kora_example', 'Kora resource should remain')
+    equal(resourceTable().rows[1].resource.tone, 'primary', 'Kora pill should use the brand colour')
+    equal(resourceTable().rows[1].resource.href, 'https://github.com/KoraFiveM/kora_example', 'resource name should link to GitHub')
+    equal(resourceTable().rows[1].commit.href, 'https://github.com/KoraFiveM/kora_example/commit/123456789abcdef0123456789abcdef012345678', 'commit should link to the full revision')
+    equal(resourceTable().rows[1].commit.copyText, 'https://github.com/KoraFiveM/kora_example/commit/123456789abcdef0123456789abcdef012345678', 'commit link should be available to copy')
+    menuPayload.onAction('developer:resources:toggle', { value = false })
+    equal(#resourceTable().rows, 2, 'all resources should be shown after switching filters')
+    Kora.callback.trigger = originalTrigger
+end)
+
 test('entity picker registers rebindable copy and close controls', function()
     equal(keybinds.qbadmin_entitypicker_copy.defaultKey, Config.entityPicker.copyKey, 'copy key default')
     equal(keybinds.qbadmin_entitypicker_close.defaultKey, Config.entityPicker.closeKey, 'close key default')

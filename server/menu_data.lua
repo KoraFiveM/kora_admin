@@ -1,6 +1,5 @@
--- Read-only data for the admin NUI.  Commands remain the only mutation
--- surface; these callbacks exist so the menu can present useful lists instead
--- of making an administrator type an optional filter before seeing anything.
+-- Data and guarded actions for the admin NUI. Callbacks enforce permissions on
+-- the server; list views never trust client-submitted summary values.
 
 local function allowed(src, level)
     if not Admin.checkLevel(src, level) then
@@ -52,6 +51,126 @@ Kora.callback.register('qbadmin:menuPlayers', function(src)
 
     table.sort(players, function(a, b) return tonumber(a.id) < tonumber(b.id) end)
     return players
+end)
+
+-- Resource versions are read from local Git metadata only; resources without a
+-- checkout (or with missing/inaccessible metadata) remain visible without a ref.
+local function readLine(path)
+    local file = io.open(path, 'r')
+    if not file then return nil end
+    local ok, line = pcall(file.read, file, '*l')
+    file:close()
+    return ok and line or nil
+end
+
+local function gitDirectory(resourcePath)
+    local dotGit = resourcePath .. '/.git'
+    local marker = readLine(dotGit)
+    if marker and marker:match('^gitdir:%s*(.+)$') then
+        local directory = marker:match('^gitdir:%s*(.+)$')
+        if directory:sub(1, 1) ~= '/' then directory = resourcePath .. '/' .. directory end
+        return directory
+    end
+    if readLine(dotGit .. '/HEAD') then return dotGit end
+end
+
+local function githubRepository(directory)
+    local file = io.open(directory .. '/config', 'r')
+    if not file then return nil end
+    local inOrigin, url = false, nil
+    for line in file:lines() do
+        if line:match('^%s*%[') then
+            inOrigin = line:match('^%s*%[remote%s+"origin"%]%s*$') ~= nil
+        elseif inOrigin then
+            url = line:match('^%s*url%s*=%s*(%S+)%s*$')
+            if url then break end
+        end
+    end
+    file:close()
+    if not url then return nil end
+    local repository = url:match('^https?://github%.com/([%w_.%-]+/[%w_.%-]+)$')
+        or url:match('^git@github%.com:([%w_.%-]+/[%w_.%-]+)$')
+        or url:match('^ssh://git@github%.com/([%w_.%-]+/[%w_.%-]+)$')
+    if repository then return repository:gsub('%.git$', '') end
+end
+
+local function gitCommit(resourcePath)
+    local directory = gitDirectory(resourcePath)
+    if not directory then return nil end
+
+    local head = readLine(directory .. '/HEAD')
+    if not head then return nil end
+    local ref = head:match('^ref:%s*(.+)$')
+    local branch = ref and ref:match('^refs/heads/(.+)$') or nil
+    local commit
+    if not ref then
+        commit = head
+    else
+        commit = readLine(directory .. '/' .. ref)
+        if not commit then
+            local packed = io.open(directory .. '/packed-refs', 'r')
+            if packed then
+                for line in packed:lines() do
+                    local hash, packedRef = line:match('^([%da-fA-F]+)%s+(.+)$')
+                    if packedRef == ref then commit = hash; break end
+                end
+                packed:close()
+            end
+        end
+    end
+    if not commit or not commit:match('^[%da-fA-F]+$') then return nil end
+
+    local message
+    local reflogs = {}
+    if ref then reflogs[#reflogs + 1] = directory .. '/logs/' .. ref end
+    reflogs[#reflogs + 1] = directory .. '/logs/HEAD'
+    for _, path in ipairs(reflogs) do
+        local file = io.open(path, 'r')
+        if file then
+            local last
+            local readOk = pcall(function()
+                for line in file:lines() do last = line end
+            end)
+            file:close()
+            if readOk and last then
+                local newCommit, subject = last:match('^[%da-fA-F]+%s+([%da-fA-F]+).-	(.*)$')
+                if newCommit and newCommit:lower() == commit:lower() and subject:match('^commit[%w%s%(%)%-]*:') then
+                    message = subject:gsub('^commit[%w%s%(%)%-]*:%s*', '')
+                    break
+                end
+            end
+        end
+    end
+    local repository = githubRepository(directory)
+    return {
+        ref = commit:sub(1, 12), fullCommit = commit, branch = branch, message = message,
+        url = repository and ('https://github.com/%s/commit/%s'):format(repository, commit) or nil,
+    }
+end
+
+Kora.callback.register('qbadmin:menuResources', function(src)
+    local ok, err = allowed(src, 'admin')
+    if not ok then return nil, err end
+
+    local rows = {}
+    for index = 0, GetNumResources() - 1 do
+        local name = GetResourceByFindIndex(index)
+        if name then
+            local path = GetResourcePath(name)
+            local git = path and gitCommit(path) or nil
+            rows[#rows + 1] = {
+                name = name,
+                state = GetResourceState(name) or 'unknown',
+                commit = git and git.ref or nil,
+                fullCommit = git and git.fullCommit or nil,
+                branch = git and git.branch or nil,
+                message = git and git.message or nil,
+                url = git and git.url or nil,
+            }
+        end
+    end
+    table.sort(rows, function(a, b) return a.name:lower() < b.name:lower() end)
+    return rows
 end)
 
 -- A row selection opens a fresh, server-authenticated profile rather than
