@@ -908,6 +908,10 @@ local function openRoot(options)
 
     local function showResourcesInShell(koraOnly)
         if koraOnly ~= nil then koraOnlyResources = koraOnly == true end
+        -- Kora modules are export proxies, so method presence can't be checked
+        -- with type(). Probe the optional capability and fall back for older lib builds.
+        local capabilityOk, supportsHeaderControls = pcall(Kora.nui.supportsAppTableHeaderControls)
+        supportsHeaderControls = capabilityOk and supportsHeaderControls == true
         local resources, err = Kora.callback.trigger('qbadmin:menuResources')
         if not resources then
             Kora.notify.send({ type = 'error', message = err or 'Could not load resources' })
@@ -949,11 +953,9 @@ local function openRoot(options)
                 }
             end
         end
-        blocks[#blocks + 1] = {
+        local resourceTable = {
             id = 'resource-versions', type = 'table', title = ('Resources (%d)'):format(#rows),
             searchable = true, pageSize = 20,
-            headerToggle = { label = 'Kora only', checked = koraOnlyResources, action = 'developer:resources:toggle' },
-            refreshAction = 'resource_versions:refresh',
             columns = {
                 { key = 'resource', label = 'Resource', sortable = true },
                 { key = 'state', label = 'State', sortable = true },
@@ -962,6 +964,13 @@ local function openRoot(options)
             },
             rows = rows, empty = 'No resources found',
         }
+        if supportsHeaderControls then
+            resourceTable.headerToggle = {
+                label = 'Kora only', checked = koraOnlyResources, action = 'developer:resources:toggle',
+            }
+            resourceTable.refreshAction = 'resource_versions:refresh'
+        end
+        blocks[#blocks + 1] = resourceTable
         return { update = { navigation = navigation }, navigate = { viewId = 'development', tabId = 'resource_versions' } }
     end
 
