@@ -18,7 +18,7 @@ local function developmentReady(source)
     return false
 end
 
-Admin.addCommand('entitypicker', 'Inspect the entity you are aiming at and copy its model name', nil, true, function(source)
+Admin.addCommand('entitypicker', 'Inspect the entity you are aiming at and open its model name to copy', nil, true, function(source)
     if not developmentReady(source) then return end
 
     TriggerClientEvent('qbadmin:client:startEntityPicker', source)

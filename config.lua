@@ -151,10 +151,9 @@ Config.entityPicker = {
     -- The picker is a client-local inspection tool. Starting it still goes
     -- through the permission-checked /entitypicker command below.
     maxDistance = 50.0, -- maximum camera-ray distance when inspecting an entity
-    copyKey = 'H', -- default for copying the aimed entity's actual model/archetype name
+    copyKey = 'H', -- default for opening the model menu (name + Copy button) for the aimed entity
     closeKey = 'X', -- default for closing the active entity picker
     crosshair = true, -- draw a centre dot while the picker is active (green when on an entity)
-    manualCopyFallback = true, -- when the automatic copy fails, open a text box with the name to copy by hand
 }
 
 Config.spectate = {
