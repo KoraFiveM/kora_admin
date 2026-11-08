@@ -1,7 +1,7 @@
 -- A focus-free entity inspector for builders. kora_lib owns every reusable part:
 -- raycasting resolves what the camera hits, lookup enriches model hashes,
 -- textui renders the HUD, keybind keeps controls rebindable, and nui performs
--- the clipboard write. Native archetype names remain the primary source for
+-- the dialog's Copy Text button. Native archetype names remain the primary source for
 -- props because map archetypes are not guaranteed to appear in a catalogue.
 
 local state = {
@@ -94,14 +94,14 @@ end
 
 local function hudText(snapshot)
     if not snapshot then
-        return ('Aim at a prop, ped, or vehicle\nWaiting for an entity…\n%s copies its model name · %s closes')
+        return ('Aim at a prop, ped, or vehicle\nWaiting for an entity…\n%s opens the model menu · %s closes')
             :format(Config.entityPicker.copyKey, Config.entityPicker.closeKey)
     end
 
     local name = snapshot.modelName or ('Unknown model (%s)'):format(tostring(snapshot.model))
     local title = snapshot.label and snapshot.label ~= name and ('%s · %s'):format(snapshot.kind, snapshot.label)
         or snapshot.kind
-    return ('%s\n%s\nHash: %s · %.1fm\n%s copies model · %s closes')
+    return ('%s\n%s\nHash: %s · %.1fm\n%s model menu · %s closes')
         :format(title, name, tostring(snapshot.model), snapshot.distance,
             Config.entityPicker.copyKey, Config.entityPicker.closeKey)
 end
@@ -130,23 +130,26 @@ local function stopPicker(message)
     state.snapshot = nil
     state.text = nil
     state.nextHudAt = 0
+    state.menuOpen = false
     if state.hud then Kora.textui.hide(state.hud) end
     state.hud = nil
     if message then notify('info', message) end
 end
 
--- The browser can refuse the programmatic copy (execCommand needs a focused page and
--- gives no error when it does not), so a failed copy offers the name in a focused
--- text field: the player's own Ctrl+A / Ctrl+C there is a real user copy that always works.
-local function copyFailed(modelName)
-    notify('error', ('Could not copy the model name; it is %s'):format(modelName))
-    if Config.entityPicker.manualCopyFallback == false or state.manualCopyOpen then return end
-    if type(Kora.nui.openInputDialog) ~= 'function' then return end
+-- H opens the input dialog instead of writing to the clipboard on its own: the browser
+-- often refuses a programmatic copy (no focus, previous clipboard kept), but a click on the
+-- dialog's Copy Text button, or the player's own Ctrl+C on the selected name, is a real user
+-- copy that always works.
+local function openCopyDialog(modelName)
+    if state.manualCopyOpen then return end
+    if type(Kora.nui.openInputDialog) ~= 'function' then
+        return notify('error', ('Model name: %s'):format(modelName))
+    end
 
     state.manualCopyOpen = true
     CreateThread(function()
         pcall(Kora.nui.openInputDialog, {
-            { id = 'model', label = 'Model name', type = 'text', default = modelName },
+            { id = 'model', label = 'Model name', type = 'text', default = modelName, copyButton = { label = 'Copy Text' } },
         }, 'Entity picker', 'Select the name and press Ctrl+C, then close this dialog.')
         state.manualCopyOpen = false
     end)
@@ -156,30 +159,13 @@ local function copyModelName()
     local snapshot = state.snapshot
     if not state.active then return end
     if not snapshot then
-        return notify('error', 'Aim at an entity before copying')
+        return notify('error', 'Aim at an entity before opening the model name')
     end
     if not snapshot.modelName then
         return notify('error', ('No model name is available; use hash %s instead'):format(tostring(snapshot.model)))
     end
 
-    local modelName = snapshot.modelName
-    local result = Kora.nui.copyToClipboard(modelName)
-    if type(result) == 'table' and type(result.next) == 'function' then
-        result:next(function(copied)
-            if copied then
-                notify('success', ('Copied %s'):format(modelName))
-            else
-                copyFailed(modelName)
-            end
-        end, function()
-            copyFailed(modelName)
-        end)
-    elseif result == true then
-        notify('success', ('Copied %s'):format(modelName))
-    else
-        -- Exports hand back the settled boolean; false means the write failed.
-        copyFailed(modelName)
-    end
+    openCopyDialog(snapshot.modelName)
 end
 
 -- The ray follows the screen centre, but on foot GTA shows no reticle unless a
@@ -215,7 +201,7 @@ local function startPicker()
     })
     state.text = hudText(nil)
     state.nextHudAt = 0
-    notify('info', 'Aim at an entity; copy and close bindings can be changed in FiveM settings')
+    notify('info', 'Aim at an entity; model name and close bindings can be changed in FiveM settings')
 
     CreateThread(function()
         while state.active do
@@ -231,7 +217,7 @@ local function startPicker()
                 local snapshot = hit and safeInspect(entity, hitCoords) or nil
                 local anyHit, anyCoords, anyEntity = Kora.raycast.await(anyRay)
                 if not snapshot and anyHit then snapshot = safeInspect(anyEntity, anyCoords) end
-                updateHud(snapshot)
+                if not state.menuOpen then updateHud(snapshot) end
             end)
             if not ok then
                 print(('[kora_admin] entity picker raycast failed: %s'):format(tostring(err)))
@@ -255,10 +241,10 @@ end
 
 Kora.keybind.add({
     name = 'qbadmin_entitypicker_copy',
-    description = 'Entity Picker: Copy Model Name',
+    description = 'Entity Picker: Open Model Menu',
     defaultMapper = 'keyboard',
     defaultKey = Config.entityPicker.copyKey,
-    onPressed = copyModelName,
+    onPressed = openModelMenu,
 })
 
 Kora.keybind.add({
