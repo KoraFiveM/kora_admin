@@ -82,3 +82,6 @@ client_scripts {
     'client/report_chat.lua',
     'client/menu.lua'
 }
+
+-- kora_qa: Gherkin test scenarios (converted legacy tests), see [kora]/kora_qa/README.md
+qa_feature 'tests/*.feature'
