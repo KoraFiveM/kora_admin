@@ -183,9 +183,10 @@ Config.audit = {
 
 Config.configEditor = {
     -- Editing server configuration can change gameplay, economy, and access
-    -- policy. Keep it above normal administration by default; each request is
-    -- checked again on the server before it reaches kora_lib.
-    level = 'owner',
+    -- policy. Admins may use it; set 'owner' to keep it above normal
+    -- administration. Each request is checked again on the server before it
+    -- reaches kora_lib.
+    level = 'admin',
 }
 
 Config.reports = {

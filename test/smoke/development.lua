@@ -125,6 +125,7 @@ local executedCommand
 local keybinds = {}
 local textUi = {}
 local copiedText
+local dialogFields
 
 Kora = {
     notify = { send = function(payload) notifications[#notifications + 1] = payload end },
@@ -157,7 +158,7 @@ Kora = {
             menuPayload = { items = items, title = title }
             return selectedMenuResult
         end,
-        openInputDialog = function() return inputResult end,
+        openInputDialog = function(fields) dialogFields = fields return inputResult end,
         openAlert = function() return { confirmed = false } end,
         copyToClipboard = function(text) copiedText = text end,
     },
@@ -305,6 +306,7 @@ test('resources tab defaults to Kora and can show all resources', function()
 end)
 
 test('entity picker registers rebindable copy and close controls', function()
+    equal(type(keybinds.qbadmin_entitypicker_copy.onPressed), 'function', 'copy binding needs an onPressed handler')
     equal(keybinds.qbadmin_entitypicker_copy.defaultKey, Config.entityPicker.copyKey, 'copy key default')
     equal(keybinds.qbadmin_entitypicker_close.defaultKey, Config.entityPicker.closeKey, 'close key default')
 end)
@@ -315,8 +317,11 @@ test('entity picker displays and copies the real prop archetype name', function(
     local dot = drawnRects[#drawnRects]
     truthy(dot and dot.x == 0.5 and dot.y == 0.5, 'a centre aim dot is drawn while the picker runs')
 
+    dialogFields = nil
     keybinds.qbadmin_entitypicker_copy.onPressed()
-    equal(copiedText, 'prop_actual_map_name', 'copy binding should copy the real prop name')
+    truthy(dialogFields, 'copy binding should open the model name dialog')
+    equal(dialogFields[1].default, 'prop_actual_map_name', 'dialog should prefill the real prop name')
+    truthy(dialogFields[1].copyButton, 'dialog should offer a Copy Text button')
     keybinds.qbadmin_entitypicker_close.onPressed()
 end)
 

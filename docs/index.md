@@ -190,7 +190,7 @@ resource restart otherwise.
 The editor never exposes sensitive fields, server.cfg/convars, database-owned
 records, runtime state, or executable values. Successful saves and resets are
 recorded in `admin_logs` as `config.commit` and `config.reset`. The permission
-is `Config.configEditor.level`, which defaults to `owner`.
+is `Config.configEditor.level`, which defaults to `admin`.
 
 See kora_lib’s [configuration guide](https://qbcore2.github.io/kora_lib/modules/config/docs.html)
 to add schemas, client/server scopes, live handlers, or a migration bridge to
@@ -402,7 +402,7 @@ and their hour/minute -- change these to change what `night` means here) and
 `Config.entityPicker.maxDistance`, `copyKey`, and `closeKey`;
 `Config.medal` for the public key, menu permission, timeout, and clip events;
 `Config.audit.pageSize`; `Config.keybind` for the default `/admin` keybind
-(`F7`); and `Config.configEditor.level` for the owner-only configuration
+(`F7`); and `Config.configEditor.level` for the admin configuration
 workspace. kora_lib-managed edits are server-specific `config.local.lua`
 overrides, not edits to this documented file. The optional Discord role map is
 declared in `server/config.lua`, is server-only, and can be edited only by an

@@ -244,7 +244,7 @@ Kora.keybind.add({
     description = 'Entity Picker: Open Model Menu',
     defaultMapper = 'keyboard',
     defaultKey = Config.entityPicker.copyKey,
-    onPressed = openModelMenu,
+    onPressed = copyModelName,
 })
 
 Kora.keybind.add({

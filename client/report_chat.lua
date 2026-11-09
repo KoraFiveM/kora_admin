@@ -29,6 +29,7 @@ function Admin.reportChatBlock(report, viewerRole, sendAction)
         {
             id = 'report', author = tostring(report.reporter_name or 'Reporter'), text = tostring(report.message or ''),
             timestamp = report.created_text, badge = 'Report', tone = 'primary', mine = viewerRole == 'player',
+            status = viewerRole == 'player' and report.initial_status or nil,
         },
     }
     for index, message in ipairs(report.messages or {}) do
@@ -42,6 +43,8 @@ function Admin.reportChatBlock(report, viewerRole, sendAction)
             tone = staff and 'success' or 'neutral',
             mine = (viewerRole == 'staff') == staff,
             unread = message.unread == true or nil,
+            -- Sent / delivered / seen ticks, only ever on the viewer's own messages.
+            status = (viewerRole == 'staff') == staff and message.status or nil,
         }
     end
     local maxLength = math.floor(tonumber(chat.maxLength) or Config.reports.maxMessageLength)

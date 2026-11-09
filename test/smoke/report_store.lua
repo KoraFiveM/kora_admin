@@ -13,7 +13,7 @@ dofile('config.lua')
 Config.reports.cooldownSeconds = 30
 
 local reports, messages, nextReport, nextMessage = {}, {}, 1, 1
-local notices, logs, reads = {}, {}, {}
+local notices, logs, reads, delivered = {}, {}, {}, {}
 local clock = 0
 function GetGameTimer() return clock end
 local lastQuery
@@ -50,7 +50,25 @@ Kora = {
             }
             return id
         end,
-        single = function(_, params) return copy(reports[tonumber(params[1])]) end,
+        single = function(sql, params)
+            if sql:find('`admin_report_reads`', 1, true) then
+                if sql:find('COUNT(*)', 1, true) then
+                    -- other side's progress for the reporter: every reader but the reporter and the '@staff' pseudo reader
+                    local n, newest = 0, nil
+                    for key, value in pairs(reads) do
+                        local reportId, license = key:match('^(%d+)|(.+)$')
+                        if tonumber(reportId) == params[1] and license ~= params[2] and license ~= params[3] then
+                            n, newest = n + 1, math.max(newest or 0, value)
+                        end
+                    end
+                    return { n = n, newest = newest }
+                end
+                local key = tostring(params[1]) .. '|' .. tostring(params[2])
+                if reads[key] == nil then return nil end
+                return { last_message_id = reads[key], delivered_message_id = delivered[key] }
+            end
+            return copy(reports[tonumber(params[1])])
+        end,
         query = function(sql, params)
             lastQuery = { sql = sql, params = params }
             if sql:find('`admin_report_messages`', 1, true) then
@@ -63,12 +81,26 @@ Kora = {
             return out
         end,
         scalar = function(sql, params)
-            if sql:find('`admin_report_reads`', 1, true) then return reads[tostring(params[1]) .. '|' .. tostring(params[2])] end
+            if sql:find('`admin_report_reads`', 1, true) then
+                local key = tostring(params[1]) .. '|' .. tostring(params[2])
+                if sql:find('SELECT `delivered_message_id`', 1, true) then return delivered[key] end
+                return reads[key]
+            end
         end,
         update = function(sql, params)
             if sql:find('`admin_report_reads`', 1, true) then
                 local key = tostring(params[1]) .. '|' .. tostring(params[2])
-                reads[key] = math.max(reads[key] or 0, params[3])
+                if sql:find('SELECT MAX', 1, true) then
+                    -- markReportDelivered: the newest message of the report reached this reader
+                    local newest = 0
+                    for _, row in ipairs(messages) do if row.report_id == params[1] then newest = math.max(newest, row.id) end end
+                    reads[key] = reads[key] or 0
+                    delivered[key] = math.max(delivered[key] or 0, newest)
+                else
+                    -- markReportRead: seen up to params[3], which also counts as delivered
+                    reads[key] = math.max(reads[key] or 0, params[3])
+                    delivered[key] = math.max(delivered[key] or 0, params[4])
+                end
                 return 1
             end
             local id = tonumber(params[#params])
@@ -271,6 +303,51 @@ test('live chat: length, rate limit, reporter push instead of toast, and per-rea
     for _, notice in ipairs(notices) do if notice.target == 9 then toasted = true end end
     truthy(toasted, 'chat off keeps the old reporter toast')
     Config.reports.chat.enabled = enabled
+end)
+
+test('chat ticks: sent, then delivered once it reaches the other client, then seen once it is opened', function()
+    Admin.reportCooldowns, Admin.reportChatSends, pushes = {}, {}, {}
+    clock = clock + 10 * 60 * 1000
+    local previousPlayers = exports.kora_core.getPlayers
+    local report = assert(Admin.createReport(9, 'question', 'Tick check'))
+    local function view(src, role, live) return Admin.reportConversation(src, Admin.getReport(report.id), role, live) end
+    local function statusOf(conversation, text)
+        for _, message in ipairs(conversation.messages) do if message.message == text then return message.status end end
+    end
+
+    -- Staff (7) was online when the report came in: delivered, but nobody has opened it.
+    equal(view(9, 'player', true).initial_status, 'delivered', 'the original report reached staff')
+
+    -- Staff reply reaches the online reporter's client; the reporter has not opened it yet.
+    equal(Admin.replyToReport(7, report.id, 'first answer', { chat = true }), true, 'staff reply')
+    equal(statusOf(view(7, 'staff', true), 'first answer'), 'delivered', 'online reporter: delivered')
+    equal(view(7, 'staff', true).initial_status, nil, 'staff views carry no original-report tick')
+
+    -- Reporter opens the conversation (any view of it counts as opening): the staff reply is seen,
+    -- staff are pushed to refresh, and ticks only exist on the viewer's own messages.
+    pushes = {}
+    equal(statusOf(view(9, 'player', false), 'first answer'), nil, 'no tick on the other side\'s message')
+    equal(statusOf(view(7, 'staff', true), 'first answer'), 'seen', 'opened by the reporter: seen')
+    local pushedStaff
+    for _, push in ipairs(pushes) do if push.name == 'qbadmin:client:reportChanged' then pushedStaff = true end end
+    truthy(pushedStaff, 'staff windows are told the ticks changed')
+
+    -- Reporter message: delivered until a staff member opens it, then seen (and so is the original report).
+    Admin.reportChatSends = {}
+    equal(Admin.replyToReport(9, report.id, 'thanks', { chat = true }), true, 'reporter reply')
+    equal(statusOf(view(9, 'player', true), 'thanks'), 'delivered', 'staff online: delivered')
+    equal(view(9, 'player', true).initial_status, 'seen', 'staff already opened the report, so the original is seen')
+    view(7, 'staff', false)
+    equal(statusOf(view(9, 'player', true), 'thanks'), 'seen', 'opened by staff: seen')
+
+    -- Offline reporter: the reply stays at one tick until their client receives the list.
+    exports.kora_core.getPlayers = function() return { 7, 10 } end
+    Admin.reportChatSends = {}
+    equal(Admin.replyToReport(7, report.id, 'are you there?', { chat = true }), true, 'staff reply to an offline reporter')
+    equal(statusOf(view(7, 'staff', true), 'are you there?'), 'sent', 'offline reporter: sent')
+    Admin.markReportDelivered(report.id, 'license:9')
+    equal(statusOf(view(7, 'staff', true), 'are you there?'), 'delivered', 'their client got the list: delivered')
+    exports.kora_core.getPlayers = previousPlayers
 end)
 
 print(('qbadmin report store: %d passed, %d failed'):format(passed, failed))

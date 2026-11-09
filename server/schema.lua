@@ -70,7 +70,9 @@ QBAdminSchema = {
     },
     -- Read markers for the report chat's unread counts: the newest message id each reader
     -- (reporter or staff member, by licence) has seen on each report. New table only; the
-    -- existing report tables are not altered.
+    -- existing report tables are not altered. `delivered_message_id` is the newest message
+    -- that reached the reader's client (NULL = nothing yet); it drives the sent/delivered/seen
+    -- ticks. Staff delivery is recorded once per report under the '@staff' pseudo reader.
     {
         name = 'admin_report_reads',
         collate = 'utf8mb4_unicode_ci',
@@ -78,6 +80,7 @@ QBAdminSchema = {
             { name = 'report_id', type = 'int', unsigned = true },
             { name = 'reader_license', type = 'varchar(60)' },
             { name = 'last_message_id', type = 'int', unsigned = true, default = 0 },
+            { name = 'delivered_message_id', type = 'int', unsigned = true, null = true, default = Kora.sql.NULL },
             { name = 'updated_at', type = 'timestamp', default = { raw = 'CURRENT_TIMESTAMP' }, on_update = 'CURRENT_TIMESTAMP' },
         },
         primary = { 'report_id', 'reader_license' },

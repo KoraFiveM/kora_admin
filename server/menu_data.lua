@@ -247,7 +247,7 @@ Kora.callback.register('qbadmin:menuReports', function(src, filters)
 
     filters = type(filters) == 'table' and filters or {}
     local chat = Admin.reportChat()
-    return Admin.queryReports({
+    local rows = Admin.queryReports({
         status = type(filters.status) == 'string' and filters.status or 'open',
         type = type(filters.type) == 'string' and filters.type or nil,
         reporter = type(filters.reporter) == 'string' and filters.reporter ~= '' and filters.reporter or nil,
@@ -255,6 +255,11 @@ Kora.callback.register('qbadmin:menuReports', function(src, filters)
         unreadFor = chat and exports.kora_core:primary(src) or nil,
         unreadRole = chat and 'player' or nil,
     })
+    -- Listing the reports is how an offline-at-send-time staff client first receives them: delivered ticks.
+    if chat then
+        for _, row in ipairs(rows) do Admin.markReportDelivered(row.id, '@staff') end
+    end
+    return rows
 end)
 
 -- Opening (or live-refreshing) a report marks it read for this staff member.
@@ -290,6 +295,8 @@ Kora.callback.register('qbadmin:myReports', function(src, page)
     })
     local out = {}
     for index, row in ipairs(rows) do
+        -- The reporter's client now has this list: staff replies in it count as delivered.
+        Admin.markReportDelivered(row.id, license)
         out[index] = { id = row.id, status = row.status, category = row.category, subject = row.subject, age = row.age, unread = row.unread }
     end
     return out

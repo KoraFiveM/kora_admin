@@ -183,7 +183,11 @@ end
 local function pushReporter(row, info)
     if not Admin.reportChat() then return end
     local src = Admin.reporterSource(row)
-    if src then TriggerClientEvent('qbadmin:client:myReportChanged', src, row.id, info) end
+    if src then
+        TriggerClientEvent('qbadmin:client:myReportChanged', src, row.id, info)
+        -- A staff reply that reached an online reporter is "delivered" (toast or open window).
+        if info and info.kind == 'reply' then Admin.markReportDelivered(row.id, row.reporter_license) end
+    end
 end
 
 ---@param src integer
@@ -224,6 +228,7 @@ function Admin.createReport(src, typeId, message)
         type = definition.id == 'exploit' and 'error' or 'info',
     })
     broadcastReportChange(id, src)
+    if Admin.reportChat() then Admin.markReportDeliveredToStaff(id, src) end
     return report or { id = id, type = definition.id, status = 'open', reporter_name = reporterName, message = message }
 end
 
@@ -271,10 +276,72 @@ end
 ---@param lastId integer|nil
 function Admin.markReportRead(id, license, lastId)
     lastId = math.floor(tonumber(lastId) or 0)
-    if not license or lastId <= 0 then return end
+    -- 0 is recorded too: a row with no messages read yet still means "opened" (the original report was seen).
+    if not license or lastId < 0 then return end
+    -- Seeing a message implies it was delivered.
     Kora.sql.update(
-        'INSERT INTO `admin_report_reads` (`report_id`,`reader_license`,`last_message_id`) VALUES (?,?,?) ON DUPLICATE KEY UPDATE `last_message_id` = GREATEST(`last_message_id`, VALUES(`last_message_id`))',
-        { id, license, lastId })
+        'INSERT INTO `admin_report_reads` (`report_id`,`reader_license`,`last_message_id`,`delivered_message_id`) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE `last_message_id` = GREATEST(`last_message_id`, VALUES(`last_message_id`)), `delivered_message_id` = GREATEST(COALESCE(`delivered_message_id`, 0), VALUES(`delivered_message_id`))',
+        { id, license, lastId, lastId })
+end
+
+-- Pseudo reader that carries "a staff client received it" for a report. Real staff
+-- licences only ever appear in admin_report_reads once they actually opened the report.
+local STAFF_DELIVERY = '@staff'
+
+---Record that the newest message of report `id` (the original report counts as message 0)
+---reached `license`'s client. Never moves backwards.
+---@param id integer
+---@param license string|nil
+function Admin.markReportDelivered(id, license)
+    if not license then return end
+    Kora.sql.update(
+        'INSERT INTO `admin_report_reads` (`report_id`,`reader_license`,`last_message_id`,`delivered_message_id`) '
+        .. 'VALUES (?,?,0,COALESCE((SELECT MAX(`id`) FROM `admin_report_messages` WHERE `report_id` = ?), 0)) '
+        .. 'ON DUPLICATE KEY UPDATE `delivered_message_id` = GREATEST(COALESCE(`delivered_message_id`, 0), VALUES(`delivered_message_id`))',
+        { id, license, id })
+end
+
+---Delivery for staff: true when someone besides `actor` holding the staff level is online.
+---@param id integer
+---@param actor integer|nil
+function Admin.markReportDeliveredToStaff(id, actor)
+    local reached = false
+    for _, playerSrc in ipairs(exports.kora_core:getPlayers()) do
+        if playerSrc ~= actor and Admin.checkLevel(playerSrc, Config.reports.staffLevel) then reached = true break end
+    end
+    if reached then Admin.markReportDelivered(id, STAFF_DELIVERY) end
+end
+
+---Tick for one message from the author's point of view: 'seen' once the other side
+---opened it, 'delivered' once it reached their client, otherwise 'sent'.
+---@param messageId integer 0 for the original report
+---@param seenUpTo integer|nil newest message id the other side has opened (nil = never opened)
+---@param deliveredUpTo integer|nil newest message id that reached the other side (nil = none)
+---@return 'sent'|'delivered'|'seen'
+local function messageStatus(messageId, seenUpTo, deliveredUpTo)
+    if seenUpTo and seenUpTo >= messageId then return 'seen' end
+    if deliveredUpTo and deliveredUpTo >= messageId then return 'delivered' end
+    return 'sent'
+end
+
+---What the other side of report `row` has received/seen, for `viewerRole`'s own messages.
+---@param row table
+---@param viewerRole 'staff'|'player'
+---@return integer|nil seenUpTo
+---@return integer|nil deliveredUpTo
+local function otherSideProgress(row, viewerRole)
+    if viewerRole == 'staff' then
+        local reader = Kora.sql.single('SELECT `last_message_id`,`delivered_message_id` FROM `admin_report_reads` WHERE `report_id` = ? AND `reader_license` = ? LIMIT 1',
+            { row.id, row.reporter_license or '' })
+        if not reader then return nil, nil end
+        return math.floor(tonumber(reader.last_message_id) or 0), tonumber(reader.delivered_message_id) and math.floor(tonumber(reader.delivered_message_id)) or nil
+    end
+    local seen = Kora.sql.single('SELECT COUNT(*) AS `n`,MAX(`last_message_id`) AS `newest` FROM `admin_report_reads` WHERE `report_id` = ? AND `reader_license` NOT IN (?, ?)',
+        { row.id, row.reporter_license or '', STAFF_DELIVERY })
+    local delivered = Kora.sql.scalar('SELECT `delivered_message_id` FROM `admin_report_reads` WHERE `report_id` = ? AND `reader_license` = ? LIMIT 1',
+        { row.id, STAFF_DELIVERY })
+    local seenUpTo = seen and (tonumber(seen.n) or 0) > 0 and math.floor(tonumber(seen.newest) or 0) or nil
+    return seenUpTo, tonumber(delivered) and math.floor(tonumber(delivered)) or nil
 end
 
 ---Report `id` with its conversation shaped for one reader, and marks it read for
@@ -292,6 +359,8 @@ function Admin.reportConversation(src, row, viewerRole, live)
     local chat = Admin.reportChat() or {}
     local otherRole = viewerRole == 'staff' and 'player' or 'staff'
     local messages, newest = {}, 0
+    -- Ticks on the viewer's own messages: what the other side has received / opened so far.
+    local seenUpTo, deliveredUpTo = otherSideProgress(row, viewerRole)
     for _, message in ipairs(Admin.getReportMessages(row.id)) do
         local messageId = math.floor(tonumber(message.id) or 0)
         if messageId > newest then newest = messageId end
@@ -301,16 +370,24 @@ function Admin.reportConversation(src, row, viewerRole, live)
             id = messageId, author_name = author, author_role = message.author_role, message = message.message,
             created_text = message.created_text,
             unread = not live and message.author_role == otherRole and messageId > lastRead or nil,
+            status = message.author_role == viewerRole and messageStatus(messageId, seenUpTo, deliveredUpTo) or nil,
         }
     end
+    local advanced = newest > lastRead or (lastRead == 0 and not live)
     Admin.markReportRead(row.id, license, newest)
+    -- The other side's open window shows the new ticks right away.
+    if advanced and src ~= 0 then
+        if viewerRole == 'player' then broadcastReportChange(row.id) else pushReporter(row, { kind = 'seen' }) end
+    end
     row.messages = messages
+    -- The original report is message 0 and belongs to the reporter.
+    row.initial_status = viewerRole == 'player' and messageStatus(0, seenUpTo, deliveredUpTo) or nil
     if viewerRole == 'player' then
         return {
             id = row.id, type = row.type, category = row.category, status = row.status, message = row.message,
             reporter_name = row.reporter_name, created_text = row.created_text, resolution = row.resolution,
             claimed_by_name = row.claimed_by_name and (chat.showStaffNames == false and 'Staff' or row.claimed_by_name) or nil,
-            messages = messages,
+            messages = messages, initial_status = row.initial_status,
         }
     end
     return row
@@ -444,6 +521,7 @@ function Admin.replyToReport(src, id, message, opts)
     else
         notifyStaff({ title = ('Report #%s updated'):format(row.id), message = ('%s: %s'):format(name, chat and Admin.reportSubject(message, 200) or message), type = 'info' }, claimerSource(row))
         pushReporter(row, { kind = 'own' })
+        if chat then Admin.markReportDeliveredToStaff(row.id, src) end
     end
     broadcastReportChange(row.id, src)
     return true

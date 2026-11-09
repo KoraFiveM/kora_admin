@@ -251,7 +251,19 @@ to the newest message unless you scrolled up, in which case a "N new messages"
 button appears. A "New" divider marks the first unread message, and the staff
 queue gets a **New** column (unread player messages since you last opened that
 report). Read markers live in `admin_report_reads` (report, reader licence, last
-message id); messages stay in `admin_report_messages` with the report.
+message id, delivered message id); messages stay in `admin_report_messages` with
+the report.
+
+Your own messages carry messenger-style ticks next to the time: one tick **sent**
+(saved, the other side has not received it), two grey ticks **delivered** (it
+reached the other side's client: they were online when it was sent, or their
+client has since loaded their reports), two ticks in the accent colour **seen**
+(they opened the conversation). For a player the original report counts as their
+first message. A player's message is seen once any staff member has opened the
+report; a staff message is seen once the reporter has. Opening a conversation
+refreshes the other side's open window so the ticks update live. Delivery of
+staff-side messages is tracked once per report under the `@staff` pseudo reader.
+The `delivered_message_id` column is added automatically on start.
 
 When staff reply while My Reports is closed, the player gets a kora_lib toast
 with a preview and a pointer to `/reports`; with it open the chat just updates.
@@ -395,7 +407,7 @@ owning resource’s `config.local.lua`; it never rearranges or reformats
 `config.local.lua.bak` lets kora_lib recover if a generated override becomes
 invalid.
 
-The editor permission is `Config.configEditor.level` (`owner` by default).
+The editor permission is `Config.configEditor.level` (`admin` by default).
 Successful edits are audited as `config.commit` or `config.reset`. Sensitive
 values, server.cfg/convars, database-managed definitions, runtime state, and
 executable configuration are intentionally absent. `Config.permissions.discordRoles`
