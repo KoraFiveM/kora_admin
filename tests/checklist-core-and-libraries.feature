@@ -171,14 +171,13 @@ Feature: kora_admin — Core & Libraries
   @kora_admin @checklist @checklist:kora_admin:give-vehicle-keys @cat:core-and-libraries @needs:admin
   Scenario: Give vehicle and keys
     """
-    Checklist test: Run /givevehicle <id> <model> and /givekeys; target gets an owned vehicle and keys.
+    Checklist test: Run /givevehicle <id> <model> <plate>; target gets an owned vehicle in their garage.
+    /givekeys is no longer an admin command (kora_vehiclekeys owns it); admin key grants by plate are
+    kora_vehiclekeys' /addkeys <id> <plate>.
     """
     Given I am in the driver seat of a "test_car"
-    When I manually: run /givevehicle with another player's id and a model
-    Then I confirm: the other player owns the new vehicle and receives its keys
-    When I run the command "/givekeys"
-    Then I should see a notification containing "You received keys to your current vehicle"
-    And I confirm: the other player has the keys in their inventory
+    When I manually: run /givevehicle with another player's id, a model and a plate
+    Then I confirm: the other player owns the new vehicle in their garage
 
   @kora_admin @checklist @checklist:kora_admin:money-commands @cat:core-and-libraries @needs:admin @manual
   Scenario: Money: /givemoney /removemoney /setmoney

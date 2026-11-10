@@ -130,12 +130,8 @@ test('car waits for server entity and network registration before succeeding', f
     equal(grantedKeys[#grantedKeys].override, true, 'admin grants work when ordinary temporary keys are disabled')
 end)
 
-test('givekeys grants the driver keys to their current vehicle', function()
-    commands.givekeys.handler(7, { '7' })
-
-    equal(commands.givekeys.options.permission, 'admin', '/givekeys permission')
-    equal(responses[#responses].ok, true, 'key grant must report success')
-    equal(grantedKeys[#grantedKeys].target, 7, 'driver receives the keys')
+test('givekeys is left to kora_vehiclekeys', function()
+    equal(commands.givekeys, nil, 'kora_admin must not register /givekeys')
 end)
 
 test('givevehicle creates a persistent personal garage vehicle', function()

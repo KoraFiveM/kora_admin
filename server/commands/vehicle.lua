@@ -1,4 +1,7 @@
--- /car, /veh, /givevehicle, /givekeys, /dv, /fix
+-- /car, /veh, /givevehicle, /dv, /fix
+--
+-- /givekeys belongs to kora_vehiclekeys (a player hands over keys they hold);
+-- this resource must not register a command with that name.
 --
 -- Vehicle creation is server-owned so it remains compatible with strict entity
 -- lockdown. The recipient client receives only the resulting network id for
@@ -128,26 +131,6 @@ Admin.addCommand('givevehicle', 'Add a personal vehicle to a player garage', {
 
     Admin.log(source, 'givevehicle', data, { model = model, plate = plate })
     Admin.respond(source, true, ('Added %s (%s) to %s\'s garage'):format(model, plate, data.name))
-end, OPTS_ADMIN)
-
-Admin.addCommand('givekeys', 'Give a player keys to the vehicle they are driving', { { name = 'id' } }, true, function(source, args)
-    local targetSrc, data, err = Admin.resolveTarget(source, args[1])
-    if not targetSrc then return Admin.respond(source, false, err) end
-
-    local targetPed = GetPlayerPed(targetSrc)
-    local vehicle = targetPed and targetPed ~= 0 and GetVehiclePedIsIn(targetPed, false) or 0
-    if vehicle == 0 or GetPedInVehicleSeat(vehicle, -1) ~= targetPed then
-        return Admin.respond(source, false, ('%s must be driving a vehicle'):format(data.name))
-    end
-    if not giveVehicleKeys(targetSrc, vehicle) then
-        return Admin.respond(source, false, 'could not grant vehicle keys')
-    end
-
-    if Config.vehicle.notifyTarget and targetSrc ~= source then
-        Kora.notify.send(targetSrc, { message = 'You received keys to your current vehicle', type = 'success' })
-    end
-    Admin.log(source, 'givekeys', data, { plate = GetVehicleNumberPlateText(vehicle) })
-    Admin.respond(source, true, ('Gave %s the keys to their current vehicle'):format(data.name))
 end, OPTS_ADMIN)
 
 -- True when another player is sitting in the vehicle; /dv never deletes those

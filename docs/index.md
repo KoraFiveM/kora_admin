@@ -86,13 +86,12 @@ ExecuteCommand('givemoney 3 cash 500 event-reward')
 ExecuteCommand('giveitem 3 water_bottle 5')
 ```
 
-### Give a player vehicle keys
-```
-/givekeys 3             -- player 3 must be in the driver seat
-```
-
+### Vehicle keys
 Vehicles created through `/car` and `/veh` automatically grant session keys
-to the player receiving the vehicle.
+to the player receiving the vehicle. `/givekeys` is not an admin command: it
+belongs to `kora_vehiclekeys` (a player hands over keys they hold). To grant
+or revoke keys by plate, use that resource's admin commands
+`/addkeys <id> <plate>` and `/removekeys <id> <plate>`.
 
 ### Teleport, noclip, spectate
 ```

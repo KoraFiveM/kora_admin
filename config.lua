@@ -118,7 +118,7 @@ Config.world = {
 Config.vehicle = {
     -- /veh spawns this far in front of the target so it doesn't land on top of them.
     spawnOffset = 3.0,
-    -- Notify the receiving player when an admin gives them a vehicle (/veh) or keys (/givekeys).
+    -- Notify the receiving player when an admin gives them a vehicle and its keys (/veh).
     notifyTarget = true,
 }
 
