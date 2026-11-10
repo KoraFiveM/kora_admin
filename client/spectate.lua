@@ -42,7 +42,7 @@ local function start(targetSrc)
     end
 end
 
-RegisterNetEvent('qbadmin:client:spectate', function(targetSrc)
+RegisterNetEvent('kora_admin:client:spectate', function(targetSrc)
     if not targetSrc then
         stop()
         return

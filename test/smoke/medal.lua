@@ -44,7 +44,7 @@ test('configured event sends Medal API payload to the local bridge', function()
     truthy(Admin.invokeMedalEvent(Config.medal.events[1]), 'invoke should succeed')
 
     local message = messages[#messages]
-    equal(message.type, 'qbadmin:medal:invoke', 'message type')
+    equal(message.type, 'kora_admin:medal:invoke', 'message type')
     equal(message.publicKey, convar, 'public key')
     equal(message.body.eventId, '1', 'event id')
     equal(message.body.eventName, 'Admin Clip', 'event name')
@@ -55,12 +55,12 @@ end)
 
 test('Medal callback maps success and API errors to useful notifications', function()
     local message = messages[#messages]
-    callbacks['qbadmin:medal:result']({ requestId = message.requestId, ok = true, status = 200 }, function() end)
+    callbacks['kora_admin:medal:result']({ requestId = message.requestId, ok = true, status = 200 }, function() end)
     equal(notifications[#notifications].type, 'success', 'success notification')
 
     Admin.invokeMedalEvent(Config.medal.events[1])
     message = messages[#messages]
-    callbacks['qbadmin:medal:result']({ requestId = message.requestId, ok = false, status = 401 }, function() end)
+    callbacks['kora_admin:medal:result']({ requestId = message.requestId, ok = false, status = 401 }, function() end)
     equal(notifications[#notifications].type, 'error', 'error notification')
     truthy(notifications[#notifications].message:find('public key', 1, true), '401 guidance')
 end)
@@ -82,5 +82,5 @@ test('admin menu and manifest load a fixed localhost Medal bridge', function()
     truthy(bridge:find('http://localhost:12665/api/v1/event/invoke', 1, true), 'Medal endpoint')
 end)
 
-print(('qbadmin medal: %d passed, %d failed'):format(passed, failed))
+print(('kora_admin medal: %d passed, %d failed'):format(passed, failed))
 if failed > 0 then os.exit(1) end

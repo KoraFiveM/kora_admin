@@ -35,9 +35,9 @@ ACE authorization is always active. kora_lib checks `kora_core.<role>` and
 if Discord is disabled or unavailable. Examples:
 
 ```cfg
-add_ace identifier.license:XXXX qbcore.support allow
-add_ace identifier.license:YYYY qbcore.moderator allow
-add_ace identifier.license:ZZZZ qbcore.owner allow
+add_ace identifier.license:XXXX kora_core.support allow
+add_ace identifier.license:YYYY kora_core.moderator allow
+add_ace identifier.license:ZZZZ kora_core.owner allow
 add_principal identifier.license:XXXX group.support
 add_principal identifier.license:YYYY group.admin
 add_principal identifier.license:ZZZZ group.owner
@@ -60,7 +60,7 @@ discordRoles = {
 
 This uses kora_lib's Discord bot role cache, so `kora_lib_discord_bot_token` and
 `kora_lib_discord_guild_id` must be configured for role grants (the deprecated
-`qblib_discord_bot_token` / `qblib_discord_guild_id` names are still read as fallbacks). Missing/stale
+`kora_lib_discord_bot_token` / `kora_lib_discord_guild_id` names are still read as fallbacks). Missing/stale
 role data fails closed for Discord only; ACE grants continue to work.
 
 For slash commands, full txAdmin restarts, appshell setup and optional
@@ -133,7 +133,7 @@ stay stuck on the death screen with a healthy-looking value underneath it.
 health.** `/revive`, `/selfrevive`, and Set Health's own dead-to-alive branch
 all funnel through the same client relay (`reviveLocalPed`,
 `client/relay.lua`), which fires the kora_lib-native `kora_ambulance` rebuild's
-`qbambulance:client:revived` event. Without this, raw natives alone leave that
+`kora_ambulance:client:revived` event. Without this, raw natives alone leave that
 job's own death-loop thread running forever even after health reads full.
 
 `/selfrevive` (Self / Utility menu: "Revive Me", next to Set Health) is
@@ -268,7 +268,7 @@ The `delivered_message_id` column is added automatically on start.
 When staff reply while My Reports is closed, the player gets a kora_lib toast
 with a preview and a pointer to `/reports`; with it open the chat just updates.
 
-Every message goes through `qbadmin:reportChatSend` and `Admin.replyToReport`,
+Every message goes through `kora_admin:reportChatSend` and `Admin.replyToReport`,
 which check that the sender owns the report (stored reporter licence) or holds
 `Config.reports.staffLevel`, that the report is open, the length
 (`chat.maxLength`, refused rather than cut) and a per-sender sliding window
@@ -314,7 +314,7 @@ builder](https://medal.tv/developer/auto-clipping), then add the key to
 `server.cfg`:
 
 ```cfg
-setr qbadmin_medal_public_key "your-public-key"
+setr kora_admin_medal_public_key "your-public-key"
 ```
 
 The entries in `Config.medal.events` must use the same numeric IDs, names,
@@ -426,7 +426,7 @@ live handlers.
   call sites, but it cannot composite another resource’s CEF layer into that
   frame.
 - **Freeform SQL console** -- deliberately not built. `kora_sql` already ships
-  read-only `/qbsql ping|stats|slow|queue` gated by the `command.qbsql` ACE;
+  read-only `/kora_sql ping|stats|slow|queue` gated by the `command.kora_sql` ACE;
   point admins at those instead of adding a second, riskier query surface.
 - **Character deletion/wipe** -- too destructive for a quick-action menu.
 
@@ -441,7 +441,7 @@ resources don't have to repeat this.
 ## Set Job / Set Gang lists
 
 The Job and Grade pickers are filled from the kora_core registry on the server
-(`qbadmin:menuRoles`, admin level), falling back to the client mirror only if
+(`kora_admin:menuRoles`, admin level), falling back to the client mirror only if
 that call fails. `Config.roles` trims the job list without changing any job:
 
 - `hiddenJobs` (default `{}`): job names to leave out, e.g. `{ "mechanic3" }`.

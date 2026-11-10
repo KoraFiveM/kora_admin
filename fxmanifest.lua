@@ -3,8 +3,6 @@ game 'gta5'
 lua54 'yes'
 
 name 'kora_admin'
--- Keep the legacy resource name resolvable for exports['qbadmin'] callers.
-provide 'qbadmin'
 author 'Jamie'
 version '1.0.0'
 description 'Command-driven admin menu -- every action is a command, the NUI just calls ExecuteCommand'
@@ -14,7 +12,7 @@ dependency 'kora_core'
 dependency 'kora_sql'
 dependency 'kora_vehiclekeys'
 
--- kora_lib strictly before kora_core/qbsql: both extend the Kora table kora_lib's own
+-- kora_lib strictly before kora_core/kora_sql: both extend the Kora table kora_lib's own
 -- init.lua creates. kora_core's mirror is what gives us Kora.shared.get/.all for
 -- job/gang/vehicle/item picker lists; kora_sql's init.lua is what gives us
 -- Kora.sql.* directly for the bans table and admin_logs.

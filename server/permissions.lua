@@ -3,7 +3,7 @@
 -- deliberately in-memory temporary grants on top.
 
 local function permissionOptions()
-    return { prefix = 'qbcore', discordRoles = Config.permissions.discordRoles }
+    return { prefix = 'kora_core', discordRoles = Config.permissions.discordRoles }
 end
 
 Admin.temporaryGrants = Admin.temporaryGrants or {}
@@ -255,7 +255,7 @@ end
 
 ---@param src integer
 function Admin.syncLevel(src)
-    TriggerClientEvent('qbadmin:client:level', src, Admin.getLevel(src))
+    TriggerClientEvent('kora_admin:client:level', src, Admin.getLevel(src))
 end
 
 -- The playground is a development-only, trusted consumer.  It needs a narrow
@@ -280,7 +280,7 @@ exports('grantPlaygroundTemporaryAccess', function(targetSrc, role, minutes)
     end
     local maxRank = Admin.roleRank(Config.permissions.temporaryGrant.maxRole)
     if not maxRank or Admin.roleRank(role) > maxRank then
-        return nil, 'that role is disabled by qbadmin temporary-access policy'
+        return nil, 'that role is disabled by kora_admin temporary-access policy'
     end
 
     local expiresAt, err = Admin.grantTemporaryAccess(targetSrc, role, minutes)
@@ -309,20 +309,20 @@ end)
 
 -- Console-only so this diagnostic remains available when the permission
 -- configuration itself is what prevents an administrator from using commands.
-RegisterCommand('qbadmin_whyperms', function(source, args)
+RegisterCommand('kora_admin_whyperms', function(source, args)
     if source ~= 0 then return end
 
     local target = tonumber(args[1])
     if not target then
-        print('^3[qbadmin]^7 usage: qbadmin_whyperms <server id>')
+        print('^3[kora_admin]^7 usage: kora_admin_whyperms <server id>')
         return
     end
     if GetPlayerName(target) == nil then
-        print(('^1[qbadmin]^7 no player online with server id %d.'):format(target))
+        print(('^1[kora_admin]^7 no player online with server id %d.'):format(target))
         return
     end
 
-    print(('^5[qbadmin]^7 permission report for %s (id %d)'):format(GetPlayerName(target), target))
+    print(('^5[kora_admin]^7 permission report for %s (id %d)'):format(GetPlayerName(target), target))
     print('  identifiers:')
     for index = 0, GetNumPlayerIdentifiers(target) - 1 do
         print(('    %s'):format(GetPlayerIdentifier(target, index)))
@@ -339,6 +339,6 @@ RegisterCommand('qbadmin_whyperms', function(source, args)
 
     print(('  resolved level: %s'):format(resolved))
     if resolved == 'user' then
-        print('^3  no ACE matched. The grant must reach this player as: add_ace <a principal above> qbcore.<level> allow^7')
+        print('^3  no ACE matched. The grant must reach this player as: add_ace <a principal above> kora_core.<level> allow^7')
     end
 end, true)

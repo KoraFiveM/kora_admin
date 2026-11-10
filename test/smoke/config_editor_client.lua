@@ -39,9 +39,9 @@ local entry = {
 Kora = {
     callback = {
         trigger = function(name, request)
-            if name == 'qbadmin:configCatalog' then return { { resource = 'sample' } } end
-            if name == 'qbadmin:configRead' then return entry end
-            if name == 'qbadmin:configCommit' then
+            if name == 'kora_admin:configCatalog' then return { { resource = 'sample' } } end
+            if name == 'kora_admin:configRead' then return entry end
+            if name == 'kora_admin:configCommit' then
                 committed = request
                 return { ok = true, applied = true, revision = 3 }
             end
@@ -63,10 +63,10 @@ function RegisterNetEvent(name, handler)
 end
 
 dofile('client/config_editor.lua')
-netEvents['qbadmin:client:configOpened']()
+netEvents['kora_admin:client:configOpened']()
 
 test('the workspace lists registered resources and status labels', function()
-    equal(definition.id, 'qbadmin:config', 'workspace id')
+    equal(definition.id, 'kora_admin:config', 'workspace id')
     equal(definition.navigation[1].content.blocks[1].rows[1].resource, 'sample', 'registered resource')
 
     local result = definition.onAction('config:resource', { itemId = 'sample' })
@@ -77,7 +77,7 @@ test('the workspace lists registered resources and status labels', function()
     equal(rows[2].scope, 'server', 'server-only field scope')
 end)
 
-test('the editor shows saved and running values, then commits through qbadmin', function()
+test('the editor shows saved and running values, then commits through kora_admin', function()
     definition.onAction('config:resource', { itemId = 'sample' })
     local result = definition.onAction('config:setting', { itemId = 'enabled' })
     local details = result.update.navigation[3].content.blocks[1].items
@@ -100,5 +100,5 @@ test('restart-required rows distinguish an unapplied saved value', function()
     equal(rows[2].status.label, 'Saved; restart needed', 'pending restart label')
 end)
 
-print(('qbadmin config editor client: %d passed, %d failed'):format(passed, failed))
+print(('kora_admin config editor client: %d passed, %d failed'):format(passed, failed))
 if failed > 0 then os.exit(1) end

@@ -1,5 +1,5 @@
 -- Single flat Config table, per-module sub-tables, a trailing comment on every
--- value -- matches kora_lib/qbcore's config.lua convention.
+-- value -- matches kora_lib/kora_core's config.lua convention.
 
 Config = Config or {}
 
@@ -163,11 +163,11 @@ Config.spectate = {
 
 Config.medal = {
     -- Medal's public key is intentionally safe to distribute to clients. Set
-    -- it here, or preferably add `setr qbadmin_medal_public_key "..."` to
+    -- it here, or preferably add `setr kora_admin_medal_public_key "..."` to
     -- server.cfg so resource updates do not overwrite it. Generate the key
     -- and register the matching event IDs at https://medal.tv/developer/auto-clipping.
     publicKey = '',
-    publicKeyConvar = 'qbadmin_medal_public_key',
+    publicKeyConvar = 'kora_admin_medal_public_key',
     menuLevel = 'admin', -- minimum kora_admin permission tier that sees Medal Clips
     requestTimeoutMs = 5000, -- fail promptly when Medal is closed/not installed
     events = {
@@ -251,7 +251,7 @@ Config.keybind = {
     -- key grants nothing: kora_lib dispatches it through /admin's normal support gate.
     -- Players rebind this freely in Settings > Key Bindings > FiveM; the value
     -- here is only the default. Empty string = registered but unbound.
-    label = 'Open the admin menu (qbadmin)',
+    label = 'Open the admin menu (kora_admin)',
     defaultKey = 'F7', -- HOME/F6 are kora_lib-playground's palette, TAB is kora_inventory
 }
 

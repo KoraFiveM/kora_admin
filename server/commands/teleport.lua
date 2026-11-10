@@ -3,7 +3,7 @@
 -- All of goto/bring/tpcoords ultimately just tell a client "go to these
 -- coords" -- server/commands never duplicate that movement logic, they only
 -- resolve WHO gets told and WHERE, then relay to client/teleport.lua's single
--- teleportPedTo(coords) primitive via the same qbadmin:client:teleportTo
+-- teleportPedTo(coords) primitive via the same kora_admin:client:teleportTo
 -- event. tpm/tpback don't even need coords from the server -- the waypoint
 -- and the undo history are client-local state -- so those two are a bare
 -- relay with no payload.
@@ -48,7 +48,7 @@ Admin.addCommand('goto', 'Teleport to a player', { { name = 'id' } }, true, func
     if targetSrc == source then return Admin.respond(source, false, 'cannot goto yourself') end
 
     local coords = GetEntityCoords(GetPlayerPed(targetSrc))
-    TriggerClientEvent('qbadmin:client:teleportTo', source, { x = coords.x, y = coords.y, z = coords.z })
+    TriggerClientEvent('kora_admin:client:teleportTo', source, { x = coords.x, y = coords.y, z = coords.z })
     Admin.log(source, 'goto', data)
     Admin.respond(source, true, ('Teleported to %s'):format(data.name))
 end, OPTS_MOD)
@@ -59,7 +59,7 @@ Admin.addCommand('bring', 'Teleport a player to you', { { name = 'id' } }, true,
     if targetSrc == source then return Admin.respond(source, false, 'cannot bring yourself') end
 
     local coords = GetEntityCoords(GetPlayerPed(source))
-    TriggerClientEvent('qbadmin:client:teleportTo', targetSrc, { x = coords.x, y = coords.y, z = coords.z })
+    TriggerClientEvent('kora_admin:client:teleportTo', targetSrc, { x = coords.x, y = coords.y, z = coords.z })
     Admin.log(source, 'bring', data)
     Admin.respond(source, true, ('Brought %s to you'):format(data.name))
 end, OPTS_MOD)
@@ -71,13 +71,13 @@ Admin.addCommand('sendback', 'Return a player to their position before the last 
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
-    TriggerClientEvent('qbadmin:client:tpback', targetSrc)
+    TriggerClientEvent('kora_admin:client:tpback', targetSrc)
     Admin.log(source, 'sendback', data)
     Admin.respond(source, true, ('Sent %s back'):format(data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('tpm', 'Teleport to your waypoint', nil, false, function(source)
-    TriggerClientEvent('qbadmin:client:tpm', source)
+    TriggerClientEvent('kora_admin:client:tpm', source)
 end, OPTS_MOD)
 
 Admin.addCommand('tpcoords', 'Teleport to coordinates or vec3/vector3/vec4/vector4', { { name = 'coordinates' } }, true,
@@ -86,16 +86,16 @@ Admin.addCommand('tpcoords', 'Teleport to coordinates or vec3/vector3/vec4/vecto
         if not coords then
             return Admin.respond(source, false, 'use x y z, vec3(x, y, z), or vec4(x, y, z, heading)')
         end
-        TriggerClientEvent('qbadmin:client:teleportTo', source, coords)
+        TriggerClientEvent('kora_admin:client:teleportTo', source, coords)
     end, OPTS_MOD)
 
 Admin.addCommand('tpback', 'Return to your position before the last teleport', nil, false, function(source)
-    TriggerClientEvent('qbadmin:client:tpback', source)
+    TriggerClientEvent('kora_admin:client:tpback', source)
 end, OPTS_MOD)
 
 Admin.addCommand('spectate', 'Spectate a player; omit id to stop', { { name = 'id' } }, false, function(source, args)
     if not args[1] or args[1] == '' then
-        TriggerClientEvent('qbadmin:client:spectate', source, nil)
+        TriggerClientEvent('kora_admin:client:spectate', source, nil)
         Admin.respond(source, true, 'Stopped spectating')
         return
     end
@@ -104,12 +104,12 @@ Admin.addCommand('spectate', 'Spectate a player; omit id to stop', { { name = 'i
     if not targetSrc then return Admin.respond(source, false, err) end
     if targetSrc == source then return Admin.respond(source, false, 'cannot spectate yourself') end
 
-    TriggerClientEvent('qbadmin:client:spectate', source, targetSrc)
+    TriggerClientEvent('kora_admin:client:spectate', source, targetSrc)
     Admin.log(source, 'spectate', data)
     Admin.respond(source, true, ('Spectating %s'):format(data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('noclip', 'Toggle a free-fly camera', nil, false, function(source)
-    TriggerClientEvent('qbadmin:client:noclip', source)
+    TriggerClientEvent('kora_admin:client:noclip', source)
     Admin.log(source, 'noclip')
 end, OPTS_ADMIN)

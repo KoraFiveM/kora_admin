@@ -9,7 +9,7 @@ local function addAppearanceCommand(name, label, service)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
         if not targetSrc then return Admin.respond(source, false, err) end
         if GetResourceState('kora_clothing') ~= 'started' then
-            return Admin.respond(source, false, 'qbclothing is not running')
+            return Admin.respond(source, false, 'kora_clothing is not running')
         end
 
         local callOk, opened, openErr = pcall(function()

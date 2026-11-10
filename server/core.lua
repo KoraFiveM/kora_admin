@@ -33,7 +33,7 @@ end
 ---@param source integer
 ---@param targetSrc integer
 function Admin.refreshMenuPlayerState(source, targetSrc)
-    TriggerClientEvent('qbadmin:client:refreshMenuPlayerState', source, targetSrc)
+    TriggerClientEvent('kora_admin:client:refreshMenuPlayerState', source, targetSrc)
 end
 
 ---@param value any
@@ -58,7 +58,7 @@ end
 function Admin.fullReviveAmbulance(target)
     if GetResourceState('kora_ambulance') ~= 'started' then return false end
     local ok, err = pcall(function() return exports.kora_ambulance:fullRevive(target) end)
-    if not ok then print(('[qbadmin] kora_ambulance fullRevive failed for %s: %s'):format(tostring(target), tostring(err))) end
+    if not ok then print(('[kora_admin] kora_ambulance fullRevive failed for %s: %s'):format(tostring(target), tostring(err))) end
     return ok
 end
 
@@ -71,12 +71,12 @@ end)
 -- client/core.lua) -- not a privileged action, just lets a client know its
 -- own already-server-known permission level. This uses the same kora_lib-backed
 -- resolver as every command, including optional Discord roles.
-RegisterNetEvent('qbadmin:server:requestLevel', function()
+RegisterNetEvent('kora_admin:server:requestLevel', function()
     local src = source
     Admin.syncLevel(src)
 end)
 
-AddEventHandler('qbcore:server:txAdminPermissionChanged', function(src)
+AddEventHandler('kora_core:server:txAdminPermissionChanged', function(src)
     if GetInvokingResource() ~= 'kora_core' or GetResourceState('kora_core') ~= 'started'
         or not GetPlayerName(src) then return end
     Admin.syncLevel(src)

@@ -146,12 +146,12 @@ if (typeof GetCurrentResourceName === 'function') {
     SetHttpHandler(createHttpHandler({
         settings: () => JSON.parse(global.exports[resource].discordSettings()),
         dispatch: (body, callback) => global.exports[resource].discordDispatch(body, callback),
-        report: message => console.error(`[qbadmin:discord] ${message}`),
+        report: message => console.error(`[kora_admin:discord] ${message}`),
     }));
     const restartConfig = () => ({
-        url: GetConvar('qbadmin_txadmin_url', 'http://127.0.0.1:40120'),
-        username: GetConvar('qbadmin_txadmin_username', ''),
-        password: GetConvar('qbadmin_txadmin_password', ''),
+        url: GetConvar('kora_admin_txadmin_url', 'http://127.0.0.1:40120'),
+        username: GetConvar('kora_admin_txadmin_username', ''),
+        password: GetConvar('kora_admin_txadmin_password', ''),
     });
     global.exports('discordRestartReady', () => {
         const config = restartConfig();

@@ -109,12 +109,12 @@ end)
 test('Send Back relays the selected player to their own teleport history', function()
     commands.sendback.handler(7, { '12' })
     local event = events[#events]
-    equal(event.name, 'qbadmin:client:tpback', 'send-back event')
+    equal(event.name, 'kora_admin:client:tpback', 'send-back event')
     equal(event.target, 12, 'send-back target')
     equal(logs[#logs].action, 'sendback', 'send-back audit action')
 end)
 
-test('remote appearance commands call qbclothing with the selected service', function()
+test('remote appearance commands call kora_clothing with the selected service', function()
     commands.clothingmenu.handler(7, { '12' })
     equal(events[#events].service, 'clothing', 'clothing service')
     commands.barbermenu.handler(7, { '12' })
@@ -128,7 +128,7 @@ test('/reports opens the Reports screen for staff and a chat list when ui is off
     equal(commands.reports.options.permission, 'user', '/reports is reachable by players')
     isStaff, events, chats, queries = true, {}, {}, {}
     commands.reports.handler(7, { 'claimed' })
-    equal(events[1].name, 'qbadmin:client:openReports', 'staff get the dedicated screen')
+    equal(events[1].name, 'kora_admin:client:openReports', 'staff get the dedicated screen')
     equal(events[1].args[2].status, 'claimed', 'status filter forwarded')
     equal(#queries, 0, 'no chat dump when the screen opens')
 
@@ -145,7 +145,7 @@ end)
 test('/reports opens My Reports for players when the live chat is on', function()
     isStaff, events, chats, queries = false, {}, {}, {}
     commands.reports.handler(9, { '42' })
-    equal(events[1].name, 'qbadmin:client:openMyReports', 'players get their own chat window')
+    equal(events[1].name, 'kora_admin:client:openMyReports', 'players get their own chat window')
     equal(events[1].args[1], 42, 'an id opens that report (ownership is checked by the callback)')
     equal(#queries, 0, 'no chat dump when the window opens')
     isStaff = true
@@ -163,5 +163,5 @@ test('/reports shows non-staff players only their own reports', function()
     isStaff = true
 end)
 
-print(('qbadmin reports/player tools: %d passed, %d failed'):format(passed, failed))
+print(('kora_admin reports/player tools: %d passed, %d failed'):format(passed, failed))
 if failed > 0 then os.exit(1) end

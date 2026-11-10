@@ -1,6 +1,6 @@
 -- Admin.teleportTo(coords) -- the one client-side teleport primitive that
 -- goto/bring/tpcoords/tpm/tpback all funnel through via the same
--- qbadmin:client:teleportTo event; only WHO gets told and WHERE differs,
+-- kora_admin:client:teleportTo event; only WHO gets told and WHERE differs,
 -- resolved server-side in server/commands/teleport.lua.
 --
 -- Matches txAdmin's own teleport algorithm (its
@@ -125,11 +125,11 @@ local function getWaypointCoords()
     return { x = coords.x, y = coords.y, z = coords.z }
 end
 
-RegisterNetEvent('qbadmin:client:teleportTo', function(coords)
+RegisterNetEvent('kora_admin:client:teleportTo', function(coords)
     Admin.teleportTo(coords)
 end)
 
-RegisterNetEvent('qbadmin:client:tpm', function()
+RegisterNetEvent('kora_admin:client:tpm', function()
     local coords, err = getWaypointCoords()
     if not coords then
         Kora.notify.send({ title = 'Admin — Error', message = err, type = 'error' })
@@ -138,7 +138,7 @@ RegisterNetEvent('qbadmin:client:tpm', function()
     Admin.teleportTo(coords, true)
 end)
 
-RegisterNetEvent('qbadmin:client:tpback', function()
+RegisterNetEvent('kora_admin:client:tpback', function()
     if not lastPosition then
         Kora.notify.send({ title = 'Admin — Error', message = 'no previous position recorded', type = 'error' })
         return

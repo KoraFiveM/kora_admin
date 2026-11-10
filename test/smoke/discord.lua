@@ -106,7 +106,7 @@ local function interaction(action, values)
     for name, value in pairs(values or {}) do options[#options + 1] = { name = name, value = value } end
     return { id = tostring(nextId), application_id = '901', guild_id = '900', channel_id = '902', type = 2,
         member = { user = { id = '1000' }, roles = { '400' } },
-        data = { name = 'qbadmin', options = { { name = action, options = options } } } }
+        data = { name = 'kora_admin', options = { { name = action, options = options } } } }
 end
 local function execute(value)
     clock = clock + 10
@@ -208,9 +208,9 @@ test('configuration validation prevents a role-only lockout and invalid channel 
     Config.permissions.discordRoles.owner = { '400' }; equal(validate(Config), true)
 end)
 
-test('the deprecated qblib_discord_guild_id convar is still honoured', function()
+test('the deprecated kora_lib_discord_guild_id convar is still honoured', function()
     local saved = convars
-    convars = { qblib_discord_guild_id = '900' }
+    convars = { kora_lib_discord_guild_id = '900' }
     equal(execute(interaction('status')).ok, true)
     local wrongGuild = interaction('status'); wrongGuild.guild_id = '999'
     equal(execute(wrongGuild).ok, false)
@@ -218,4 +218,4 @@ test('the deprecated qblib_discord_guild_id convar is still honoured', function(
 end)
 
 os.time = savedTime
-print(('qbadmin Discord: %d passed'):format(passed))
+print(('kora_admin Discord: %d passed'):format(passed))

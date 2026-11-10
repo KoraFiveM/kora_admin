@@ -12,11 +12,11 @@ Admin.addCommand('aduty', 'Toggle admin on-duty status', nil, false, function(so
 end, OPTS_MOD)
 
 Admin.addCommand('coords', 'Copy your current coordinates to the clipboard', nil, false, function(source)
-    TriggerClientEvent('qbadmin:client:coords', source)
+    TriggerClientEvent('kora_admin:client:coords', source)
 end, OPTS_MOD)
 
 Admin.addCommand('vec4', 'Copy your current vector4 coordinates to the clipboard', nil, false, function(source)
-    TriggerClientEvent('qbadmin:client:vec4', source)
+    TriggerClientEvent('kora_admin:client:vec4', source)
 end, OPTS_MOD)
 
 Admin.addCommand('health', 'Set your own health percentage (0-100, default: 100)', { { name = 'percentage' } }, false, function(source, args)
@@ -26,14 +26,14 @@ Admin.addCommand('health', 'Set your own health percentage (0-100, default: 100)
     if (pct == nil or pct > 0) and (exports.kora_core:getMetaData(source, 'isdead') or exports.kora_core:getMetaData(source, 'inlaststand')) then
         exports.kora_core:setMetaData(source, 'isdead', false)
         exports.kora_core:setMetaData(source, 'inlaststand', false)
-        TriggerClientEvent('qbadmin:client:revive', source)
+        TriggerClientEvent('kora_admin:client:revive', source)
         Admin.fullReviveAmbulance(source)
     end
-    TriggerClientEvent('qbadmin:client:setHealth', source, pct)
+    TriggerClientEvent('kora_admin:client:setHealth', source, pct)
 end, OPTS_MOD)
 
 Admin.addCommand('armor', 'Set your own armor percentage (0-100, default: 100)', { { name = 'percentage' } }, false, function(source, args)
-    TriggerClientEvent('qbadmin:client:setArmor', source, tonumber(args[1]))
+    TriggerClientEvent('kora_admin:client:setArmor', source, tonumber(args[1]))
 end, OPTS_MOD)
 
 -- Deliberately named 'selfrevive', not 'revive' -- the existing targeted
@@ -46,7 +46,7 @@ end, OPTS_MOD)
 Admin.addCommand('selfrevive', 'Revive yourself, clearing whichever ambulance job is running', nil, false, function(source)
     exports.kora_core:setMetaData(source, 'isdead', false)
     exports.kora_core:setMetaData(source, 'inlaststand', false)
-    TriggerClientEvent('qbadmin:client:revive', source)
+    TriggerClientEvent('kora_admin:client:revive', source)
     Admin.fullReviveAmbulance(source)
     Admin.respond(source, true, 'Revived')
 end, OPTS_MOD)

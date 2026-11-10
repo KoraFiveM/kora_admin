@@ -107,13 +107,13 @@ end)
 
 local function openClothing(mode, service)
     if GetResourceState('kora_clothing') ~= 'started' then
-        Kora.notify.send({ type = 'error', message = 'qbclothing is not running' })
+        Kora.notify.send({ type = 'error', message = 'kora_clothing is not running' })
         return
     end
     if mode == 'shop' then
-        TriggerEvent('qbclothing:client:openNearestShop', service)
+        TriggerEvent('kora_clothing:client:openNearestShop', service)
     elseif mode == 'admin' then
-        TriggerEvent('qbclothing:client:openAdminSession')
+        TriggerEvent('kora_clothing:client:openAdminSession')
     else
         TriggerEvent('qb-clothing:client:openOutfitMenu')
     end
@@ -332,7 +332,7 @@ local function updateActiveRegistryFields()
     roleCatalogue = {}
     if not activeNavigation then return end
     refreshRegistryFields(activeNavigation)
-    if Kora.nui.updateApp then Kora.nui.updateApp('qbadmin:menu', { navigation = activeNavigation }) end
+    if Kora.nui.updateApp then Kora.nui.updateApp('kora_admin:menu', { navigation = activeNavigation }) end
 end
 
 local function refreshAppActionStates()
@@ -366,14 +366,14 @@ local function refreshAppActionStates()
             end
         end
     end)
-    if Kora.nui.updateApp then Kora.nui.updateApp('qbadmin:menu', { navigation = activeNavigation }) end
+    if Kora.nui.updateApp then Kora.nui.updateApp('kora_admin:menu', { navigation = activeNavigation }) end
 end
 Admin.refreshAppActionStates = refreshAppActionStates
 
 -- `@kora_core/init.lua` re-seeds its local mirror before later event handlers
 -- run, so the snapshot event is the reliable initial-load hook. Changes after
 -- that point arrive through the shared-list subscription.
-RegisterNetEvent('qbcore:registry:snapshotAll', updateActiveRegistryFields)
+RegisterNetEvent('kora_core:registry:snapshotAll', updateActiveRegistryFields)
 if Kora.shared.onChange then
     Kora.shared.onChange('vehicles', updateActiveRegistryFields)
     Kora.shared.onChange('jobs', updateActiveRegistryFields)
@@ -791,7 +791,7 @@ end
 ---@param options? { reportsOnly?: boolean, filters?: table } reportsOnly opens a dedicated Reports app (the /reports screen) instead of the full admin menu.
 local function openRoot(options)
     local reportsOnly = options and options.reportsOnly == true
-    local appId = reportsOnly and 'qbadmin:reports' or 'qbadmin:menu'
+    local appId = reportsOnly and 'kora_admin:reports' or 'kora_admin:menu'
     local navigation = {}
     local selectedPlayerActions = {}
     local selectedReportActions = {}
@@ -877,7 +877,7 @@ local function openRoot(options)
     end
 
     local function showAuditInShell(filters)
-        local rows, err = Kora.callback.trigger('qbadmin:menuAuditLog', filters)
+        local rows, err = Kora.callback.trigger('kora_admin:menuAuditLog', filters)
         if not rows then
             Kora.notify.send({ type = 'error', message = err or 'Could not load audit log' })
             return {}
@@ -913,7 +913,7 @@ local function openRoot(options)
         -- with type(). Probe the optional capability and fall back for older lib builds.
         local capabilityOk, supportsHeaderControls = pcall(Kora.nui.supportsAppTableHeaderControls)
         supportsHeaderControls = capabilityOk and supportsHeaderControls == true
-        local resources, err = Kora.callback.trigger('qbadmin:menuResources')
+        local resources, err = Kora.callback.trigger('kora_admin:menuResources')
         if not resources then
             Kora.notify.send({ type = 'error', message = err or 'Could not load resources' })
             return {}
@@ -978,7 +978,7 @@ local function openRoot(options)
     local function showPlayersInShell()
         local view = findView('players')
         if not view then return {} end
-        local players, err = Kora.callback.trigger('qbadmin:menuPlayers')
+        local players, err = Kora.callback.trigger('kora_admin:menuPlayers')
         if not players then
             Kora.notify.send({ type = 'error', message = err or 'Could not load players' })
             return {}
@@ -1013,7 +1013,7 @@ local function openRoot(options)
         local view = findView('reports')
         if not view then return {} end
         currentReportFilters = filters or currentReportFilters
-        local rows, err = Kora.callback.trigger('qbadmin:menuReports', currentReportFilters)
+        local rows, err = Kora.callback.trigger('kora_admin:menuReports', currentReportFilters)
         if quiet and selectedReportId then return {} end
         if not rows then
             if not quiet then Kora.notify.send({ type = 'error', message = err or 'Could not load reports' }) end
@@ -1058,7 +1058,7 @@ local function openRoot(options)
     ---`quiet` is a background reload of the report already open: no error toast,
     ---and it gives way if the user went Back or opened another report meanwhile.
     local function showSelectedReport(id, quiet)
-        local report, err = Kora.callback.trigger('qbadmin:menuReport', id, { live = quiet == true })
+        local report, err = Kora.callback.trigger('kora_admin:menuReport', id, { live = quiet == true })
         if quiet and selectedReportId ~= tostring(id) then return {} end
         local chatOn = Config.reports.chat and Config.reports.chat.enabled == true
         if not report then
@@ -1206,7 +1206,7 @@ local function openRoot(options)
         return { update = { navigation = navigation }, navigate = { viewId = 'reports', tabId = 'overview' } }
     end
 
-    -- Server pushes (qbadmin:client:reportChanged) land here. The open report's
+    -- Server pushes (kora_admin:client:reportChanged) land here. The open report's
     -- conversation reloads when it is the one that changed, otherwise the queue
     -- reloads. Only `update` is applied -- never `navigate` -- so the staff
     -- member keeps their tab, and the shell keeps any half-typed reply in its
@@ -1232,7 +1232,7 @@ local function openRoot(options)
             local pending = livePending
             livePending = {}
             local ok, refreshErr = pcall(refreshReportsLive, pending)
-            if not ok then print(('^1[qbadmin]^7 live report refresh failed: %s'):format(tostring(refreshErr))) end
+            if not ok then print(('^1[kora_admin]^7 live report refresh failed: %s'):format(tostring(refreshErr))) end
         end
         liveRefreshing = false
     end
@@ -1245,14 +1245,14 @@ local function openRoot(options)
     ---`quiet` is a background state refresh: it gives way if the user went Back or
     ---picked another player while it was loading, so it cannot bring old tabs back.
     local function showSelectedPlayer(player, quiet)
-        local profile, profileErr = Kora.callback.trigger('qbadmin:menuPlayerProfile', player.id)
+        local profile, profileErr = Kora.callback.trigger('kora_admin:menuPlayerProfile', player.id)
         if quiet and selectedPlayerId ~= tostring(player.id) then return {} end
         if not profile then
             Kora.notify.send({ type = 'error', message = profileErr or 'That player is no longer online' })
             return {}
         end
 
-        local roles = Kora.callback.trigger('qbadmin:menuRoles')
+        local roles = Kora.callback.trigger('kora_admin:menuRoles')
         if quiet and selectedPlayerId ~= tostring(player.id) then return {} end
         if type(roles) == 'table' then roleCatalogue = roles end
 
@@ -1487,7 +1487,7 @@ local function openRoot(options)
         Admin.refreshSelectedPlayerState = function(updatedTarget)
             if tostring(updatedTarget) ~= target then return end
             local refreshed = showSelectedPlayer({ id = target }, true)
-            if refreshed.update and Kora.nui.updateApp then Kora.nui.updateApp('qbadmin:menu', refreshed.update) end
+            if refreshed.update and Kora.nui.updateApp then Kora.nui.updateApp('kora_admin:menu', refreshed.update) end
         end
         -- No history step: the per-player tabs carry their own header back action (above),
         -- so the shell's history arrow cannot outlive the selected player.
@@ -1601,20 +1601,20 @@ local function openRoot(options)
     Kora.nui.openApp(appId)
 end
 
-RegisterNetEvent('qbadmin:client:refreshMenuPlayerState', function(targetSrc)
+RegisterNetEvent('kora_admin:client:refreshMenuPlayerState', function(targetSrc)
     if Admin.refreshSelectedPlayerState then Admin.refreshSelectedPlayerState(targetSrc) end
 end)
 
-RegisterNetEvent('qbadmin:client:reportChanged', function(id)
+RegisterNetEvent('kora_admin:client:reportChanged', function(id)
     if Admin.refreshOpenReports then Admin.refreshOpenReports(id) end
 end)
 
-RegisterNetEvent('qbadmin:client:openReports', function(level, filters)
+RegisterNetEvent('kora_admin:client:openReports', function(level, filters)
     if type(level) == 'string' then Admin.level = level end
     openRoot({ reportsOnly = true, filters = type(filters) == 'table' and filters or nil })
 end)
 
-RegisterNetEvent('qbadmin:client:openMenu', function(level)
+RegisterNetEvent('kora_admin:client:openMenu', function(level)
     if type(level) == 'string' then Admin.level = level end
     openRoot()
 end)

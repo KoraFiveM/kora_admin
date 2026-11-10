@@ -10,10 +10,10 @@ local currentWeather = nil
 local currentTime = nil -- { hour, minute }
 
 if Config.world.syncOnPlayerLoaded then
-    AddEventHandler('qbcore:server:playerLoaded', function(src)
+    AddEventHandler('kora_core:server:playerLoaded', function(src)
         if GetResourceState('kora_weathersync') == 'started' then return end
-        if currentWeather then TriggerClientEvent('qbadmin:client:setWeather', src, currentWeather) end
-        if currentTime then TriggerClientEvent('qbadmin:client:setTime', src, currentTime.hour, currentTime.minute) end
+        if currentWeather then TriggerClientEvent('kora_admin:client:setWeather', src, currentWeather) end
+        if currentTime then TriggerClientEvent('kora_admin:client:setTime', src, currentTime.hour, currentTime.minute) end
     end)
 end
 
@@ -55,7 +55,7 @@ Admin.addCommand('weather', 'Set the server weather', { { name = 'type' } }, tru
         end
 
         currentWeather = weatherType
-        TriggerClientEvent('qbadmin:client:setWeather', -1, weatherType)
+        TriggerClientEvent('kora_admin:client:setWeather', -1, weatherType)
     end
     Admin.log(source, 'weather', nil, { type = weatherType })
     Admin.respond(source, true, ('Weather set to %s'):format(weatherType))
@@ -114,7 +114,7 @@ Admin.addCommand('time', 'Set the server clock', { { name = 'hour|preset' }, { n
         if not ok then return Admin.respond(source, false, err) end
     else
         currentTime = { hour = hour, minute = minute }
-        TriggerClientEvent('qbadmin:client:setTime', -1, hour, minute)
+        TriggerClientEvent('kora_admin:client:setTime', -1, hour, minute)
     end
     Admin.log(source, 'time', nil, { hour = hour, minute = minute, preset = preset and preset.id or nil })
     Admin.respond(source, true, preset

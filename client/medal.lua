@@ -34,7 +34,7 @@ end
 function Admin.invokeMedalEvent(event)
     local key = publicKey()
     if key == '' then
-        notify('error', 'Medal clipping is not configured. Set qbadmin_medal_public_key on the server.')
+        notify('error', 'Medal clipping is not configured. Set kora_admin_medal_public_key on the server.')
         return false
     end
 
@@ -53,7 +53,7 @@ function Admin.invokeMedalEvent(event)
     pending[requestId] = eventName
 
     SendNUIMessage({
-        type = 'qbadmin:medal:invoke',
+        type = 'kora_admin:medal:invoke',
         requestId = requestId,
         publicKey = key,
         timeoutMs = tonumber(Config.medal.requestTimeoutMs) or 5000,
@@ -76,7 +76,7 @@ function Admin.invokeMedalEvent(event)
     return true
 end
 
-RegisterNUICallback('qbadmin:medal:result', function(data, cb)
+RegisterNUICallback('kora_admin:medal:result', function(data, cb)
     cb({ ok = true })
 
     local requestId = type(data) == 'table' and tostring(data.requestId or '') or ''
@@ -88,7 +88,7 @@ RegisterNUICallback('qbadmin:medal:result', function(data, cb)
     if data.ok == true and status == 200 then
         notify('success', ('Medal accepted “%s”. The clip will appear after it finishes processing.'):format(eventName))
     elseif status == 401 then
-        notify('error', 'Medal rejected the public key. Check qbadmin_medal_public_key.')
+        notify('error', 'Medal rejected the public key. Check kora_admin_medal_public_key.')
     elseif status == 400 then
         notify('error', 'Medal rejected the clip event. Check its registered ID and clip options.')
     else

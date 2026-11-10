@@ -22,13 +22,13 @@ local function runCreator(label, create)
     end)
 end
 
-RegisterNetEvent('qbadmin:client:startPlacement', function(model)
+RegisterNetEvent('kora_admin:client:startPlacement', function(model)
     runCreator('Entity placement', function()
         return Kora.placement.start(model)
     end)
 end)
 
-RegisterNetEvent('qbadmin:client:startZoneCreator', function(zoneType)
+RegisterNetEvent('kora_admin:client:startZoneCreator', function(zoneType)
     runCreator(('%s zone'):format(zoneType), function()
         return Kora.zones.startCreator(zoneType)
     end)

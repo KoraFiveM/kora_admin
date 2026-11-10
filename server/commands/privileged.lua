@@ -56,7 +56,7 @@ Admin.addCommand('revokepermission', "Revoke a player's permission level (runtim
         local license = exports.kora_core:primary(targetSrc)
         if not license then return Admin.respond(source, false, 'could not resolve target identifier') end
 
-        ExecuteCommand(('remove_principal identifier.%s:%s qbcore.%s'):format(
+        ExecuteCommand(('remove_principal identifier.%s:%s kora_core.%s'):format(
             Config.permissions.principalIdentifier, license:gsub('^%w+:', ''), level))
         Admin.log(source, 'revokepermission', data, { level = level })
         Admin.respond(source, true, ('Revoked %s from %s (runtime only)'):format(level, data.name))

@@ -240,7 +240,7 @@ local function startPicker()
 end
 
 Kora.keybind.add({
-    name = 'qbadmin_entitypicker_copy',
+    name = 'kora_admin_entitypicker_copy',
     description = 'Entity Picker: Open Model Menu',
     defaultMapper = 'keyboard',
     defaultKey = Config.entityPicker.copyKey,
@@ -248,14 +248,14 @@ Kora.keybind.add({
 })
 
 Kora.keybind.add({
-    name = 'qbadmin_entitypicker_close',
+    name = 'kora_admin_entitypicker_close',
     description = 'Entity Picker: Close',
     defaultMapper = 'keyboard',
     defaultKey = Config.entityPicker.closeKey,
     onPressed = function() stopPicker('Entity picker closed') end,
 })
 
-RegisterNetEvent('qbadmin:client:startEntityPicker', startPicker)
+RegisterNetEvent('kora_admin:client:startEntityPicker', startPicker)
 
 AddEventHandler('onClientResourceStop', function(resourceName)
     if resourceName == GetCurrentResourceName() then stopPicker() end

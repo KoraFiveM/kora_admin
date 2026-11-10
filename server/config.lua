@@ -24,7 +24,7 @@ if Kora and Kora.config and Kora.config.extend then
             mode = Kora.config.enum('ace_discord', { options = {
                 { value = 'ace_discord', label = 'ACE and Discord (compatible)' },
                 { value = 'discord', label = 'Discord roles only' },
-            }, live = true, description = 'Discord-only access ignores ACE and temporary grants for qbadmin. Map an owner role before switching.' }),
+            }, live = true, description = 'Discord-only access ignores ACE and temporary grants for kora_admin. Map an owner role before switching.' }),
             discordRoles = Kora.config.map(Config.permissions.discordRoles,
                 Kora.config.list({}, Kora.config.string('', { minLength = 1 })),
                 { live = true, advanced = false, description = 'Map each staff tier to Discord role IDs. Higher tiers inherit lower tiers.' }),
@@ -33,7 +33,7 @@ if Kora and Kora.config and Kora.config.extend then
             enabled = Kora.config.boolean(false, { live = true, label = 'Enable Discord administration' }),
             applicationId = Kora.config.string('', { live = true, label = 'Discord application ID' }),
             guildId = Kora.config.string('', { live = true, label = 'Discord server ID',
-                description = 'Uses kora_lib_discord_guild_id (or the deprecated qblib_discord_guild_id) when blank. This is also the guild used for in-game role checks.' }),
+                description = 'Uses kora_lib_discord_guild_id (or the deprecated kora_lib_discord_guild_id) when blank. This is also the guild used for in-game role checks.' }),
             publicKey = Kora.config.string('', { live = true, label = 'Discord application public key',
                 description = 'The public key from the Developer Portal verifies signed slash command requests. This is safe to display.' }),
             channels = Kora.config.list({}, Kora.config.string('', { minLength = 1 }), {

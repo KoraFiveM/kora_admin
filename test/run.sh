@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs every qbadmin smoke test with plain Lua -- no FXServer, no database, no
+# Runs every kora_admin smoke test with plain Lua -- no FXServer, no database, no
 # busted/luarocks dependency -- and exits non-zero if any of them failed.
 #
 # Each suite runs from the resource root because they dofile('config.lua') and

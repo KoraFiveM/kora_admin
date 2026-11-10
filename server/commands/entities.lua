@@ -23,7 +23,7 @@ Admin.addCommand('entity', 'Spawn a static ped or prop in front of you', { { nam
     local model, err = validEntityModel(args[1])
     if not model then return Admin.respond(source, false, err or 'unknown ped or prop model') end
 
-    TriggerClientEvent('qbadmin:client:spawnEntity', source, model)
+    TriggerClientEvent('kora_admin:client:spawnEntity', source, model)
     Admin.log(source, 'entity', nil, { model = model })
     Admin.respond(source, true, ('Spawning %s'):format(model))
 end, OPTS_ADMIN)
@@ -35,13 +35,13 @@ Admin.addCommand('entityfor', 'Spawn a static ped or prop for a player', { { nam
     local model, err = validEntityModel(args[2])
     if not model then return Admin.respond(source, false, err or 'unknown ped or prop model') end
 
-    TriggerClientEvent('qbadmin:client:spawnEntity', targetSrc, model)
+    TriggerClientEvent('kora_admin:client:spawnEntity', targetSrc, model)
     Admin.log(source, 'entityfor', data, { model = model })
     Admin.respond(source, true, ('Spawning %s for %s'):format(model, data.name))
 end, OPTS_ADMIN)
 
 Admin.addCommand('deleteentity', 'Delete your last admin-spawned entity', nil, false, function(source)
-    TriggerClientEvent('qbadmin:client:deleteLastEntity', source)
+    TriggerClientEvent('kora_admin:client:deleteLastEntity', source)
     Admin.log(source, 'deleteentity')
     Admin.respond(source, true, 'Deleting your last admin-spawned entity')
 end, OPTS_ADMIN)

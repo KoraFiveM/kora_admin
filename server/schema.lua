@@ -1,4 +1,4 @@
-QBAdminSchema = {
+KoraAdminSchema = {
     {
         name = 'admin_logs',
         collate = 'utf8mb4_unicode_ci',

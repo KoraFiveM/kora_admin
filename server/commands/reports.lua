@@ -73,13 +73,13 @@ if Config.reports.command.enabled then
             if not filters.license then return Admin.respond(source, false, 'you are not logged in') end
             local chat = Admin.reportChat()
             if chat and chat.playerUi ~= false and source ~= 0 and not Admin.commandContext(source) then
-                return TriggerClientEvent('qbadmin:client:openMyReports', source, tonumber(args[1]))
+                return TriggerClientEvent('kora_admin:client:openMyReports', source, tonumber(args[1]))
             end
             filters.status = filters.status or 'all'
         else
             filters.status = filters.status or 'open'
             if Config.reports.command.ui and source ~= 0 and not Admin.commandContext(source) then
-                return TriggerClientEvent('qbadmin:client:openReports', source, Admin.getLevel(source), filters)
+                return TriggerClientEvent('kora_admin:client:openReports', source, Admin.getLevel(source), filters)
             end
         end
 

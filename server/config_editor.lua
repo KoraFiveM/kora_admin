@@ -57,7 +57,7 @@ local function sanitizeSchema(schema)
     return out
 end
 
-Kora.callback.register('qbadmin:configCatalog', function(source)
+Kora.callback.register('kora_admin:configCatalog', function(source)
     local ok, err = deny(source)
     if not ok then return nil, err end
     local catalog = Kora.config.catalog()
@@ -65,7 +65,7 @@ Kora.callback.register('qbadmin:configCatalog', function(source)
     return catalog
 end)
 
-Kora.callback.register('qbadmin:configRead', function(source, resource)
+Kora.callback.register('kora_admin:configRead', function(source, resource)
     local ok, err = deny(source)
     if not ok then return nil, err end
     if type(resource) ~= 'string' then return nil, 'invalid resource' end
@@ -79,7 +79,7 @@ Kora.callback.register('qbadmin:configRead', function(source, resource)
 end)
 
 Kora.commands.add('config', 'Open the configuration editor', nil, false, function(source)
-    TriggerClientEvent('qbadmin:client:configOpened', source)
+    TriggerClientEvent('kora_admin:client:configOpened', source)
 end, {
     permission = Config.configEditor.level,
     checkPermission = Admin.checkLevel,
@@ -96,7 +96,7 @@ local function validRequest(request)
     return #request.path > 0
 end
 
-Kora.callback.register('qbadmin:configCommit', function(source, request)
+Kora.callback.register('kora_admin:configCommit', function(source, request)
     local ok, err = deny(source)
     if not ok then return nil, err end
     if not validRequest(request) then return nil, 'invalid configuration request' end
@@ -115,7 +115,7 @@ Kora.callback.register('qbadmin:configCommit', function(source, request)
     return result
 end)
 
-Kora.callback.register('qbadmin:configReset', function(source, request)
+Kora.callback.register('kora_admin:configReset', function(source, request)
     local ok, err = deny(source)
     if not ok then return nil, err end
     if not validRequest(request) then return nil, 'invalid configuration request' end

@@ -14,9 +14,9 @@ one implementation.
 
 ## Requirements
 
-- [kora_lib](https://qbcore2.github.io/kora_lib/) — must load before kora_core/qbsql
-- [qbcore](https://qbcore2.github.io/kora_core/)
-- [qbsql](https://qbcore2.github.io/kora_sql/)
+- [kora_lib](https://qbcore2.github.io/kora_lib/) — must load before kora_core/kora_sql
+- [kora_core](https://qbcore2.github.io/kora_core/)
+- [kora_sql](https://qbcore2.github.io/kora_sql/)
 
 ## Installation
 
@@ -34,9 +34,9 @@ kora_admin creates its own `admin_logs` table at startup from `server/schema.lua
 Grant permission roles with ACE principals in `server.cfg` (`Support <
 Moderator < Admin < Owner`, cascading):
 ```cfg
-add_ace identifier.license:XXXX qbcore.support allow
-add_ace identifier.license:YYYY qbcore.moderator allow
-add_ace identifier.license:ZZZZ qbcore.owner allow
+add_ace identifier.license:XXXX kora_core.support allow
+add_ace identifier.license:YYYY kora_core.moderator allow
+add_ace identifier.license:ZZZZ kora_core.owner allow
 add_principal identifier.license:XXXX group.support
 add_principal identifier.license:YYYY group.admin
 add_principal identifier.license:ZZZZ group.owner
@@ -161,7 +161,7 @@ builder](https://medal.tv/developer/auto-clipping), then add this replicated
 setting to `server.cfg`:
 
 ```cfg
-setr qbadmin_medal_public_key "your-public-key"
+setr kora_admin_medal_public_key "your-public-key"
 ```
 
 Configure one or more entries in `Config.medal.events`; each becomes a menu
@@ -209,7 +209,7 @@ end
 ## API reference
 
 kora_admin has no `exports` — the whole surface is chat commands registered
-through `Kora.commands.add`, plus internal `qbadmin:client:*`/`qbadmin:server:*`
+through `Kora.commands.add`, plus internal `kora_admin:client:*`/`kora_admin:server:*`
 events used to relay a command's effect to the right client. Most commands
 accept an `[id]` argument that defaults to the caller, or the literal word
 `me` — see `Admin.resolveTarget` (`server/target.lua`). Commands marked
@@ -413,9 +413,9 @@ owner through the workspace.
 Part of the [qbcore2](https://github.com/qbcore2) resource set:
 
 - [kora_lib](https://qbcore2.github.io/kora_lib/) — shared helper library
-- [qbsql](https://qbcore2.github.io/kora_sql/) — database driver
-- [qbcore](https://qbcore2.github.io/kora_core/) — framework core
-- [qbinventory](https://qbcore2.github.io/kora_inventory/) — headless inventory
-- [qbtarget](https://qbcore2.github.io/kora_target/) — targeting/interaction
-- [qbclothing](https://qbcore2.github.io/kora_clothing/) — clothing/wardrobe
+- [kora_sql](https://qbcore2.github.io/kora_sql/) — database driver
+- [kora_core](https://qbcore2.github.io/kora_core/) — framework core
+- [kora_inventory](https://qbcore2.github.io/kora_inventory/) — headless inventory
+- [kora_target](https://qbcore2.github.io/kora_target/) — targeting/interaction
+- [kora_clothing](https://qbcore2.github.io/kora_clothing/) — clothing/wardrobe
 - [full resource list ↗](https://github.com/orgs/qbcore2/repositories)

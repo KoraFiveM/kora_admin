@@ -78,7 +78,7 @@ local function setTime(...)
         return nil
     end
     local event = clientEvents[#clientEvents]
-    equal(event.name, 'qbadmin:client:setTime', 'clock event')
+    equal(event.name, 'kora_admin:client:setTime', 'clock event')
     equal(event.target, -1, 'the clock is server-wide, so every client gets it')
     return event.args[1], event.args[2]
 end
@@ -157,11 +157,11 @@ test('standalone weather and time retain broadcasts and late-join synchronizatio
     for _, state in ipairs({ 'missing', 'stopped', 'starting', 'stopping' }) do
         weatherResourceState = state
         commands.weather.handler(7, { 'rain' })
-        equal(clientEvents[#clientEvents].name, 'qbadmin:client:setWeather', 'standalone weather relay')
+        equal(clientEvents[#clientEvents].name, 'kora_admin:client:setWeather', 'standalone weather relay')
         equal(clientEvents[#clientEvents].args[1], 'RAIN', 'normalized weather')
         setTime('3', '45')
         local before = #clientEvents
-        serverEvents['qbcore:server:playerLoaded'](12)
+        serverEvents['kora_core:server:playerLoaded'](12)
         equal(#clientEvents, before + 2, 'standalone join retains both overrides')
         equal(clientEvents[before + 1].target, 12, 'join weather targets the joining player')
         equal(clientEvents[before + 2].args[1], 3, 'join hour')
@@ -182,7 +182,7 @@ test('running weather sync receives custom times, presets and its own weather ca
     equal(providerCalls[#providerCalls][3], 15, 'custom minute')
     for _, preset in ipairs(Config.world.timePresets) do
         commands.time.handler(7, { preset.id:upper() })
-        equal(providerCalls[#providerCalls][2], preset.hour, 'qbadmin retains its configured preset hour')
+        equal(providerCalls[#providerCalls][2], preset.hour, 'kora_admin retains its configured preset hour')
         equal(providerCalls[#providerCalls][3], preset.minute or 0, 'preset minute')
         equal(logs[#logs].details.preset, preset.id, 'presets remain audited')
     end
@@ -210,11 +210,11 @@ test('provider rejection does not fall back, audit success or replace standalone
     equal(responses[#responses].message, providerError, 'time failure reason')
     equal(#clientEvents, events, 'failed provider must not fall back to client overrides')
     equal(#logs, audits, 'rejected changes must not be logged as successful')
-    serverEvents['qbcore:server:playerLoaded'](12)
+    serverEvents['kora_core:server:playerLoaded'](12)
     equal(#clientEvents, events, 'active provider suppresses cached standalone overrides on join')
     providerError = nil
     weatherResourceState = 'stopped'
-    serverEvents['qbcore:server:playerLoaded'](12)
+    serverEvents['kora_core:server:playerLoaded'](12)
     equal(clientEvents[#clientEvents - 1].args[1], 'RAIN', 'standalone weather remains intact')
     equal(clientEvents[#clientEvents].args[1], 3, 'standalone hour remains intact')
     equal(clientEvents[#clientEvents].args[2], 45, 'standalone minute remains intact')
@@ -225,7 +225,7 @@ test('authoritative player state changes request a live selected-profile refresh
     Admin.refreshMenuPlayerState(7, 12)
     local event = clientEvents[#clientEvents]
     equal(#clientEvents, before + 1, 'state changes should notify the viewing admin')
-    equal(event.name, 'qbadmin:client:refreshMenuPlayerState', 'selected profile refresh event')
+    equal(event.name, 'kora_admin:client:refreshMenuPlayerState', 'selected profile refresh event')
     equal(event.target, 7, 'refresh returns to the viewing admin')
     equal(event.args[1], 12, 'refresh identifies the changed player')
 end)
@@ -318,7 +318,7 @@ end
 
 local function timeAction()
     executedCommand, menuPayload = nil, nil
-    netEvents['qbadmin:client:openMenu']('god')
+    netEvents['kora_admin:client:openMenu']('god')
     return findAction(menuPayload, 'world:time')
 end
 
@@ -349,7 +349,7 @@ end)
 
 test('the sidebar is reduced to focused workspaces with a configuration editor', function()
     menuUpdates = 0
-    netEvents['qbadmin:client:openMenu']('god')
+    netEvents['kora_admin:client:openMenu']('god')
     equal(#menuPayload.navigation, 5, 'the long category list should collapse into five workspaces')
     truthy(findView(menuPayload, 'players'), 'Players workspace')
     truthy(findView(menuPayload, 'reports'), 'Reports workspace')
@@ -372,7 +372,7 @@ end)
 
 test('Admin Duty shows its current state and the action it will take', function()
     adminDuty = false
-    netEvents['qbadmin:client:openMenu']('god')
+    netEvents['kora_admin:client:openMenu']('god')
     local action = findAction(menuPayload, 'self:aduty')
     equal(action.label, 'Turn Admin Duty On', 'off-duty staff should be offered the on action')
     equal(action.state, false, 'off-duty state is explicit')
@@ -397,13 +397,13 @@ test('Vehicle provides both a refreshed catalogue and a free-form spawn code', f
     Kora.shared.all = function() return {} end
     local appUpdate
     Kora.nui.updateApp = function(_, update) appUpdate = update end
-    netEvents['qbadmin:client:openMenu']('god')
+    netEvents['kora_admin:client:openMenu']('god')
 
     Kora.shared.all = function(name)
         if name == 'vehicles' then return { { model = 'zentorno', name = 'Zentorno' } } end
         return {}
     end
-    netEvents['qbcore:registry:snapshotAll']({})
+    netEvents['kora_core:registry:snapshotAll']({})
 
     local code = findAction({ navigation = appUpdate.navigation }, 'vehicle:car')
     local catalogue = findAction({ navigation = appUpdate.navigation }, 'vehicle:car_catalogue')
@@ -445,12 +445,12 @@ test('List Players selects a player before running their admin actions', functio
     -- lookup can be briefly empty while the client registry is being seeded.
     Kora.shared.get = function() return nil end
     Kora.callback.trigger = function(name)
-        if name == 'qbadmin:menuPlayers' then
+        if name == 'kora_admin:menuPlayers' then
             -- The caller is deliberately present in this list: staff may
             -- select themselves and use the same player-first workflow.
             return { { id = '7', name = 'Admin', job = 'Police', ping = 12 } }
         end
-        if name == 'qbadmin:menuPlayerProfile' then
+        if name == 'kora_admin:menuPlayerProfile' then
             return {
                 id = '7', name = 'Admin', citizenid = 'TEST123', job = 'Police (Chief)', gang = 'None',
                 money = 'bank: 5000, cash: 100', ping = 12, health = 200, armor = 50,
@@ -461,7 +461,7 @@ test('List Players selects a player before running their admin actions', functio
         end
         return {}
     end
-    netEvents['qbadmin:client:openMenu']('god')
+    netEvents['kora_admin:client:openMenu']('god')
     local selectedResult = menuPayload.onAction('player:select', { itemId = '7' })
     equal(selectedResult.navigate.viewId, 'players', 'player selection returns AppShell navigation')
     equal(selectedResult.navigate.tabId, 'overview', 'player selection opens the profile overview')
@@ -516,7 +516,7 @@ test('List Players selects a player before running their admin actions', functio
 
     Config.roles.hideDuplicateLabels = false
     Config.roles.hiddenJobs = { 'ambulance' }
-    netEvents['qbcore:registry:snapshotAll']({})
+    netEvents['kora_core:registry:snapshotAll']({})
     local reselected = menuPayload.onAction('player:select', { itemId = '7' })
     local reSetJob = findAction(menuPayload, 'player:target:setjob')
     equal(#reSetJob.fields[1].options, 3, 'hiddenJobs should drop named jobs while duplicate hiding is off')
@@ -541,7 +541,7 @@ test('List Players selects a player before running their admin actions', functio
     equal(devMode.state, true, 'selected-player development state is explicit')
 
     jobs[1].grades[3] = { name = 'Sergeant' }
-    netEvents['qbcore:registry:snapshotAll']({})
+    netEvents['kora_core:registry:snapshotAll']({})
     setJob = findAction(menuPayload, 'player:target:setjob')
     equal(#setJob.fields[2].optionsByValue.police, 3,
         'an open player menu should refresh when registry data arrives')
@@ -573,7 +573,7 @@ test('List Players selects a player before running their admin actions', functio
     truthy(onlinePlayers, 'Back should return to the online-player browser')
     truthy(onlinePlayers.searchable and onlinePlayers.pageSize == 12,
         'the restored online-player table is searchable and paged')
-    netEvents['qbadmin:client:refreshMenuPlayerState']('7')
+    netEvents['kora_admin:client:refreshMenuPlayerState']('7')
     equal(#findView(menuPayload, 'players').tabs, 1, 'a state push for the deselected player must not bring its tabs back')
 
     Kora.shared.all, Kora.shared.get = previousSharedAll, previousSharedGet
@@ -611,8 +611,8 @@ test('Set Job grades for mechanic and EMS jobs survive the trip to the NUI', fun
     }
     Kora.shared.all = function(name) return name == 'jobs' and jobs or {} end
     Kora.callback.trigger = function(name)
-        if name == 'qbadmin:menuPlayers' then return { { id = '7', name = 'Admin', job = 'Mechanic', ping = 12 } } end
-        if name == 'qbadmin:menuPlayerProfile' then
+        if name == 'kora_admin:menuPlayers' then return { { id = '7', name = 'Admin', job = 'Mechanic', ping = 12 } } end
+        if name == 'kora_admin:menuPlayerProfile' then
             return {
                 id = '7', name = 'Admin', citizenid = 'TEST123', job = 'Mechanic (Boss)', gang = 'None',
                 money = 'bank: 5000', ping = 12, health = 200, armor = 0, hunger = 80, thirst = 70,
@@ -625,7 +625,7 @@ test('Set Job grades for mechanic and EMS jobs survive the trip to the NUI', fun
     local pushed = {}
     Kora.nui.updateApp = function(id, update) pushed[#pushed + 1] = { id = id, update = update } end
 
-    netEvents['qbadmin:client:openMenu']('god')
+    netEvents['kora_admin:client:openMenu']('god')
     for index = #pushed, 1, -1 do pushed[index] = nil end
     local result = menuPayload.onAction('player:select', { itemId = '7' })
 
@@ -634,7 +634,7 @@ test('Set Job grades for mechanic and EMS jobs survive the trip to the NUI', fun
     -- FiveM packs a function-reference result as { result }, so the result sits at level 1.
     truthy(deepestTableLevel({ result }, 0) < MSGPACK_MAX_NESTING, 'the action result fits under the msgpack nesting cap')
     equal(#pushed, 1, 'the selected-player workspace is pushed through updateApp')
-    equal(pushed[1].id, 'qbadmin:menu', 'the push targets the admin menu')
+    equal(pushed[1].id, 'kora_admin:menu', 'the push targets the admin menu')
     local update = pushed[1].update
     truthy(deepestTableLevel(update, 0) < MSGPACK_MAX_NESTING, 'the pushed navigation fits under the msgpack nesting cap')
     truthy(deepestTableLevel({ { update = update } }, 0) >= MSGPACK_MAX_NESTING,
@@ -658,14 +658,14 @@ test('Reports list, detail, conversation, and management stay in the app shell',
     local createdAt = 1788744746000
     local repliedAt = 1788744806
     Kora.callback.trigger = function(name)
-        if name == 'qbadmin:menuReports' then
+        if name == 'kora_admin:menuReports' then
             return { {
                 id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen',
                 message = 'Inventory button is stuck', created_at = createdAt, updated_at = createdAt,
                 category = 'Bug', subject = 'Inventory button is stuck', age = '5m',
             } }
         end
-        if name == 'qbadmin:menuReport' then
+        if name == 'kora_admin:menuReport' then
             return {
                 id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen', reporter_source = 12,
                 message = 'Inventory button is stuck', created_at = createdAt, messages = {
@@ -676,7 +676,7 @@ test('Reports list, detail, conversation, and management stay in the app shell',
         return {}
     end
 
-    netEvents['qbadmin:client:openMenu']('god')
+    netEvents['kora_admin:client:openMenu']('god')
     menuPayload.onAction('reports:open', {})
     local queueTab = findTab(findView(menuPayload, 'reports'), 'reports')
     local queue = queueTab.content.blocks[#queueTab.content.blocks]
@@ -702,7 +702,7 @@ test('Reports list, detail, conversation, and management stay in the app shell',
     equal(conversation.type, 'timeline', 'report conversation should use the AppShell timeline')
     equal(#conversation.items, 2, 'initial report and staff reply should both be visible')
     equal(conversation.items[1].timestamp, os.date('!%Y-%m-%d %H:%M:%S', createdAt / 1000),
-        'qbsql millisecond timestamps should be converted to timeline strings')
+        'kora_sql millisecond timestamps should be converted to timeline strings')
     equal(conversation.items[2].timestamp, os.date('!%Y-%m-%d %H:%M:%S', repliedAt),
         'second timestamps should use the same conversion')
     truthy(management and #management.actions == 4, 'open report should offer claim, reply, resolve, and dismiss')
@@ -726,12 +726,12 @@ end)
 test('/reports opens a dedicated Reports app with the existing queue handlers', function()
     local seenFilters = {}
     Kora.callback.trigger = function(name, filters)
-        if name == 'qbadmin:menuReports' then seenFilters[#seenFilters + 1] = filters end
+        if name == 'kora_admin:menuReports' then seenFilters[#seenFilters + 1] = filters end
         return {}
     end
     menuPayload = nil
-    netEvents['qbadmin:client:openReports']('support', { status = 'claimed' })
-    equal(menuPayload.id, 'qbadmin:reports', 'dedicated app id')
+    netEvents['kora_admin:client:openReports']('support', { status = 'claimed' })
+    equal(menuPayload.id, 'kora_admin:reports', 'dedicated app id')
     equal(#menuPayload.navigation, 1, 'only the Reports view is registered')
     equal(menuPayload.navigation[1].id, 'reports', 'Reports view')
     equal(seenFilters[1].status, 'claimed', 'initial filter from the command')
@@ -750,10 +750,10 @@ test('the open Reports screen reloads live without losing the selected report', 
     local failing, toasts = false, 0
     Kora.callback.trigger = function(name)
         if failing then return nil, 'gone' end
-        if name == 'qbadmin:menuReports' then
+        if name == 'kora_admin:menuReports' then
             return { { id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen', message = 'Stuck', category = 'Bug', subject = 'Stuck', age = '1m' } }
         end
-        if name == 'qbadmin:menuReport' then
+        if name == 'kora_admin:menuReport' then
             return { id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen', message = 'Stuck', created_at = 1788744746, messages = messages }
         end
         return {}
@@ -783,12 +783,12 @@ test('the open Reports screen reloads live without losing the selected report', 
         table.remove(updates)
     end
 
-    netEvents['qbadmin:client:openReports']('support', { status = 'open' })
+    netEvents['kora_admin:client:openReports']('support', { status = 'open' })
     act('reports:select', { itemId = '42' })
     messages[#messages + 1] = { id = 2, author_name = 'Support', author_role = 'staff', message = 'Please retry <b>now</b>', created_at = 1788744900 }
-    netEvents['qbadmin:client:reportChanged'](42)
+    netEvents['kora_admin:client:reportChanged'](42)
     equal(#updates, 1, 'a change to the open report pushes one update')
-    equal(updates[1].id, 'qbadmin:reports', 'the update targets the dedicated Reports app')
+    equal(updates[1].id, 'kora_admin:reports', 'the update targets the dedicated Reports app')
     equal(updates[1].update.navigate, nil, 'a live update must not navigate away from the current tab')
     local block, view = conversation(updates[1].update)
     equal(#block.items, 3, 'the reply appears in the conversation without reopening')
@@ -796,24 +796,24 @@ test('the open Reports screen reloads live without losing the selected report', 
     equal(view.defaultTab, 'overview', 'the selected report stays selected')
     equal(#view.tabs, 2, 'the report detail tabs are kept')
 
-    netEvents['qbadmin:client:reportChanged'](43)
+    netEvents['kora_admin:client:reportChanged'](43)
     equal(#updates, 1, 'a change to a different report leaves the open report alone')
 
     failing = true
-    netEvents['qbadmin:client:reportChanged'](42)
+    netEvents['kora_admin:client:reportChanged'](42)
     equal(#updates, 1, 'a failed background reload keeps what is on screen')
     equal(toasts, 0, 'a failed background reload does not raise an error toast')
     failing = false
 
     act('reports:back', {})
-    netEvents['qbadmin:client:reportChanged'](42)
+    netEvents['kora_admin:client:reportChanged'](42)
     equal(#updates, 2, 'back on the queue, any report change reloads the queue')
     local queueView = findView({ navigation = updates[2].update.navigation }, 'reports')
     truthy(findTab(queueView, 'reports'), 'the queue tab is refreshed, not the report detail')
     equal(#queueView.tabs, 1, 'the queue is not replaced by a report detail')
 
     Kora.nui.isAppOpen = function() return false end
-    netEvents['qbadmin:client:reportChanged'](42)
+    netEvents['kora_admin:client:reportChanged'](42)
     equal(#updates, 2, 'nothing is pushed once the Reports screen is closed')
 
     Kora.nui.isAppOpen, Kora.nui.updateApp, Kora.notify.send = nil, previousUpdate, previousNotify
@@ -825,14 +825,14 @@ test('with the live chat the report opens on a chat block whose composer sends t
     local sent, liveFlags, sendError = {}, {}, nil
     local previousTrigger, previousUpdate = Kora.callback.trigger, Kora.nui.updateApp
     Kora.callback.trigger = function(name, a, b)
-        if name == 'qbadmin:menuReports' then
+        if name == 'kora_admin:menuReports' then
             return { { id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen', category = 'Bug', subject = 'Stuck', age = '1m', unread = 2 } }
         end
-        if name == 'qbadmin:menuReport' then
+        if name == 'kora_admin:menuReport' then
             liveFlags[#liveFlags + 1] = type(b) == 'table' and b.live
             return { id = 42, type = 'bug', status = 'open', reporter_name = 'Citizen', message = 'Stuck', created_text = '2026-11-06 09:59 UTC', messages = messages }
         end
-        if name == 'qbadmin:reportChatSend' then
+        if name == 'kora_admin:reportChatSend' then
             sent[#sent + 1] = { id = a, message = b }
             if sendError then return nil, sendError end
             messages[#messages + 1] = { id = 6, author_name = 'Support', author_role = 'staff', message = b, created_text = '2026-11-06 10:01 UTC' }
@@ -843,7 +843,7 @@ test('with the live chat the report opens on a chat block whose composer sends t
     local updates = {}
     Kora.nui.updateApp = function(id, update) updates[#updates + 1] = { id = id, update = update } end
 
-    netEvents['qbadmin:client:openReports']('support', { status = 'open' })
+    netEvents['kora_admin:client:openReports']('support', { status = 'open' })
     local queueTab = findTab(findView(menuPayload, 'reports'), 'reports')
     local queue = queueTab.content.blocks[#queueTab.content.blocks]
     local hasUnread
@@ -901,9 +901,9 @@ test('My Reports: players chat in their own window and get a toast only while it
     local sent = {}
     local previousTrigger, previousUpdate, previousNotify = Kora.callback.trigger, Kora.nui.updateApp, Kora.notify.send
     Kora.callback.trigger = function(name, a, b)
-        if name == 'qbadmin:myReports' then return { { id = 7, status = 'claimed', category = 'Question / Help', subject = 'How?', age = '1m', unread = 1 } } end
-        if name == 'qbadmin:myReport' then return tonumber(a) == 7 and report or nil, 'report not found' end
-        if name == 'qbadmin:reportChatSend' then sent[#sent + 1] = { id = a, message = b } return true end
+        if name == 'kora_admin:myReports' then return { { id = 7, status = 'claimed', category = 'Question / Help', subject = 'How?', age = '1m', unread = 1 } } end
+        if name == 'kora_admin:myReport' then return tonumber(a) == 7 and report or nil, 'report not found' end
+        if name == 'kora_admin:reportChatSend' then sent[#sent + 1] = { id = a, message = b } return true end
         return {}
     end
     local updates, toasts = {}, {}
@@ -911,8 +911,8 @@ test('My Reports: players chat in their own window and get a toast only while it
     Kora.notify.send = function(payload) toasts[#toasts + 1] = payload end
     menuPayload = nil
 
-    netEvents['qbadmin:client:openMyReports'](7)
-    equal(menuPayload.id, 'qbadmin:myreports', 'player app id')
+    netEvents['kora_admin:client:openMyReports'](7)
+    equal(menuPayload.id, 'kora_admin:myreports', 'player app id')
     equal(menuPayload.defaultView, 'report', 'an id opens straight onto that report')
     local chat
     for _, view in ipairs(menuPayload.navigation) do
@@ -937,15 +937,15 @@ test('My Reports: players chat in their own window and get a toast only while it
 
     Kora.nui.isAppOpen = function() return true end
     local before = #updates
-    netEvents['qbadmin:client:myReportChanged'](7, { kind = 'reply', author = 'Support', preview = 'More info' })
+    netEvents['kora_admin:client:myReportChanged'](7, { kind = 'reply', author = 'Support', preview = 'More info' })
     equal(#updates, before + 1, 'an open window refreshes in place')
     equal(#toasts, 0, 'no toast while the window is open')
 
     Kora.nui.isAppOpen = function() return false end
-    netEvents['qbadmin:client:myReportChanged'](7, { kind = 'reply', author = 'Support', preview = 'More info' })
+    netEvents['kora_admin:client:myReportChanged'](7, { kind = 'reply', author = 'Support', preview = 'More info' })
     equal(#toasts, 1, 'a staff reply toasts while the window is closed')
     truthy(toasts[1].message:find('/reports', 1, true), 'the toast says how to open the chat')
-    netEvents['qbadmin:client:myReportChanged'](7, { kind = 'status' })
+    netEvents['kora_admin:client:myReportChanged'](7, { kind = 'status' })
     equal(#toasts, 1, 'status pushes do not add a second toast (the server already sends one)')
 
     Kora.nui.isAppOpen, Kora.callback.trigger, Kora.nui.updateApp, Kora.notify.send = nil, previousTrigger, previousUpdate, previousNotify
@@ -987,5 +987,5 @@ test('announce plays the alert for everyone, and only when enabled', function()
     Config.announcement.sound.enabled = true
 end)
 
-print(('qbadmin world: %d passed, %d failed'):format(passed, failed))
+print(('kora_admin world: %d passed, %d failed'):format(passed, failed))
 if failed > 0 then os.exit(1) end

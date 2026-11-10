@@ -72,7 +72,7 @@ test('entity picker launches only after the developer gate passes', function()
     devMode = true
     commands.entitypicker.handler(7, {})
     local event = clientEvents[#clientEvents]
-    equal(event.name, 'qbadmin:client:startEntityPicker', 'entity picker event')
+    equal(event.name, 'kora_admin:client:startEntityPicker', 'entity picker event')
     equal(event.target, 7, 'entity picker target')
     equal(logs[#logs].action, 'entitypicker', 'entity picker request should be audited')
 end)
@@ -90,7 +90,7 @@ test('placement forwards model names and numeric hashes to the authenticated cli
     devMode = true
     commands.devplacement.handler(7, { 'prop_barrel_02a' })
     local event = clientEvents[#clientEvents]
-    equal(event.name, 'qbadmin:client:startPlacement', 'placement event')
+    equal(event.name, 'kora_admin:client:startPlacement', 'placement event')
     equal(event.target, 7, 'placement target')
     equal(event.args[1], 'prop_barrel_02a', 'placement model')
 
@@ -107,7 +107,7 @@ test('zone creator validates and forwards only supported shapes', function()
 
     commands.devzone.handler(7, { 'POLY' })
     local event = clientEvents[#clientEvents]
-    equal(event.name, 'qbadmin:client:startZoneCreator', 'zone event')
+    equal(event.name, 'kora_admin:client:startZoneCreator', 'zone event')
     equal(event.args[1], 'poly', 'zone type should be normalized')
     equal(logs[#logs].action, 'devzone', 'zone request should be audited')
 end)
@@ -223,10 +223,10 @@ dofile('client/entity_picker.lua')
 dofile('client/menu.lua')
 
 test('client launch events call kora_lib creators and report completion', function()
-    netEvents['qbadmin:client:startPlacement']('prop_test')
+    netEvents['kora_admin:client:startPlacement']('prop_test')
     equal(notifications[#notifications].type, 'success', 'placement completion notification')
 
-    netEvents['qbadmin:client:startZoneCreator']('box')
+    netEvents['kora_admin:client:startZoneCreator']('box')
     equal(notifications[#notifications].type, 'success', 'zone completion notification')
 end)
 
@@ -252,7 +252,7 @@ test('Builders tab reflects Kora dev mode and gates creator shortcuts', function
     Config.developer.requireDevMode = true
     localDevMode = false
     selectedMenuResult = { cancelled = true }
-    netEvents['qbadmin:client:openMenu'](Config.developer.menuLevel)
+    netEvents['kora_admin:client:openMenu'](Config.developer.menuLevel)
     truthy(developerCategory(), 'Development workspace should be present')
     equal(developerItem('devmode_self'), nil, 'player dev mode belongs under the selected-player workflow')
     truthy(developerItem('devplacement').disabled, 'placement should be disabled outside dev mode')
@@ -260,7 +260,7 @@ test('Builders tab reflects Kora dev mode and gates creator shortcuts', function
     truthy(developerItem('entitypicker').disabled, 'entity picker should be disabled outside dev mode')
 
     localDevMode = true
-    netEvents['qbadmin:client:openMenu'](Config.developer.menuLevel)
+    netEvents['kora_admin:client:openMenu'](Config.developer.menuLevel)
     equal(developerItem('devplacement').disabled, false, 'placement should enable in dev mode')
     equal(developerItem('devzone').disabled, false, 'zone creator should enable in dev mode')
     equal(developerItem('entitypicker').disabled, false, 'entity picker should enable in dev mode')
@@ -270,7 +270,7 @@ test('resources tab defaults to Kora and can show all resources', function()
     selectedMenuResult = { cancelled = true }
     local originalTrigger = Kora.callback.trigger
     Kora.callback.trigger = function(name)
-        if name == 'qbadmin:menuResources' then
+        if name == 'kora_admin:menuResources' then
             return {
                 { name = 'kora_example', state = 'started', commit = '123456789abc', fullCommit = '123456789abcdef0123456789abcdef012345678' },
                 { name = 'other_resource', state = 'stopped' },
@@ -278,7 +278,7 @@ test('resources tab defaults to Kora and can show all resources', function()
         end
         return {}
     end
-    netEvents['qbadmin:client:openMenu'](Config.developer.menuLevel)
+    netEvents['kora_admin:client:openMenu'](Config.developer.menuLevel)
     local function resourceTable()
         for _, tab in ipairs(developerCategory().tabs) do
             if tab.id == 'resource_versions' then
@@ -306,31 +306,31 @@ test('resources tab defaults to Kora and can show all resources', function()
 end)
 
 test('entity picker registers rebindable copy and close controls', function()
-    equal(type(keybinds.qbadmin_entitypicker_copy.onPressed), 'function', 'copy binding needs an onPressed handler')
-    equal(keybinds.qbadmin_entitypicker_copy.defaultKey, Config.entityPicker.copyKey, 'copy key default')
-    equal(keybinds.qbadmin_entitypicker_close.defaultKey, Config.entityPicker.closeKey, 'close key default')
+    equal(type(keybinds.kora_admin_entitypicker_copy.onPressed), 'function', 'copy binding needs an onPressed handler')
+    equal(keybinds.kora_admin_entitypicker_copy.defaultKey, Config.entityPicker.copyKey, 'copy key default')
+    equal(keybinds.kora_admin_entitypicker_close.defaultKey, Config.entityPicker.closeKey, 'close key default')
 end)
 
 test('entity picker displays and copies the real prop archetype name', function()
-    netEvents['qbadmin:client:startEntityPicker']()
+    netEvents['kora_admin:client:startEntityPicker']()
     truthy(textUi.text:find('prop_actual_map_name', 1, true), 'HUD should prefer the game archetype name')
     local dot = drawnRects[#drawnRects]
     truthy(dot and dot.x == 0.5 and dot.y == 0.5, 'a centre aim dot is drawn while the picker runs')
 
     dialogFields = nil
-    keybinds.qbadmin_entitypicker_copy.onPressed()
+    keybinds.kora_admin_entitypicker_copy.onPressed()
     truthy(dialogFields, 'copy binding should open the model name dialog')
     equal(dialogFields[1].default, 'prop_actual_map_name', 'dialog should prefill the real prop name')
     truthy(dialogFields[1].copyButton, 'dialog should offer a Copy Text button')
-    keybinds.qbadmin_entitypicker_close.onPressed()
+    keybinds.kora_admin_entitypicker_close.onPressed()
 end)
 
 test('Builders tab zone shortcut runs the permission-checked command', function()
     selectedMenuResult = { path = { 'developer' }, selectedId = 'devzone' }
     inputResult = { values = { type = 'sphere' } }
-    netEvents['qbadmin:client:openMenu'](Config.developer.menuLevel)
+    netEvents['kora_admin:client:openMenu'](Config.developer.menuLevel)
     equal(executedCommand, 'devzone sphere', 'zone shortcut command')
 end)
 
-print(('qbadmin development: %d passed, %d failed'):format(passed, failed))
+print(('kora_admin development: %d passed, %d failed'):format(passed, failed))
 if failed > 0 then os.exit(1) end

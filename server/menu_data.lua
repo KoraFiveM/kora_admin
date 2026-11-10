@@ -28,13 +28,13 @@ local function roleRecords(kind)
     return out
 end
 
-Kora.callback.register('qbadmin:menuRoles', function(src)
+Kora.callback.register('kora_admin:menuRoles', function(src)
     local ok, err = allowed(src, 'admin')
     if not ok then return nil, err end
     return { jobs = roleRecords('jobs'), gangs = roleRecords('gangs') }
 end)
 
-Kora.callback.register('qbadmin:menuPlayers', function(src)
+Kora.callback.register('kora_admin:menuPlayers', function(src)
     local ok, err = allowed(src, 'support')
     if not ok then return nil, err end
 
@@ -148,7 +148,7 @@ local function gitCommit(resourcePath)
     }
 end
 
-Kora.callback.register('qbadmin:menuResources', function(src)
+Kora.callback.register('kora_admin:menuResources', function(src)
     local ok, err = allowed(src, 'admin')
     if not ok then return nil, err end
 
@@ -176,7 +176,7 @@ end)
 -- A row selection opens a fresh, server-authenticated profile rather than
 -- trusting the summary values that were rendered in the player list. Sensitive
 -- identifiers remain admin-only.
-Kora.callback.register('qbadmin:menuPlayerProfile', function(src, target)
+Kora.callback.register('kora_admin:menuPlayerProfile', function(src, target)
     local ok, err = allowed(src, 'support')
     if not ok then return nil, err end
 
@@ -221,7 +221,7 @@ Kora.callback.register('qbadmin:menuPlayerProfile', function(src, target)
     return profile
 end)
 
-Kora.callback.register('qbadmin:menuAuditLog', function(src, filters)
+Kora.callback.register('kora_admin:menuAuditLog', function(src, filters)
     local ok, err = allowed(src, 'admin')
     if not ok then return nil, err end
 
@@ -241,7 +241,7 @@ Kora.callback.register('qbadmin:menuAuditLog', function(src, filters)
     return rows
 end)
 
-Kora.callback.register('qbadmin:menuReports', function(src, filters)
+Kora.callback.register('kora_admin:menuReports', function(src, filters)
     local ok, err = allowed(src, Config.reports.staffLevel)
     if not ok then return nil, err end
 
@@ -264,7 +264,7 @@ end)
 
 -- Opening (or live-refreshing) a report marks it read for this staff member.
 -- `opts.live` is a refresh of a conversation already on screen: nothing is flagged unread.
-Kora.callback.register('qbadmin:menuReport', function(src, id, opts)
+Kora.callback.register('kora_admin:menuReport', function(src, id, opts)
     local ok, err = allowed(src, Config.reports.staffLevel)
     if not ok then return nil, err end
 
@@ -286,7 +286,7 @@ local function playerLicense(src)
     return license
 end
 
-Kora.callback.register('qbadmin:myReports', function(src, page)
+Kora.callback.register('kora_admin:myReports', function(src, page)
     local license, err = playerLicense(src)
     if not license then return nil, err end
     local rows = Admin.queryReports({
@@ -302,7 +302,7 @@ Kora.callback.register('qbadmin:myReports', function(src, page)
     return out
 end, { rateLimit = { max = 20, window = 10000 } })
 
-Kora.callback.register('qbadmin:myReport', function(src, id, opts)
+Kora.callback.register('kora_admin:myReport', function(src, id, opts)
     local license, err = playerLicense(src)
     if not license then return nil, err end
     local report = Admin.getReport(id)
@@ -313,7 +313,7 @@ end, { rateLimit = { max = 30, window = 10000 } })
 -- The chat composer (staff screen and My Reports). replyToReport re-checks that the
 -- sender owns the report or holds Config.reports.staffLevel, that it is still open,
 -- the message length and the per-sender rate limit, and writes the audit entry.
-Kora.callback.register('qbadmin:reportChatSend', function(src, id, message)
+Kora.callback.register('kora_admin:reportChatSend', function(src, id, message)
     if not Admin.reportChat() then return nil, 'report chat is disabled' end
     if type(message) ~= 'string' then return nil, 'message required' end
     if #message > 8 * Config.reports.maxMessageLength then return nil, 'message too long' end

@@ -8,12 +8,12 @@ Feature: kora_admin — Core & Libraries
     Checklist test: As staff run /admin or press F7: Players, Reports, My Tools, Server, Development workspaces filtered by your tier.
     """
     When I run the command "/admin"
-    Then the "qbadmin:menu" app opens
+    Then the "kora_admin:menu" app opens
     And I confirm: the admin menu shows Players, Reports, My Tools, Server and Development workspaces
     And I confirm: only the workspaces allowed for my staff tier are shown
     When I manually: close the menu
     And I press the "F7" key
-    Then the "qbadmin:menu" app should be open
+    Then the "kora_admin:menu" app should be open
     And I confirm: the admin menu shows the same workspaces as before
 
   @kora_admin @checklist @checklist:kora_admin:permission-tiers @cat:core-and-libraries @needs:admin @manual
@@ -322,7 +322,7 @@ Feature: kora_admin — Core & Libraries
     Checklist test: Admin Development tab: Inspect Entity (H copies model, X closes), prop placement and zone creator.
     """
     When I run the command "/admin"
-    Then the "qbadmin:menu" app should be open
+    Then the "kora_admin:menu" app should be open
     When I manually: open the Development tab and choose Inspect Entity
     And I manually: aim at an entity and press H
     Then I confirm: the model name is shown and copied
@@ -354,7 +354,7 @@ Feature: kora_admin — Core & Libraries
     """
     When I run the command "/admin"
     And I manually: as owner open Server > Configuration tab
-    Then the "qbadmin:config" app should be open
+    Then the "kora_admin:config" app should be open
     And I confirm: the configuration catalog loads
     When I manually: edit a config value and save
     Then I should see a notification containing "Configuration updated live."

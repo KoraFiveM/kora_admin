@@ -1,11 +1,11 @@
 -- Report live chat (Config.reports.chat): the shared conversation block used by the
 -- staff Reports screen, and the player's own "My Reports" window. Rendering only:
--- every message is sent through the qbadmin:reportChatSend callback, and the server
+-- every message is sent through the kora_admin:reportChatSend callback, and the server
 -- decides who may read or post (report owner or Config.reports.staffLevel), the
 -- length, the rate limit and whether the report is still open. Message text is
 -- handed to kora_lib's AppShell chat block, which renders it as plain text.
 
-local MY_APP = 'qbadmin:myreports'
+local MY_APP = 'kora_admin:myreports'
 
 local function chatConfig()
     local chat = Config.reports.chat
@@ -18,7 +18,7 @@ function Admin.reportChatFixedLayout()
     return chat ~= nil and chat.fixedLayout ~= false
 end
 
----@param report table conversation from qbadmin:menuReport / qbadmin:myReport
+---@param report table conversation from kora_admin:menuReport / kora_admin:myReport
 ---@param viewerRole 'staff'|'player'
 ---@param sendAction string action id of the composer
 ---@return table AppShell chat block
@@ -73,7 +73,7 @@ end
 ---@return string|nil
 function Admin.sendReportChat(reportId, message)
     if type(message) ~= 'string' or message == '' then return 'Write a message first.' end
-    local ok, err = Kora.callback.trigger('qbadmin:reportChatSend', reportId, message)
+    local ok, err = Kora.callback.trigger('kora_admin:reportChatSend', reportId, message)
     if not ok then return err or 'Could not send the message.' end
 end
 
@@ -89,7 +89,7 @@ local function statusTone(status)
 end
 
 local function listView()
-    local rows, err = Kora.callback.trigger('qbadmin:myReports')
+    local rows, err = Kora.callback.trigger('kora_admin:myReports')
     if not rows then return nil, err end
     local tableRows, unreadTotal = {}, 0
     for _, row in ipairs(rows) do
@@ -123,7 +123,7 @@ local function listView()
 end
 
 local function reportView(id, live)
-    local report, err = Kora.callback.trigger('qbadmin:myReport', id, { live = live == true })
+    local report, err = Kora.callback.trigger('kora_admin:myReport', id, { live = live == true })
     if not report then return nil, err end
     local title = ('Report #%s · %s'):format(report.id, report.category or report.type or '')
     local description = report.claimed_by_name and ('Handled by %s · %s'):format(report.claimed_by_name, report.status)
@@ -193,12 +193,12 @@ local function refreshOpen()
     refreshing = false
 end
 
-RegisterNetEvent('qbadmin:client:myReportChanged', function(id, info)
+RegisterNetEvent('kora_admin:client:myReportChanged', function(id, info)
     if not chatConfig() then return end
     info = type(info) == 'table' and info or {}
     if Kora.nui.isAppOpen and Kora.nui.isAppOpen(MY_APP) then
         local ok, err = pcall(refreshOpen)
-        if not ok then refreshing = false print(('^1[qbadmin]^7 my reports refresh failed: %s'):format(tostring(err))) end
+        if not ok then refreshing = false print(('^1[kora_admin]^7 my reports refresh failed: %s'):format(tostring(err))) end
         return
     end
     if info.kind == 'reply' then
@@ -254,6 +254,6 @@ local function openMyReports(reportId)
     selectedId = nil
 end
 
-RegisterNetEvent('qbadmin:client:openMyReports', function(reportId)
+RegisterNetEvent('kora_admin:client:openMyReports', function(reportId)
     openMyReports(tonumber(reportId))
 end)

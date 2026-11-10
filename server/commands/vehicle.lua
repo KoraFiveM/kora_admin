@@ -81,7 +81,7 @@ local function spawnFor(targetSrc, model)
         return nil, 'could not grant vehicle keys'
     end
 
-    TriggerClientEvent('qbadmin:client:enterVehicle', targetSrc, netId, -1)
+    TriggerClientEvent('kora_admin:client:enterVehicle', targetSrc, netId, -1)
     return netId
 end
 
@@ -235,7 +235,7 @@ Admin.addCommand('fix', 'Repair the vehicle you are in', nil, false, function(so
     if GetVehiclePedIsIn(GetPlayerPed(source)) == 0 then
         return Admin.respond(source, false, 'you are not in a vehicle')
     end
-    TriggerClientEvent('qbadmin:client:fix', source)
+    TriggerClientEvent('kora_admin:client:fix', source)
     Admin.log(source, 'fix')
     Admin.respond(source, true, 'Repaired your current vehicle')
 end, OPTS_MOD)

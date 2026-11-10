@@ -2,18 +2,18 @@ const MEDAL_ENDPOINT = 'http://localhost:12665/api/v1/event/invoke';
 
 async function reportResult(result) {
     try {
-        await fetch(`https://${GetParentResourceName()}/qbadmin:medal:result`, {
+        await fetch(`https://${GetParentResourceName()}/kora_admin:medal:result`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=UTF-8' },
             body: JSON.stringify(result),
         });
     } catch (error) {
-        console.error('Could not return the Medal result to qbadmin', error);
+        console.error('Could not return the Medal result to kora_admin', error);
     }
 }
 
 window.addEventListener('message', async ({ data }) => {
-    if (!data || data.type !== 'qbadmin:medal:invoke') return;
+    if (!data || data.type !== 'kora_admin:medal:invoke') return;
 
     const timeoutMs = Math.min(Math.max(Number(data.timeoutMs) || 5000, 1000), 30000);
     const controller = new AbortController();

@@ -54,7 +54,7 @@ dofile('server/command_registry.lua')
 dofile('server/commands/player.lua')
 
 test('selecting a player returns a complete fresh profile', function()
-    local profile = callbacks['qbadmin:menuPlayerProfile'](7, '12')
+    local profile = callbacks['kora_admin:menuPlayerProfile'](7, '12')
     equal(profile.id, '12', 'server id')
     equal(profile.citizenid, 'CITIZEN12', 'citizen id')
     equal(profile.job, 'Police (Sergeant)', 'job and grade')
@@ -71,7 +71,7 @@ end)
 
 test('admin profiles include permission and platform identifiers', function()
     adminViewer = true
-    local profile = callbacks['qbadmin:menuPlayerProfile'](7, '12')
+    local profile = callbacks['kora_admin:menuPlayerProfile'](7, '12')
     equal(profile.permission, 'moderator', 'permission level')
     equal(profile.license, 'license:test', 'license')
     equal(profile.discord, 'discord:test', 'discord')
@@ -107,10 +107,10 @@ test('the role catalogue lists every grade in level order for array and string-k
         }
     end
     adminViewer = false
-    local roles = callbacks['qbadmin:menuRoles'](7)
+    local roles = callbacks['kora_admin:menuRoles'](7)
     equal(roles, nil, 'the role catalogue is admin-only')
     adminViewer = true
-    roles = callbacks['qbadmin:menuRoles'](7)
+    roles = callbacks['kora_admin:menuRoles'](7)
     equal(#roles.jobs, 2, 'every job is returned')
     equal(#roles.jobs[1].grades, 3, 'array grades are all listed')
     equal(roles.jobs[2].grades[1].name, 'Recruit', 'string-keyed grades are sorted by level')
@@ -119,5 +119,5 @@ test('the role catalogue lists every grade in level order for array and string-k
     adminViewer = false
 end)
 
-print(('qbadmin player profile: %d passed, %d failed'):format(passed, failed))
+print(('kora_admin player profile: %d passed, %d failed'):format(passed, failed))
 if failed > 0 then os.exit(1) end

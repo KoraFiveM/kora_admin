@@ -219,10 +219,10 @@ test('every report change is pushed to the staff viewing reports, and always to 
     local function targets()
         local list = {}
         for _, push in ipairs(pushes) do
-            if push.name == 'qbadmin:client:reportChanged' then
+            if push.name == 'kora_admin:client:reportChanged' then
                 list[#list + 1] = push.target .. ':' .. tostring(push.args[1])
             else
-                equal(push.name, 'qbadmin:client:myReportChanged', 'push event name')
+                equal(push.name, 'kora_admin:client:myReportChanged', 'push event name')
                 equal(push.target, 9, 'reporter pushes only reach the reporter')
             end
         end
@@ -270,7 +270,7 @@ test('live chat: length, rate limit, reporter push instead of toast, and per-rea
     local stored = messages[#messages].message
     equal(stored, 'Hi <b>there</b>\n\nsecond', 'CRLF and blank-line runs are normalised, text kept as typed')
     local reporterPush
-    for _, push in ipairs(pushes) do if push.name == 'qbadmin:client:myReportChanged' then reporterPush = push end end
+    for _, push in ipairs(pushes) do if push.name == 'kora_admin:client:myReportChanged' then reporterPush = push end end
     truthy(reporterPush and reporterPush.target == 9, 'the reporter is pushed the change')
     equal(reporterPush.args[2].kind, 'reply', 'push kind')
     equal(reporterPush.args[2].author, 'Support', 'staff name in the preview')
@@ -298,7 +298,7 @@ test('live chat: length, rate limit, reporter push instead of toast, and per-rea
     Config.reports.chat.enabled = false
     pushes, notices = {}, {}
     equal(Admin.replyToReport(7, report.id, 'chat off'), true, 'reply with chat off')
-    for _, push in ipairs(pushes) do truthy(push.name ~= 'qbadmin:client:myReportChanged', 'no reporter push with chat off') end
+    for _, push in ipairs(pushes) do truthy(push.name ~= 'kora_admin:client:myReportChanged', 'no reporter push with chat off') end
     local toasted
     for _, notice in ipairs(notices) do if notice.target == 9 then toasted = true end end
     truthy(toasted, 'chat off keeps the old reporter toast')
@@ -329,7 +329,7 @@ test('chat ticks: sent, then delivered once it reaches the other client, then se
     equal(statusOf(view(9, 'player', false), 'first answer'), nil, 'no tick on the other side\'s message')
     equal(statusOf(view(7, 'staff', true), 'first answer'), 'seen', 'opened by the reporter: seen')
     local pushedStaff
-    for _, push in ipairs(pushes) do if push.name == 'qbadmin:client:reportChanged' then pushedStaff = true end end
+    for _, push in ipairs(pushes) do if push.name == 'kora_admin:client:reportChanged' then pushedStaff = true end end
     truthy(pushedStaff, 'staff windows are told the ticks changed')
 
     -- Reporter message: delivered until a staff member opens it, then seen (and so is the original report).
@@ -350,5 +350,5 @@ test('chat ticks: sent, then delivered once it reaches the other client, then se
     exports.kora_core.getPlayers = previousPlayers
 end)
 
-print(('qbadmin report store: %d passed, %d failed'):format(passed, failed))
+print(('kora_admin report store: %d passed, %d failed'):format(passed, failed))
 if failed > 0 then os.exit(1) end

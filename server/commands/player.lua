@@ -6,7 +6,7 @@ Admin.addCommand('admin', 'Open the admin menu', nil, false, function(source)
     -- Refresh the cosmetic client-side filter on every open. Discord roles can
     -- change between heartbeat syncs; the server command gate above remains
     -- authoritative, while this keeps the visible tier in step with it.
-    TriggerClientEvent('qbadmin:client:openMenu', source, Admin.getLevel(source))
+    TriggerClientEvent('kora_admin:client:openMenu', source, Admin.getLevel(source))
 end, {
     permission = 'support',
     checkPermission = Admin.checkLevel,

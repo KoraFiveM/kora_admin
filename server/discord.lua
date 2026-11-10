@@ -16,12 +16,8 @@ local function contains(values, wanted)
     return false
 end
 
--- kora_lib_discord_guild_id supersedes the deprecated qblib_discord_guild_id,
--- which stays readable for servers that configured it before the rename.
 local function guildConvar()
-    local value = GetConvar('kora_lib_discord_guild_id', '')
-    if value ~= '' then return value end
-    return GetConvar('qblib_discord_guild_id', '')
+    return GetConvar('kora_lib_discord_guild_id', '')
 end
 
 local function guildId()
@@ -100,7 +96,7 @@ local function runCommand(context, name, args, confirmed)
     name = name:lower():gsub('^/', '')
     local definition = Admin.commands[name]
     if not definition or contains(Config.discord.disabledCommands, name) then
-        return Admin.respond(context.source, false, 'That qbadmin command is unavailable')
+        return Admin.respond(context.source, false, 'That kora_admin command is unavailable')
     end
     local required = definition.permission
     if required == 'user' then required = context.source == 0 and Config.reports.staffLevel or 'support' end
@@ -174,7 +170,7 @@ local function scheduleRestart(context, reason, confirmed)
                 if ok then return end
                 -- SQL may yield; keep it outside the JavaScript callback stack.
                 CreateThread(function()
-                    print(('^1[qbadmin:discord]^7 txAdmin restart failed: %s'):format(tostring(message)))
+                    print(('^1[kora_admin:discord]^7 txAdmin restart failed: %s'):format(tostring(message)))
                     Admin.log(0, 'discord.restart.failed', nil, { discord_id = context.userId, error = tostring(message) })
                     Kora.notify.sendToAll({ title = 'Server restart unconfirmed', message = 'txAdmin did not confirm the restart. Staff should check its control panel.', type = 'error' })
                 end)
@@ -197,7 +193,7 @@ function Admin.handleDiscordInteraction(interaction)
     local userId = member and member.user and member.user.id
     if not settings.enabled or interaction.application_id ~= settings.applicationId
         or interaction.guild_id ~= guildId() or not contains(settings.channels, interaction.channel_id)
-        or interaction.type ~= 2 or not interaction.data or interaction.data.name ~= 'qbadmin'
+        or interaction.type ~= 2 or not interaction.data or interaction.data.name ~= 'kora_admin'
         or type(userId) ~= 'string' or not userId:match('^%d+$') then
         return { ok = false, message = 'Discord administration is unavailable in this server or channel' }
     end
@@ -257,7 +253,7 @@ function Admin.handleDiscordInteraction(interaction)
     end, debug.traceback)
     Admin.commandContexts[thread] = nil
     if not worked then
-        print(('^1[qbadmin:discord]^7 command failed: %s'):format(failure))
+        print(('^1[kora_admin:discord]^7 command failed: %s'):format(failure))
         return { ok = false, message = 'Command failed. Staff should check the server log.' }
     end
     return { ok = context.ok, message = table.concat(context.messages, '\n') }
@@ -281,9 +277,9 @@ end)
 
 local function registrationPayload()
     return {
-        name = 'qbadmin', description = 'Server staff administration', type = 1,
+        name = 'kora_admin', description = 'Server staff administration', type = 1,
         options = {
-            { name = 'run', description = 'Run an authorized qbadmin command', type = 1, options = {
+            { name = 'run', description = 'Run an authorized kora_admin command', type = 1, options = {
                 { name = 'command', description = 'Command name (use commands to list)', type = 3, required = true },
                 { name = 'arguments', description = 'Arguments, with quotes around values containing spaces', type = 3, max_length = 2000 },
                 { name = 'confirm', description = 'Confirm a destructive action', type = 5 },
@@ -304,18 +300,18 @@ local function configureDiscord()
     if Config.discord.guildId ~= '' then
         SetConvar('kora_lib_discord_guild_id', Config.discord.guildId)
         -- Keep a kora_lib that predates the rename able to resolve the guild.
-        SetConvar('qblib_discord_guild_id', Config.discord.guildId)
+        SetConvar('kora_lib_discord_guild_id', Config.discord.guildId)
     end
     if not Config.discord.enabled then return end
     local application, guild = Config.discord.applicationId, guildId()
     if not application:match('^%d+$') or not guild:match('^%d+$') or not Config.discord.publicKey:match('^%x+$')
         or #Config.discord.publicKey ~= 64 then
-        return print('^1[qbadmin:discord]^7 Configure the application ID, server ID and public key in appshell before enabling Discord.')
+        return print('^1[kora_admin:discord]^7 Configure the application ID, server ID and public key in appshell before enabling Discord.')
     end
     -- Upsert our one command; never replace another integration's commands.
     Kora.discord.botRequest('POST', '/applications/' .. application .. '/guilds/' .. guild .. '/commands', registrationPayload(), function(ok)
         if generation ~= registrationGeneration then return end
-        print(ok and '^2[qbadmin:discord]^7 /qbadmin registered.' or '^1[qbadmin:discord]^7 Could not register /qbadmin; check the bot token and guild access.')
+        print(ok and '^2[kora_admin:discord]^7 /kora_admin registered.' or '^1[kora_admin:discord]^7 Could not register /kora_admin; check the bot token and guild access.')
     end)
     Kora.discord.syncRoles()
 end

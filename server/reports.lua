@@ -164,7 +164,7 @@ end
 local function broadcastReportChange(id, actor)
     eachStaff(function(playerSrc)
         if playerSrc == actor or Config.reports.liveUpdates then
-            TriggerClientEvent('qbadmin:client:reportChanged', playerSrc, id)
+            TriggerClientEvent('kora_admin:client:reportChanged', playerSrc, id)
         end
     end)
 end
@@ -177,14 +177,14 @@ end
 ---With the chat on, tell the reporter's own client that their report changed so an
 ---open My Reports window reloads it. `info` carries a staff reply's preview, which
 ---the client shows as a toast only while that window is closed. The client
----re-fetches through qbadmin:myReport, which re-checks ownership.
+---re-fetches through kora_admin:myReport, which re-checks ownership.
 ---@param row table
 ---@param info table|nil
 local function pushReporter(row, info)
     if not Admin.reportChat() then return end
     local src = Admin.reporterSource(row)
     if src then
-        TriggerClientEvent('qbadmin:client:myReportChanged', src, row.id, info)
+        TriggerClientEvent('kora_admin:client:myReportChanged', src, row.id, info)
         -- A staff reply that reached an online reporter is "delivered" (toast or open window).
         if info and info.kind == 'reply' then Admin.markReportDelivered(row.id, row.reporter_license) end
     end

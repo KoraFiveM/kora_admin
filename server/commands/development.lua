@@ -21,7 +21,7 @@ end
 Admin.addCommand('entitypicker', 'Inspect the entity you are aiming at and open its model name to copy', nil, true, function(source)
     if not developmentReady(source) then return end
 
-    TriggerClientEvent('qbadmin:client:startEntityPicker', source)
+    TriggerClientEvent('kora_admin:client:startEntityPicker', source)
     Admin.log(source, 'entitypicker')
 end, OPTS_DEVELOPER)
 
@@ -36,7 +36,7 @@ Admin.addCommand('devplacement', 'Open kora_lib entity placement for a model', {
     end
 
     if model:match('^%-?%d+$') then model = tonumber(model) end
-    TriggerClientEvent('qbadmin:client:startPlacement', source, model)
+    TriggerClientEvent('kora_admin:client:startPlacement', source, model)
     Admin.log(source, 'devplacement', nil, { model = model })
 end, OPTS_DEVELOPER)
 
@@ -50,6 +50,6 @@ Admin.addCommand('devzone', 'Open kora_lib zone creator (box, sphere, or poly)',
         return Admin.respond(source, false, 'zone type must be box, sphere, or poly')
     end
 
-    TriggerClientEvent('qbadmin:client:startZoneCreator', source, zoneType)
+    TriggerClientEvent('kora_admin:client:startZoneCreator', source, zoneType)
     Admin.log(source, 'devzone', nil, { type = zoneType })
 end, OPTS_DEVELOPER)

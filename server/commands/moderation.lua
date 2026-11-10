@@ -148,7 +148,7 @@ Admin.addCommand('freeze', 'Freeze/unfreeze a player', { { name = 'id' }, { name
     local state, stateErr = Admin.resolveToggle(args[2], Admin.states.frozen[targetSrc] == true)
     if state == nil then return Admin.respond(source, false, stateErr) end
     Admin.states.frozen[targetSrc] = state
-    TriggerClientEvent('qbadmin:client:freeze', targetSrc, state)
+    TriggerClientEvent('kora_admin:client:freeze', targetSrc, state)
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'freeze', data, { state = state })
     Admin.respond(source, true, ('%s %s'):format(state and 'Froze' or 'Unfroze', data.name))
@@ -158,7 +158,7 @@ Admin.addCommand('kill', 'Kill a player', { { name = 'id' } }, false, function(s
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
-    TriggerClientEvent('qbadmin:client:kill', targetSrc)
+    TriggerClientEvent('kora_admin:client:kill', targetSrc)
     Admin.log(source, 'kill', data)
     Admin.respond(source, true, ('Killed %s'):format(data.name))
 end, OPTS_MOD)
@@ -167,7 +167,7 @@ Admin.addCommand('heal', 'Fully heal a player', { { name = 'id' } }, false, func
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
-    TriggerClientEvent('qbadmin:client:heal', targetSrc)
+    TriggerClientEvent('kora_admin:client:heal', targetSrc)
     if Config.heal.restoreNeeds then
         -- setMetaData persists and syncs the player state kora_hud polls, so the HUD updates at once.
         exports.kora_core:setMetaData(targetSrc, 'hunger', 100)
@@ -181,7 +181,7 @@ Admin.addCommand('revive', 'Revive a downed player', { { name = 'id' } }, false,
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
 
-    TriggerClientEvent('qbadmin:client:revive', targetSrc)
+    TriggerClientEvent('kora_admin:client:revive', targetSrc)
     exports.kora_core:setMetaData(targetSrc, 'isdead', false)
     exports.kora_core:setMetaData(targetSrc, 'inlaststand', false)
     Admin.fullReviveAmbulance(targetSrc)
@@ -203,7 +203,7 @@ Admin.addCommand('god', 'Toggle god mode (invincibility)', { { name = 'id' }, { 
     local state, stateErr = Admin.resolveToggle(args[2], Admin.states.god[targetSrc] == true)
     if state == nil then return Admin.respond(source, false, stateErr) end
     Admin.states.god[targetSrc] = state
-    TriggerClientEvent('qbadmin:client:god', targetSrc, state)
+    TriggerClientEvent('kora_admin:client:god', targetSrc, state)
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'god', data, { state = state })
     Admin.respond(source, true, ('God mode %s for %s'):format(state and 'enabled' or 'disabled', data.name))
@@ -237,7 +237,7 @@ Admin.addCommand('invisible', 'Toggle invisibility', { { name = 'id' }, { name =
     local state, stateErr = Admin.resolveToggle(args[2], Admin.states.invisible[targetSrc] == true)
     if state == nil then return Admin.respond(source, false, stateErr) end
     Admin.states.invisible[targetSrc] = state
-    TriggerClientEvent('qbadmin:client:invisible', targetSrc, state)
+    TriggerClientEvent('kora_admin:client:invisible', targetSrc, state)
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'invisible', data, { state = state })
     Admin.respond(source, true, ('Invisibility %s for %s'):format(state and 'enabled' or 'disabled', data.name))

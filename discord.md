@@ -1,6 +1,6 @@
 # Discord administration
 
-`/qbadmin` adds Discord control to the existing admin commands. Lua keeps the
+`/kora_admin` adds Discord control to the existing admin commands. Lua keeps the
 command handlers, role gates, input validation and audit trail. JavaScript
 verifies signed requests using the bundled Node runtime and its standard
 library. There is no additional bot process or npm dependency.
@@ -52,7 +52,7 @@ exports and database schemas retain their compatible defaults.
    administration is disabled.
 6. Enable **Discord administration** in appshell. The server upserts its one
    guild slash command without overwriting other commands. Check
-   `/qbadmin status`, then `/qbadmin commands`, in an allowed staff channel.
+   `/kora_admin status`, then `/kora_admin commands`, in an allowed staff channel.
 7. Select **Discord roles only** under `permissions.mode` when Discord should
    be the sole authority for kora_admin and the configuration editor. Map the
    editor tier (`owner` by default) first. This mode ignores ACE and temporary
@@ -64,11 +64,11 @@ exports and database schemas retain their compatible defaults.
 
 | Command | Behavior |
 | --- | --- |
-| `/qbadmin status` | Online players, uptime, staff tier and pending restart state. |
-| `/qbadmin commands` | Commands your Discord tier can use. |
-| `/qbadmin run command:heal arguments:12` | Calls the existing `/heal 12` handler. |
-| `/qbadmin run command:ban arguments:12 7d "Repeated abuse" confirm:true` | Runs the existing ban handler after confirmation. |
-| `/qbadmin restart reason:Maintenance confirm:true` | Announces a countdown, then requests a full restart through txAdmin. |
+| `/kora_admin status` | Online players, uptime, staff tier and pending restart state. |
+| `/kora_admin commands` | Commands your Discord tier can use. |
+| `/kora_admin run command:heal arguments:12` | Calls the existing `/heal 12` handler. |
+| `/kora_admin run command:ban arguments:12 7d "Repeated abuse" confirm:true` | Runs the existing ban handler after confirmation. |
+| `/kora_admin restart reason:Maintenance confirm:true` | Announces a countdown, then requests a full restart through txAdmin. |
 
 Replies are private and suppress mentions. Unknown commands and arbitrary
 console text cannot be executed. Configure disabled commands, confirmation
@@ -92,9 +92,9 @@ Create a dedicated txAdmin account with `control.server`. Add its credentials
 to your private server configuration:
 
 ```cfg
-set qbadmin_txadmin_url "http://127.0.0.1:40120"
-set qbadmin_txadmin_username "discord-service"
-set qbadmin_txadmin_password "YOUR_PRIVATE_PASSWORD"
+set kora_admin_txadmin_url "http://127.0.0.1:40120"
+set kora_admin_txadmin_username "discord-service"
+set kora_admin_txadmin_password "YOUR_PRIVATE_PASSWORD"
 ```
 
 Remote txAdmin endpoints require HTTPS. Then enable **Allow full server

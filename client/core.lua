@@ -27,7 +27,7 @@ end
 
 ---Reads kora_core's server-controlled development mode mirrored on this client.
 ---A failed export call is treated as disabled so the menu fails closed while
----qbcore is starting or restarting.
+---kora_core is starting or restarting.
 ---@return boolean
 function Admin.isDevMode()
     local ok, enabled = pcall(function() return exports.kora_core:isDevMode() end)
@@ -59,22 +59,22 @@ end
 -- response separately while retrying the initial request.
 local levelAnswered = false
 
-RegisterNetEvent('qbadmin:client:level', function(level)
+RegisterNetEvent('kora_admin:client:level', function(level)
     Admin.level = level or 'user'
     levelAnswered = true
 end)
 
 CreateThread(function()
     for _ = 1, 15 do
-        TriggerServerEvent('qbadmin:server:requestLevel')
+        TriggerServerEvent('kora_admin:server:requestLevel')
         Wait(2000)
         if levelAnswered then return end
     end
-    print('^1[qbadmin]^7 the server never answered the permission-level request; menu items will stay filtered to "user". Every command still re-checks server-side.')
+    print('^1[kora_admin]^7 the server never answered the permission-level request; menu items will stay filtered to "user". Every command still re-checks server-side.')
 end)
 
 -- Re-request on the client's own player-loaded signal, so a (re)connect
 -- always gets a fresh level rather than relying only on resource-start timing.
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
-    TriggerServerEvent('qbadmin:server:requestLevel')
+    TriggerServerEvent('kora_admin:server:requestLevel')
 end)

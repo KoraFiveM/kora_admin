@@ -120,7 +120,7 @@ Kora.cache.onChange('vehicle', function(new)
     if active then holdVehicle(new) end
 end)
 
-RegisterNetEvent('qbadmin:client:noclip', function()
+RegisterNetEvent('kora_admin:client:noclip', function()
     if active then disable() else enable() end
     if Admin.refreshAppActionStates then Admin.refreshAppActionStates() end
 end)

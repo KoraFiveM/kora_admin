@@ -73,18 +73,18 @@ function TriggerClientEvent() end
 dofile('server/config_editor.lua')
 
 test('the configuration catalog is owner-gated', function()
-    local value, err = callbacks['qbadmin:configCatalog'](12)
+    local value, err = callbacks['kora_admin:configCatalog'](12)
     equal(value, nil, 'unprivileged catalog must be hidden')
     equal(err, 'permission denied', 'unprivileged reason')
 
     canEdit = true
-    value = callbacks['qbadmin:configCatalog'](12)
+    value = callbacks['kora_admin:configCatalog'](12)
     equal(value[1].resource, 'sample', 'owner catalog entry')
     equal(value[1].schema.fields.webhook, nil, 'sensitive schema is excluded')
 end)
 
 test('reads remove sensitive saved and running values', function()
-    local entry = callbacks['qbadmin:configRead'](12, 'sample')
+    local entry = callbacks['kora_admin:configRead'](12, 'sample')
     truthy(entry, 'owner can read the resource')
     equal(entry.configured.webhook, nil, 'saved secret removed')
     equal(entry.values.webhook, nil, 'running secret removed')
@@ -92,14 +92,14 @@ test('reads remove sensitive saved and running values', function()
 end)
 
 test('commits and resets are audited with their application status', function()
-    local committed = callbacks['qbadmin:configCommit'](12, {
+    local committed = callbacks['kora_admin:configCommit'](12, {
         resource = 'sample', path = { 'enabled' }, value = false, revision = 1,
     })
     truthy(committed.ok, 'commit result')
     equal(audits[#audits].action, 'config.commit', 'commit audit action')
     equal(audits[#audits].details.applied, true, 'commit live status')
 
-    local reset = callbacks['qbadmin:configReset'](12, {
+    local reset = callbacks['kora_admin:configReset'](12, {
         resource = 'sample', path = { 'enabled' }, revision = 2,
     })
     truthy(reset.ok, 'reset result')
@@ -111,5 +111,5 @@ test('the command uses the configuration-editor owner role', function()
     equal(commands.config.options.permission, Config.configEditor.level, 'config command permission')
 end)
 
-print(('qbadmin config editor: %d passed, %d failed'):format(passed, failed))
+print(('kora_admin config editor: %d passed, %d failed'):format(passed, failed))
 if failed > 0 then os.exit(1) end

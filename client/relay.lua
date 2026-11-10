@@ -5,15 +5,15 @@
 -- server/commands/*.lua -- it is never a second entry point, nothing outside
 -- a command handler ever fires these events.
 
-RegisterNetEvent('qbadmin:client:freeze', function(state)
+RegisterNetEvent('kora_admin:client:freeze', function(state)
     FreezeEntityPosition(PlayerPedId(), state)
 end)
 
-RegisterNetEvent('qbadmin:client:kill', function()
+RegisterNetEvent('kora_admin:client:kill', function()
     SetEntityHealth(PlayerPedId(), 0)
 end)
 
-RegisterNetEvent('qbadmin:client:heal', function()
+RegisterNetEvent('kora_admin:client:heal', function()
     local ped = PlayerPedId()
     SetEntityHealth(ped, GetEntityMaxHealth(ped))
 end)
@@ -47,20 +47,20 @@ local function reviveLocalPed()
     SetEntityHealth(ped, GetEntityMaxHealth(ped))
     if not inVehicle then ClearPedTasksImmediately(ped) end
     TriggerEvent('hospital:client:Revive')
-    TriggerEvent('qbambulance:client:revived', 100)
+    TriggerEvent('kora_ambulance:client:revived', 100)
 end
 
-RegisterNetEvent('qbadmin:client:revive', reviveLocalPed)
+RegisterNetEvent('kora_admin:client:revive', reviveLocalPed)
 
-RegisterNetEvent('qbadmin:client:god', function(state)
+RegisterNetEvent('kora_admin:client:god', function(state)
     SetEntityInvincible(PlayerPedId(), state)
 end)
 
-RegisterNetEvent('qbadmin:client:invisible', function(state)
+RegisterNetEvent('kora_admin:client:invisible', function(state)
     SetEntityVisible(PlayerPedId(), not state, false)
 end)
 
-RegisterNetEvent('qbadmin:client:fix', function()
+RegisterNetEvent('kora_admin:client:fix', function()
     local veh = GetVehiclePedIsIn(PlayerPedId(), false)
     if veh == 0 then return end
     SetVehicleFixed(veh)
@@ -76,7 +76,7 @@ end)
 -- client so the matching admin command can remove it explicitly.
 local lastAdminEntity
 
-RegisterNetEvent('qbadmin:client:spawnEntity', function(model)
+RegisterNetEvent('kora_admin:client:spawnEntity', function(model)
     if type(model) ~= 'string' then return end
 
     local ped = PlayerPedId()
@@ -100,7 +100,7 @@ RegisterNetEvent('qbadmin:client:spawnEntity', function(model)
     Kora.notify.send({ type = 'success', message = ('Spawned entity %s'):format(model) })
 end)
 
-RegisterNetEvent('qbadmin:client:deleteLastEntity', function()
+RegisterNetEvent('kora_admin:client:deleteLastEntity', function()
     if not lastAdminEntity then
         Kora.notify.send({ type = 'error', message = 'No admin-spawned entity to delete' })
         return
@@ -117,7 +117,7 @@ RegisterNetEvent('qbadmin:client:deleteLastEntity', function()
     Kora.notify.send({ type = 'success', message = 'Deleted your last admin-spawned entity' })
 end)
 
-RegisterNetEvent('qbadmin:client:enterVehicle', function(netId, seat)
+RegisterNetEvent('kora_admin:client:enterVehicle', function(netId, seat)
     CreateThread(function()
         local attempts = 0
         while not NetworkDoesEntityExistWithNetworkId(netId) and attempts < 50 do
@@ -162,12 +162,12 @@ local function copyCoords(text)
     return copied
 end
 
-RegisterNetEvent('qbadmin:client:coords', function()
+RegisterNetEvent('kora_admin:client:coords', function()
     local coords = GetEntityCoords(PlayerPedId())
     copyCoords(('vector3(%.2f, %.2f, %.2f)'):format(coords.x, coords.y, coords.z))
 end)
 
-RegisterNetEvent('qbadmin:client:vec4', function()
+RegisterNetEvent('kora_admin:client:vec4', function()
     local ped = PlayerPedId()
     local coords = GetEntityCoords(ped)
     local heading = GetEntityHeading(ped)
@@ -180,7 +180,7 @@ end)
 -- while freemode female peds normally top out at 175.
 local HEALTH_FLOOR = 100
 
-RegisterNetEvent('qbadmin:client:setHealth', function(value)
+RegisterNetEvent('kora_admin:client:setHealth', function(value)
     local ped = PlayerPedId()
     local percentage = math.max(0, math.min(100, tonumber(value) or 100))
 
@@ -200,20 +200,20 @@ RegisterNetEvent('qbadmin:client:setHealth', function(value)
     SetEntityHealth(ped, math.floor(health))
 end)
 
-RegisterNetEvent('qbadmin:client:setArmor', function(value)
+RegisterNetEvent('kora_admin:client:setArmor', function(value)
     SetPedArmour(PlayerPedId(), value or 100)
 end)
 
-RegisterNetEvent('qbadmin:client:setWeather', function(weatherType)
+RegisterNetEvent('kora_admin:client:setWeather', function(weatherType)
     SetWeatherTypeNow(weatherType)
     SetWeatherTypeNowPersist(weatherType)
 end)
 
-RegisterNetEvent('qbadmin:client:setTime', function(hour, minute)
+RegisterNetEvent('kora_admin:client:setTime', function(hour, minute)
     NetworkOverrideClockTime(hour, minute or 0, 0)
 end)
 
--- These native effects outlive a resource restart.  Reset only qbadmin-owned
+-- These native effects outlive a resource restart.  Reset only kora_admin-owned
 -- overrides when this resource stops so an admin cannot be left frozen,
 -- invisible, or invincible after its authoritative state table is cleared.
 AddEventHandler('onClientResourceStop', function(resource)

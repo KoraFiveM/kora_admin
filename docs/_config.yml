@@ -1,4 +1,4 @@
 theme: jekyll-theme-cayman
-title: qbadmin
+title: kora_admin
 description: "Command-driven admin menu -- every action is a command, the NUI just calls ExecuteCommand"
 show_downloads: false
