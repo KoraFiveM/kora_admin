@@ -4,7 +4,7 @@ lua54 'yes'
 
 name 'kora_admin'
 author 'Jamie'
-version '1.0.0'
+version '0.1.0'
 description 'Command-driven admin menu -- every action is a command, the NUI just calls ExecuteCommand'
 
 dependency 'kora_lib'
