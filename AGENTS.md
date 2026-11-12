@@ -6,6 +6,8 @@ kora_admin is a command-driven admin menu for the Kora FiveM framework: every pr
 
 User-facing documentation lives in `docs/` (Markdown, published via the Kora Docusaurus site, kora_docs_next). Read `docs/index.md` first for an overview of features, configuration, commands, exports, events and database usage.
 
+Docs layout: `docs/index.md` (overview and documentation map), `installation.md` (requirements, manifest, install steps), `how-to-use.md` (permissions model, menu, reports, auditing, Discord relay, examples), `commands.md` (every command; update it when a command changes), `api/` (`index.md`, `permissions.md`, `audit.md`, `integration.md`: Admin functions and exports, including the former exports page), and topic pages `permissions.md`, `ui.md`, `configuration.md`, `events.md`, `database.md`, `troubleshooting.md` and `features/*.md`. Feature and behaviour changes must update the matching docs in the same change.
+
 When you add, change, or remove a feature, config option, command, export, event, item, permission, or database table/column, update the matching page in `docs/` in the same change. Keep docs accurate to the code; do not document behaviour that does not exist.
 
 Docs rules: plain Markdown with `title`/`sidebar_position` front matter (no `id`/`slug`), relative links only between docs pages, assets inside `docs/`, fenced code blocks with a language, and no raw `<`, `>`, `{`, `}` outside code (pages are parsed as MDX). The release version comes from `fxmanifest.lua`'s `version` field.

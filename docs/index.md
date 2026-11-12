@@ -23,69 +23,22 @@ kora_admin is a command-driven admin menu for the Kora framework (kora_lib, kora
 - **Configuration editor entry point** - `/config` and the Server, Configuration tab open kora_lib's configuration app for resources that registered a schema.
 - **Durable audit log** - most actions are written to the `admin_logs` table and can be read with `/adminlog` or the Audit Log tab. See [Database](./database.md).
 
-## Requirements
+## Documentation map
 
-Hard dependencies (from `fxmanifest.lua`):
-
-- [kora_lib](https://github.com/KoraFiveM/kora_lib) - commands, permissions, NUI AppShell, notify, callbacks, config, Discord, raycast, placement, zones, entities
-- [kora_core](https://github.com/KoraFiveM/kora_core) - players, money, items, jobs, metadata, development mode, registry mirror
-- [kora_sql](https://github.com/KoraFiveM/kora_sql) - database access and schema creation
-- [kora_vehiclekeys](https://github.com/KoraFiveM/kora_vehiclekeys) - keys for vehicles spawned with `/car` and `/veh`
-
-Optional integrations (used only when the resource is started):
-
-- [kora_clothing](https://github.com/KoraFiveM/kora_clothing) - `/clothingmenu`, `/barbermenu`, `/tattoomenu` and the My Tools, Appearance tab
-- [kora_ambulance](https://github.com/KoraFiveM/kora_ambulance) - full revive (bleeding and wounds cleared) on `/revive`, `/selfrevive` and `/health`
-- [kora_weathersync](https://github.com/KoraFiveM/kora_weathersync) - owns `/weather` and `/time` state and the weather list when running
-- Medal desktop app on the admin's PC - Medal clips
-- txAdmin - Discord-triggered full restarts
-
-## Installation
-
-1. Place the resource in your resources folder and ensure it after its dependencies in `server.cfg`:
-
-   ```cfg
-   ensure kora_sql
-   ensure kora_lib
-   ensure kora_core
-   ensure kora_vehiclekeys
-   ensure kora_admin
-   ```
-
-2. No SQL import is needed. On start, kora_admin waits for kora_sql and creates or updates its own tables (`admin_logs`, `admin_reports`, `admin_report_messages`, `admin_report_reads`) with `Kora.sql.ensureTables`. Bans use kora_core's existing `bans` table. See [Database](./database.md).
-3. Grant staff tiers with ACEs (see [Permissions](./permissions.md)):
-
-   ```cfg
-   add_ace identifier.license:XXXX kora_core.support allow
-   add_principal identifier.license:YYYY group.admin
-   add_ace identifier.license:ZZZZ kora_core.owner allow
-   ```
-
-4. Optional: set `setr kora_admin_medal_public_key "..."` for [Medal clips](./features/medal-clips.md), and the Discord/txAdmin convars for [Discord administration](./features/discord.md).
-
-kora_admin defines no inventory items.
-
-## Quick examples
-
-```text
-/admin                         open the menu (or press F7)
-/givemoney 3 cash 500 event    give player 3 500 cash
-/giveitem 3 water_bottle 5     give player 3 five water bottles
-/tpm                           teleport to your waypoint
-/ban 3 7d Repeated abuse       ban player 3 for seven days
-/report bug The garage door at Legion does not open
-```
-
-Other server resources can run any command as the console, which bypasses the permission check:
-
-```lua
--- server side, e.g. an anti-cheat resource
-ExecuteCommand(('ban %d 7d %s'):format(targetSrc, 'Automated detection'))
-```
-
-## Documentation
-
+- [Installation](./installation.md) - dependencies, manifest reference, requirements, ACE setup and quick install steps
+- [How to use](./how-to-use.md) - permissions model, admin menu, reports, auditing, Discord relay and quick examples
+- [Commands](./commands.md) - every command with arguments, results, tiers and audit names
+- API reference
+  - [API reference index](./api/index.md) - modules and namespaces
+  - [Permissions API](./api/permissions.md) - `Admin.checkLevel`, `Admin.getLevel`, temporary grants and the permission exports
+  - [Audit log API](./api/audit.md) - `Admin.log` and `Admin.queryLogs`
+  - [Discord and other integration points](./api/integration.md) - Discord exports, the `ExecuteCommand` bridge and exports kora_admin uses
 - [Permissions](./permissions.md) - tiers, ACE and Discord resolution, temporary access
+- [Admin menu](./ui.md) - workspaces, tabs and selected-player tools
+- [Configuration](./configuration.md) - every `config.lua` and server-only option
+- [Events and callbacks](./events.md) - internal events and callbacks
+- [Database](./database.md) - tables and audit log schema
+- [Troubleshooting](./troubleshooting.md) - common problems
 - Features
   - [Moderation and bans](./features/moderation-and-bans.md)
   - [Teleport, noclip and spectate](./features/teleport-noclip-spectate.md)
@@ -93,10 +46,3 @@ ExecuteCommand(('ban %d 7d %s'):format(targetSrc, 'Automated detection'))
   - [Developer tools](./features/developer-tools.md)
   - [Medal clips](./features/medal-clips.md)
   - [Discord administration](./features/discord.md)
-- [Commands](./commands.md) - every command with arguments and required tier
-- [Admin menu](./ui.md) - workspaces, tabs and selected-player tools
-- [Configuration](./configuration.md) - every `config.lua` and server-only option
-- [Exports](./exports.md)
-- [Events and callbacks](./events.md)
-- [Database](./database.md)
-- [Troubleshooting](./troubleshooting.md)
