@@ -1,11 +1,11 @@
 ---
 title: Events and callbacks
-sidebar_position: 8
+sidebar_position: 9
 ---
 
 # Events and callbacks
 
-kora_admin's events are internal plumbing between its own server command handlers and clients. They are documented so you can recognise them; do not trigger them from other resources. Run the matching command instead (see [Exports](./exports.md) for `ExecuteCommand`).
+kora_admin's events are internal plumbing between its own server command handlers and clients. They are documented so you can recognise them; do not trigger them from other resources. Run the matching command instead (see [Exports](./api/integration.md) for `ExecuteCommand`).
 
 ## Server events
 
