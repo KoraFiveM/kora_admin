@@ -1,3 +1,4 @@
+local testLang = dofile('test/support/lang.lua')
 local passed, failed = 0, 0
 local function test(name, fn)
     local ok, err = pcall(fn)
@@ -20,7 +21,7 @@ local callbacks = {}
 local timers = {}
 
 Admin = {}
-Kora = {
+Kora = { lang = testLang,
     notify = { send = function(payload) notifications[#notifications + 1] = payload end },
     util = { trim = function(value) return type(value) == 'string' and value:match('^%s*(.-)%s*$') or value end },
 }

@@ -1,3 +1,4 @@
+local testLang = dofile('test/support/lang.lua')
 local passed, failed = 0, 0
 local function test(name, fn)
     local ok, err = pcall(fn)
@@ -30,7 +31,7 @@ local function copy(row)
     return out
 end
 
-Kora = {
+Kora = { lang = testLang,
     sql = {
         NULL = '<NULL>',
         insert = function(sql, params)

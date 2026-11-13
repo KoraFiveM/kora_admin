@@ -1,3 +1,4 @@
+local testLang = dofile('test/support/lang.lua')
 local passed, failed = 0, 0
 
 local function test(name, fn)
@@ -36,7 +37,7 @@ local weatherResourceState = 'missing'
 
 function GetResourceState() return weatherResourceState end
 
-Kora = {
+Kora = { lang = testLang,
     commands = {
         add = function(name, _, _, _, handler, options)
             commands[name] = { handler = handler, options = options }
@@ -241,7 +242,7 @@ local clockHour, clockMinute = 8, 0
 local adminDuty = false
 local adminDutyChanged
 
-Kora = {
+Kora = { lang = testLang,
     notify = { send = function() end },
     cache = {
         serverId = function() return 7 end,

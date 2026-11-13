@@ -1,3 +1,4 @@
+local testLang = dofile('test/support/lang.lua')
 local passed, failed = 0, 0
 
 local function test(name, fn)
@@ -30,7 +31,7 @@ local clientEvents = {}
 local logs = {}
 local devMode = false
 
-Kora = {
+Kora = { lang = testLang,
     commands = {
         add = function(name, _, _, _, handler, options)
             commands[name] = { handler = handler, options = options }
@@ -127,7 +128,7 @@ local textUi = {}
 local copiedText
 local dialogFields
 
-Kora = {
+Kora = { lang = testLang,
     notify = { send = function(payload) notifications[#notifications + 1] = payload end },
     placement = { start = function() return placementResult end },
     zones = { startCreator = function() return zoneResult end },
@@ -147,6 +148,7 @@ Kora = {
         get = function() return nil end,
     },
     nui = {
+        supportsAppTableHeaderControls = function() return true end,
         registerApp = function(definition) menuPayload = definition end,
         openApp = function()
             if selectedMenuResult and selectedMenuResult.path and selectedMenuResult.selectedId then

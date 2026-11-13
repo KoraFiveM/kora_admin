@@ -14,7 +14,7 @@ for _, fn in ipairs(threads) do fn() end
 local names = {}
 for _, spec in ipairs(KoraAdminSchema) do names[#names + 1] = spec.name end
 local got = table.concat(names, ',')
-assert(got == 'admin_logs,admin_reports,admin_report_messages', 'schema tables: ' .. got)
+assert(got == 'admin_logs,admin_reports,admin_report_messages,admin_report_reads', 'schema tables: ' .. got)
 assert(captured == KoraAdminSchema, 'migrate must pass KoraAdminSchema to ensureTables')
 assert(KoraAdminSchema[3].foreign[1].ref_table == 'admin_reports', 'messages FK must reference reports')
-print('schema: 3 passed')
+print('schema: 4 passed')

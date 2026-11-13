@@ -1,3 +1,4 @@
+local testLang = dofile('test/support/lang.lua')
 local passed, failed = 0, 0
 local function test(name, fn)
     local ok, err = pcall(fn)
@@ -12,7 +13,7 @@ local function truthy(value, message) if not value then error(message, 2) end en
 dofile('config.lua')
 local callbacks, commands = {}, {}
 local adminViewer = false
-Kora = {
+Kora = { lang = testLang,
     callback = { register = function(name, handler) callbacks[name] = handler end },
     commands = { add = function(name, _, _, _, handler, options) commands[name] = { handler = handler, options = options } end },
     notify = { send = function() end },

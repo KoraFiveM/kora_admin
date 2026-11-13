@@ -1,3 +1,4 @@
+local testLang = dofile('test/support/lang.lua')
 local passed, failed = 0, 0
 
 local function test(name, fn)
@@ -26,7 +27,7 @@ local function run(opts)
 
     Admin = {}
     Config.noclip.adMode = opts.mode
-    Kora = {
+    Kora = { lang = testLang,
         cache = {
             ped = function() return 100 end,
             vehicle = function() return opts.vehicle or false end,

@@ -1,3 +1,4 @@
+local testLang = dofile('test/support/lang.lua')
 local passed, failed = 0, 0
 
 local function test(name, fn)
@@ -26,7 +27,7 @@ local waits = 0
 local grantedKeys = {}
 local createdVehicles = {}
 
-Kora = {
+Kora = { lang = testLang,
     lookup = {
         vehicle = function(hash) return hash == 123 and {} or nil end,
         model = function(hash)

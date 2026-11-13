@@ -1,3 +1,4 @@
+local testLang = dofile('test/support/lang.lua')
 local passed, failed = 0, 0
 local function test(name, fn)
     local ok, err = pcall(fn)
@@ -13,7 +14,7 @@ local state, fullRevived, throwing, meta = 'started', {}, false, {}
 
 Kora = {
     commands = { add = function(name, _, _, _, handler) commands[name] = handler end },
-    lang = function(key) return key end,
+    lang = testLang,
 }
 function AddEventHandler() end
 function RegisterNetEvent() end

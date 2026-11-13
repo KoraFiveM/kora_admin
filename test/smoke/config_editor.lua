@@ -1,3 +1,4 @@
+local testLang = dofile('test/support/lang.lua')
 local passed, failed = 0, 0
 
 local function test(name, fn)
@@ -43,7 +44,7 @@ local configRead = {
     values = { enabled = false, webhook = 'https://secret.invalid' },
 }
 
-Kora = {
+Kora = { lang = testLang,
     callback = { register = function(name, handler) callbacks[name] = handler end },
     commands = { add = function(name, _, _, _, handler, options) commands[name] = { handler = handler, options = options } end },
     config = {

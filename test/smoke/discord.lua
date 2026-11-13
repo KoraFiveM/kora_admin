@@ -1,3 +1,4 @@
+local testLang = dofile('test/support/lang.lua')
 local passed = 0
 local function test(name, fn)
     fn()
@@ -15,7 +16,7 @@ os.time = function() return clock end
 local apiOk, remoteRoles, aceLevel = true, { '200' }, 'owner'
 local linkedUser, queuedRoles, restarted = nil, nil, 0
 local validate, apply
-Kora = {
+Kora = { lang = testLang,
     commands = { add = function(name, _, _, _, handler) registered[name] = handler end },
     permissions = { getLevel = function(_, _, options)
         if options.discordRoles.moderator and options.discordRoles.moderator[1] == 'new' then return 'moderator' end
@@ -204,8 +205,9 @@ test('configuration validation prevents a role-only lockout and invalid channel 
     equal(validate(Config), true)
     Config.discord.channels = { 'not-an-id' }; equal(validate(Config), false)
     Config.discord.channels = { '902' }; Config.permissions.mode = 'discord'
-    Config.permissions.discordRoles.owner = {}; equal(validate(Config), false)
-    Config.permissions.discordRoles.owner = { '400' }; equal(validate(Config), true)
+    local level = Config.configEditor.level
+    Config.permissions.discordRoles[level] = {}; equal(validate(Config), false)
+    Config.permissions.discordRoles[level] = { '400' }; equal(validate(Config), true)
 end)
 
 test('the deprecated kora_lib_discord_guild_id convar is still honoured', function()

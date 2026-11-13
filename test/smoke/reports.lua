@@ -1,3 +1,4 @@
+local testLang = dofile('test/support/lang.lua')
 local passed, failed = 0, 0
 
 local function test(name, fn)
@@ -26,7 +27,7 @@ dofile('config.lua')
 local commands, responses, events, logs = {}, {}, {}, {}
 local created, reply
 local isStaff, chats, queries = true, {}, {}
-Kora = {
+Kora = { lang = testLang,
     commands = { add = function(name, _, _, _, handler, options)
         commands[name] = { handler = handler, options = options }
     end },

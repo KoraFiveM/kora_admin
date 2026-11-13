@@ -1,3 +1,4 @@
+local testLang = dofile('test/support/lang.lua')
 local passed, failed = 0, 0
 
 local function test(name, fn)
@@ -36,7 +37,7 @@ local entry = {
     values = { enabled = false, interval = 10 },
 }
 
-Kora = {
+Kora = { lang = testLang,
     callback = {
         trigger = function(name, request)
             if name == 'kora_admin:configCatalog' then return { { resource = 'sample' } } end
