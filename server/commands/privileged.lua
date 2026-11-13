@@ -79,7 +79,7 @@ Admin.addCommand('granttempaccess', 'Grant a player a temporary admin role',
         local minutes = Admin.finiteNumber(args[3], Config.permissions.temporaryGrant.minMinutes,
             Config.permissions.temporaryGrant.maxMinutes, true)
         if not minutes then
-            return Admin.respond(source, false, Kora.lang('error.error_duration_must_be_d_d_minutes')
+            return Admin.respond(source, false, Kora.lang('error.error_duration_must_be_d_d_minutes',
                 Config.permissions.temporaryGrant.minMinutes, Config.permissions.temporaryGrant.maxMinutes))
         end
 
@@ -88,7 +88,7 @@ Admin.addCommand('granttempaccess', 'Grant a player a temporary admin role',
 
         Admin.syncLevel(targetSrc)
         Admin.log(source, 'granttempaccess', data, { role = role, minutes = minutes, expires_at = expiresAt })
-        Admin.respond(source, true, Kora.lang('success.success_granted_s_access_to_s_for')
+        Admin.respond(source, true, Kora.lang('success.success_granted_s_access_to_s_for',
             Admin.roleLabel(role), data.name, minutes, minutes == 1 and '' or 's'))
     end, OPTS_TEMPORARY_ACCESS)
 

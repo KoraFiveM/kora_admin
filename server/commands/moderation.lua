@@ -115,7 +115,7 @@ Admin.addCommand('ban', 'Ban a player, online or offline', { { name = 'target' }
         end
 
         local altsMsg = #possibleAlts > 0 and (' Possible alts: ' .. table.concat(possibleAlts, ', ')) or ''
-        Admin.respond(source, true, Kora.lang('success.success_banned_s_s_s')
+        Admin.respond(source, true, Kora.lang('success.success_banned_s_s_s',
             name or citizenid, expire and os.date('%Y-%m-%d %H:%M', expire) or 'permanent', altsMsg))
     end, OPTS_ADMIN)
 
