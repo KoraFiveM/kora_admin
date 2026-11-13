@@ -252,7 +252,7 @@ Target is healed; needs reset if configured.
 
 ### `/revive <id>`
 
-Revives a downed player and clears whichever ambulance job’s downed/laststand metadata is active (`Admin.fullReviveAmbulance`). Also restores needs when `Config.HealRestoreNeeds` is true.
+Revives a downed player and clears whichever ambulance job’s downed/laststand metadata is active (`Admin.fullReviveAmbulance`). Also restores needs when `Config.revive.restoreNeeds` is true.
 
 | Field | Details |
 | --- | --- |
@@ -1556,7 +1556,7 @@ All commands below are registered with kora_lib's `Kora.commands.add` (through `
 | `/freeze` | `[id] [state]` | mod | Freezes or unfreezes the player's ped. | `freeze` |
 | `/kill` | `[id]` | mod | Sets the player's health to 0. | `kill` |
 | `/heal` | `[id]` | mod | Restores the ped to max health; with `Config.heal.restoreNeeds` also sets hunger and thirst to 100. | `heal` |
-| `/revive` | `[id]` | mod | Clears `isdead`/`inlaststand`, resurrects the ped, fires the ambulance revive events and, if kora_ambulance runs, its `fullRevive`. With `Config.HealRestoreNeeds` (default `true`) also sets hunger and thirst to 100. | `revive` |
+| `/revive` | `[id]` | mod | Clears `isdead`/`inlaststand`, resurrects the ped, fires the ambulance revive events and, if kora_ambulance runs, its `fullRevive`. With `Config.revive.restoreNeeds` (default `true`) also sets hunger and thirst to 100. | `revive` |
 | `/god` | `[id] [state]` | mod (admin for others) | Toggles invincibility. | `god` |
 | `/invisible` | `[id] [state]` | mod (admin for others) | Toggles visibility of the ped. | `invisible` |
 | `/devmode` | `[id] [state]` | mod (admin for others) | Toggles kora_core development mode through its `setDevMode` export (god mode, paused passive needs, fast walk - as implemented by kora_core). | `devmode` |

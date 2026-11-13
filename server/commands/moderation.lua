@@ -177,6 +177,15 @@ Admin.addCommand('heal', 'Fully heal a player', { { name = 'id' } }, false, func
     Admin.respond(source, true, Kora.lang('success.success_healed_s', data.name))
 end, OPTS_MOD)
 
+---Whether /revive also restores hunger and thirst. Reads Config.revive.restoreNeeds, falling back to the
+---legacy flat Config.HealRestoreNeeds key so configs written before the rename keep working.
+---@return boolean
+local function reviveRestoresNeeds()
+    local revive = Config.revive
+    if type(revive) == 'table' and revive.restoreNeeds ~= nil then return revive.restoreNeeds == true end
+    return Config.HealRestoreNeeds == true
+end
+
 Admin.addCommand('revive', 'Revive a downed player', { { name = 'id' } }, false, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
@@ -185,7 +194,7 @@ Admin.addCommand('revive', 'Revive a downed player', { { name = 'id' } }, false,
     exports.kora_core:setMetaData(targetSrc, 'isdead', false)
     exports.kora_core:setMetaData(targetSrc, 'inlaststand', false)
     Admin.fullReviveAmbulance(targetSrc)
-    if Config.HealRestoreNeeds then
+    if reviveRestoresNeeds() then
         exports.kora_core:setMetaData(targetSrc, 'hunger', 100)
         exports.kora_core:setMetaData(targetSrc, 'thirst', 100)
     end

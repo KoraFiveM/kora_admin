@@ -16,7 +16,7 @@ Moderators can use god mode, invisibility and development mode on themselves; ta
 ## Heal and revive
 
 - `/heal` sets the ped to max health. With `Config.heal.restoreNeeds = true` (default) it also sets hunger and thirst to 100 through kora_core `setMetaData`, so HUDs update at once.
-- `/revive` clears `isdead` and `inlaststand`, then on the target's client resurrects the ped (only when on foot, so seated players are not launched out of their vehicle), restores max health and fires both `hospital:client:Revive` (qb-ambulancejob) and `kora_ambulance:client:revived` with `100`. If kora_ambulance is started, the server also calls `exports.kora_ambulance:fullRevive(target)` to clear bleeding and wounds. `Config.HealRestoreNeeds` (default `true`) additionally restores hunger and thirst on `/revive`.
+- `/revive` clears `isdead` and `inlaststand`, then on the target's client resurrects the ped (only when on foot, so seated players are not launched out of their vehicle), restores max health and fires both `hospital:client:Revive` (qb-ambulancejob) and `kora_ambulance:client:revived` with `100`. If kora_ambulance is started, the server also calls `exports.kora_ambulance:fullRevive(target)` to clear bleeding and wounds. `Config.revive.restoreNeeds` (default `true`) additionally restores hunger and thirst on `/revive`.
 - `/selfrevive` and `/health` with a non-zero value while downed use the same revive path for yourself. They never change hunger or thirst.
 
 ## Warnings and kicks
