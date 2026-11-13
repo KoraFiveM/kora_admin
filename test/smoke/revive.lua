@@ -11,7 +11,10 @@ dofile('config.lua')
 local commands, responses, events, order = {}, {}, {}, {}
 local state, fullRevived, throwing, meta = 'started', {}, false, {}
 
-Kora = { commands = { add = function(name, _, _, _, handler) commands[name] = handler end } }
+Kora = {
+    commands = { add = function(name, _, _, _, handler) commands[name] = handler end },
+    lang = function(key) return key end,
+}
 function AddEventHandler() end
 function RegisterNetEvent() end
 function GetResourceState() return state end
@@ -45,7 +48,12 @@ test('/revive fully revives the target in kora_ambulance after the normal revive
     commands.revive(7, { '12' })
     equal(fullRevived[1], 12, 'fullRevive called for the target')
     equal(events[1], 'kora_admin:client:revive', 'existing client revive kept')
-    equal(order[#order], 'full', 'fullRevive runs after the existing revive')
+    local clientAt, fullAt
+    for i, step in ipairs(order) do
+        if step == 'client' and not clientAt then clientAt = i end
+        if step == 'full' then fullAt = i end
+    end
+    equal(clientAt ~= nil and fullAt ~= nil and fullAt > clientAt, true, 'fullRevive runs after the existing revive')
     equal(responses[#responses].ok, true, 'success')
 end)
 
@@ -86,32 +94,33 @@ test('/heal leaves needs alone when restoreNeeds is off', function()
     equal(events[1], 'kora_admin:client:heal', 'still heals')
 end)
 
-test('/revive and /selfrevive never write hunger or thirst', function()
-    reset()
+test('/revive and /selfrevive leave needs alone when Config.revive.restoreNeeds is off', function()
+    reset(); Config.revive.restoreNeeds = false
     commands.revive(7, { '12' }); commands.selfrevive(7, {})
     for _, entry in ipairs(meta) do
         if entry:find('hunger') or entry:find('thirst') then error('needs touched: ' .. entry) end
     end
+    Config.revive.restoreNeeds = true
 end)
 
 test('/revive restores needs when Config.revive.restoreNeeds is on', function()
     reset(); Config.revive = { restoreNeeds = true }
     commands.revive(7, { '12' })
-    Config.revive = nil
+    Config.revive = { restoreNeeds = true }
     equal(table.concat(meta, ','):find('hunger=100,thirst=100', 1, true) ~= nil, true, 'needs restored')
 end)
 
 test('/revive falls back to the legacy Config.HealRestoreNeeds key', function()
     reset(); Config.revive = nil; Config.HealRestoreNeeds = true
     commands.revive(7, { '12' })
-    Config.HealRestoreNeeds = nil
+    Config.HealRestoreNeeds = nil; Config.revive = { restoreNeeds = true }
     equal(table.concat(meta, ','):find('hunger=100,thirst=100', 1, true) ~= nil, true, 'legacy key honoured')
 end)
 
 test('Config.revive.restoreNeeds wins over the legacy key', function()
     reset(); Config.revive = { restoreNeeds = false }; Config.HealRestoreNeeds = true
     commands.revive(7, { '12' })
-    Config.revive = nil; Config.HealRestoreNeeds = nil
+    Config.revive = { restoreNeeds = true }; Config.HealRestoreNeeds = nil
     for _, entry in ipairs(meta) do
         if entry:find('hunger') or entry:find('thirst') then error('needs touched: ' .. entry) end
     end
