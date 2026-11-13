@@ -92,17 +92,17 @@ RegisterNetEvent('kora_admin:client:spawnEntity', function(model)
     }, { preset = 'static' })
 
     if not entity then
-        Kora.notify.send({ type = 'error', message = ('Could not spawn %s: %s'):format(model, err or 'unknown error') })
+        Kora.notify.send({ type = 'error', message = Kora.lang('error.spawn_entity_failed', model, err or Kora.lang('error.unknown')) })
         return
     end
 
     lastAdminEntity = entity
-    Kora.notify.send({ type = 'success', message = ('Spawned entity %s'):format(model) })
+    Kora.notify.send({ type = 'success', message = Kora.lang('success.entity_spawned', model) })
 end)
 
 RegisterNetEvent('kora_admin:client:deleteLastEntity', function()
     if not lastAdminEntity then
-        Kora.notify.send({ type = 'error', message = 'No admin-spawned entity to delete' })
+        Kora.notify.send({ type = 'error', message = Kora.lang('error.no_spawned_entity') })
         return
     end
 
@@ -110,11 +110,11 @@ RegisterNetEvent('kora_admin:client:deleteLastEntity', function()
     lastAdminEntity = nil
     local removed, err = Kora.entities.remove(entity)
     if not removed then
-        Kora.notify.send({ type = 'error', message = err or 'Could not delete the entity' })
+        Kora.notify.send({ type = 'error', message = err or Kora.lang('error.delete_entity_failed') })
         return
     end
 
-    Kora.notify.send({ type = 'success', message = 'Deleted your last admin-spawned entity' })
+    Kora.notify.send({ type = 'success', message = Kora.lang('success.entity_deleted') })
 end)
 
 RegisterNetEvent('kora_admin:client:enterVehicle', function(netId, seat)
@@ -157,7 +157,7 @@ local function copyCoords(text)
     local copied = ok and result == true
     Kora.notify.send({
         type = copied and 'success' or 'error',
-        message = copied and 'Copied' or 'Copy failed - coordinates printed to F8',
+        message = copied and Kora.lang('success.copied') or Kora.lang('error.copy_failed'),
     })
     return copied
 end

@@ -11,7 +11,7 @@ local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, r
 ---@return integer|nil expire
 ---@return string|nil err
 local function parseDuration(str)
-    if not str or str == '' then return nil, 'duration required' end
+    if not str or str == '' then return nil, Kora.lang('error.duration_required') end
     if Config.ban.durationWords[str:lower()] then return nil end
 
     local amount, unit = str:match('^(%d+)(%a)$')
@@ -27,14 +27,14 @@ Admin.addCommand('warn', 'Warn a player', { { name = 'id' }, { name = 'reason' }
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
     if Config.moderation.blockSelfTarget and targetSrc == source then
-        return Admin.respond(source, false, 'you cannot warn yourself')
+        return Admin.respond(source, false, Kora.lang('error.you_cannot_warn_yourself'))
     end
     local reason = table.concat(args, ' ', 2)
-    if reason == '' then return Admin.respond(source, false, 'a reason is required') end
+    if reason == '' then return Admin.respond(source, false, Kora.lang('error.a_reason_is_required')) end
 
-    Admin.respond(targetSrc, false, ('You have been warned: %s'):format(reason), { title = 'Warning' })
+        Admin.respond(targetSrc, false, Kora.lang('error.error_you_have_been_warned_s', reason), { title = Kora.lang('title.warning') })
     Admin.log(source, 'warn', data, { reason = reason })
-    Admin.respond(source, true, ('Warned %s'):format(data.name))
+    Admin.respond(source, true, Kora.lang('success.success_warned_s', data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('warnings', "Show a player's warning history", { { name = 'id' } }, true, function(source, args)
@@ -42,7 +42,7 @@ Admin.addCommand('warnings', "Show a player's warning history", { { name = 'id' 
     if not targetSrc then return Admin.respond(source, false, err) end
 
     local rows = Admin.queryLogs({ action = 'warn', target = data.citizenid })
-    if #rows == 0 then return Admin.respond(source, false, 'no warnings on record') end
+    if #rows == 0 then return Admin.respond(source, false, Kora.lang('error.no_warnings_on_record')) end
 
     local lines = {}
     for _, row in ipairs(rows) do
@@ -61,14 +61,14 @@ Admin.addCommand('kick', 'Kick a player', { { name = 'id', help = 'server id, or
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
         if not targetSrc then return Admin.respond(source, false, err) end
         if Config.moderation.blockSelfTarget and targetSrc == source then
-            return Admin.respond(source, false, 'you cannot kick yourself')
+            return Admin.respond(source, false, Kora.lang('error.you_cannot_kick_yourself'))
         end
         local reason = table.concat(args, ' ', 2)
         if reason == '' then reason = 'Kicked by an administrator' end
 
         Admin.log(source, 'kick', data, { reason = reason })
         DropPlayer(targetSrc, reason)
-        Admin.respond(source, true, ('Kicked %s'):format(data.name))
+        Admin.respond(source, true, Kora.lang('success.success_kicked_s', data.name))
     end, OPTS_MOD)
 
 Admin.addCommand('ban', 'Ban a player, online or offline', { { name = 'target' }, { name = 'duration' }, { name = 'reason' } }, true,
@@ -78,7 +78,7 @@ Admin.addCommand('ban', 'Ban a player, online or offline', { { name = 'target' }
         if Config.moderation.blockSelfTarget and source ~= 0 then
             local actor = exports.kora_core:getPlayer(source)
             if actor and actor.citizenid == citizenid then
-                return Admin.respond(source, false, 'you cannot ban yourself')
+                return Admin.respond(source, false, Kora.lang('error.you_cannot_ban_yourself'))
             end
         end
 
@@ -101,7 +101,7 @@ Admin.addCommand('ban', 'Ban a player, online or offline', { { name = 'target' }
             'INSERT INTO `bans` (`name`,`license`,`discord`,`ip`,`reason`,`expire`,`bannedby`) VALUES (?,?,?,?,?,?,?)',
             { name, identifiers.license, identifiers.discord, identifiers.ip, reason, expire, actorName }
         )
-        if not banId then return Admin.respond(source, false, insertErr or 'could not persist ban') end
+        if not banId then return Admin.respond(source, false, insertErr or Kora.lang('error.ban_save_failed')) end
 
         Admin.log(source, 'ban', { citizenid = citizenid, license = identifiers.license, name = name },
             { banId = banId, reason = reason, expire = expire, possibleAlts = possibleAlts })
@@ -115,14 +115,14 @@ Admin.addCommand('ban', 'Ban a player, online or offline', { { name = 'target' }
         end
 
         local altsMsg = #possibleAlts > 0 and (' Possible alts: ' .. table.concat(possibleAlts, ', ')) or ''
-        Admin.respond(source, true, ('Banned %s (%s).%s'):format(
+        Admin.respond(source, true, Kora.lang('success.success_banned_s_s_s')
             name or citizenid, expire and os.date('%Y-%m-%d %H:%M', expire) or 'permanent', altsMsg))
     end, OPTS_ADMIN)
 
 Admin.addCommand('unban', 'Lift a ban by license or ban id (preserves history)', { { name = 'licenseOrId' } }, true,
     function(source, args)
         local arg = args[1]
-        if not arg or arg == '' then return Admin.respond(source, false, 'license or ban id required') end
+        if not arg or arg == '' then return Admin.respond(source, false, Kora.lang('error.license_or_ban_id_required')) end
 
         local id = tonumber(arg)
         local result
@@ -135,10 +135,10 @@ Admin.addCommand('unban', 'Lift a ban by license or ban id (preserves history)',
         end
 
         local rows = result and result.affectedRows or 0
-        if rows == 0 then return Admin.respond(source, false, 'no active ban matched') end
+        if rows == 0 then return Admin.respond(source, false, Kora.lang('error.no_active_ban_matched')) end
 
         Admin.log(source, 'unban', { license = not id and arg or nil }, { banId = id })
-        Admin.respond(source, true, ('Lifted %d ban(s)'):format(rows))
+        Admin.respond(source, true, Kora.lang('success.success_lifted_d_ban_s', rows))
     end, OPTS_ADMIN)
 
 Admin.addCommand('freeze', 'Freeze/unfreeze a player', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
@@ -151,7 +151,7 @@ Admin.addCommand('freeze', 'Freeze/unfreeze a player', { { name = 'id' }, { name
     TriggerClientEvent('kora_admin:client:freeze', targetSrc, state)
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'freeze', data, { state = state })
-    Admin.respond(source, true, ('%s %s'):format(state and 'Froze' or 'Unfroze', data.name))
+    Admin.respond(source, true, Kora.lang('success.success_s_s_2', state and 'Froze' or 'Unfroze', data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('kill', 'Kill a player', { { name = 'id' } }, false, function(source, args)
@@ -160,7 +160,7 @@ Admin.addCommand('kill', 'Kill a player', { { name = 'id' } }, false, function(s
 
     TriggerClientEvent('kora_admin:client:kill', targetSrc)
     Admin.log(source, 'kill', data)
-    Admin.respond(source, true, ('Killed %s'):format(data.name))
+    Admin.respond(source, true, Kora.lang('success.success_killed_s', data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('heal', 'Fully heal a player', { { name = 'id' } }, false, function(source, args)
@@ -174,7 +174,7 @@ Admin.addCommand('heal', 'Fully heal a player', { { name = 'id' } }, false, func
         exports.kora_core:setMetaData(targetSrc, 'thirst', 100)
     end
     Admin.log(source, 'heal', data)
-    Admin.respond(source, true, ('Healed %s'):format(data.name))
+    Admin.respond(source, true, Kora.lang('success.success_healed_s', data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('revive', 'Revive a downed player', { { name = 'id' } }, false, function(source, args)
@@ -190,14 +190,14 @@ Admin.addCommand('revive', 'Revive a downed player', { { name = 'id' } }, false,
         exports.kora_core:setMetaData(targetSrc, 'thirst', 100)
     end
     Admin.log(source, 'revive', data)
-    Admin.respond(source, true, ('Revived %s'):format(data.name))
+    Admin.respond(source, true, Kora.lang('success.success_revived_s', data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('god', 'Toggle god mode (invincibility)', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
     if targetSrc ~= source and not Admin.checkLevel(source, 'admin') then
-        return Admin.respond(source, false, 'admin level required to toggle god mode on another player')
+        return Admin.respond(source, false, Kora.lang('error.admin_level_required_to_toggle_god'))
     end
 
     local state, stateErr = Admin.resolveToggle(args[2], Admin.states.god[targetSrc] == true)
@@ -206,32 +206,32 @@ Admin.addCommand('god', 'Toggle god mode (invincibility)', { { name = 'id' }, { 
     TriggerClientEvent('kora_admin:client:god', targetSrc, state)
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'god', data, { state = state })
-    Admin.respond(source, true, ('God mode %s for %s'):format(state and 'enabled' or 'disabled', data.name))
+    Admin.respond(source, true, Kora.lang('success.success_god_mode_s_for_s', state and 'enabled' or 'disabled', data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('devmode', 'Toggle core development mode', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
     if targetSrc ~= source and not Admin.checkLevel(source, 'admin') then
-        return Admin.respond(source, false, 'admin level required to toggle development mode on another player')
+        return Admin.respond(source, false, Kora.lang('error.admin_level_required_to_toggle_development'))
     end
 
     local state, stateErr = Admin.resolveToggle(args[2], exports.kora_core:isDevMode(targetSrc))
     if state == nil then return Admin.respond(source, false, stateErr) end
 
     local ok, setErr = exports.kora_core:setDevMode(targetSrc, state)
-    if not ok then return Admin.respond(source, false, setErr or 'could not update development mode') end
+    if not ok then return Admin.respond(source, false, setErr or Kora.lang('error.development_mode_update_failed')) end
 
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'devmode', data, { state = state })
-    Admin.respond(source, true, ('Development mode %s for %s'):format(state and 'enabled' or 'disabled', data.name))
+    Admin.respond(source, true, Kora.lang('success.success_development_mode_s_for_s', state and 'enabled' or 'disabled', data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('invisible', 'Toggle invisibility', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
     if targetSrc ~= source and not Admin.checkLevel(source, 'admin') then
-        return Admin.respond(source, false, 'admin level required to toggle invisibility on another player')
+        return Admin.respond(source, false, Kora.lang('error.admin_level_required_to_toggle_invisibility'))
     end
 
     local state, stateErr = Admin.resolveToggle(args[2], Admin.states.invisible[targetSrc] == true)
@@ -240,5 +240,5 @@ Admin.addCommand('invisible', 'Toggle invisibility', { { name = 'id' }, { name =
     TriggerClientEvent('kora_admin:client:invisible', targetSrc, state)
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'invisible', data, { state = state })
-    Admin.respond(source, true, ('Invisibility %s for %s'):format(state and 'enabled' or 'disabled', data.name))
+    Admin.respond(source, true, Kora.lang('success.success_invisibility_s_for_s', state and 'enabled' or 'disabled', data.name))
 end, OPTS_MOD)

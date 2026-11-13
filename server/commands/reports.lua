@@ -19,15 +19,15 @@ Admin.addCommand('report', 'Send a report to server staff', {
     if not report then return Admin.respond(source, false, err) end
     local chat = Admin.reportChat()
     local hint = chat and chat.playerUi ~= false and ' Use /reports to chat with staff.' or ''
-    Admin.respond(source, true, ('Report #%s submitted. Staff have been notified.%s'):format(report.id, hint), { title = 'Report sent' })
+    Admin.respond(source, true, Kora.lang('success.success_report_s_submitted_staff_have_been', report.id, hint), { title = Kora.lang('title.report_sent') })
 end, OPTS_USER)
 
 Admin.addCommand('reportstatus', 'View one of your reports and its replies', { { name = 'id' } }, true, function(source, args)
     local report = Admin.getReport(args[1])
-    if not report then return Admin.respond(source, false, 'report not found') end
+    if not report then return Admin.respond(source, false, Kora.lang('error.report_not_found')) end
     local license = source ~= 0 and exports.kora_core:primary(source) or nil
     if source ~= 0 and not Admin.checkLevel(source, Config.reports.staffLevel) and report.reporter_license ~= license then
-        return Admin.respond(source, false, 'you cannot view that report')
+        return Admin.respond(source, false, Kora.lang('error.you_cannot_view_that_report'))
     end
 
     local lines = {
@@ -54,7 +54,7 @@ Admin.addCommand('reportreply', 'Reply to your report (staff may reply to any re
     { name = 'id' }, { name = 'message' },
 }, true, function(source, args)
     local ok, err = Admin.replyToReport(source, args[1], table.concat(args, ' ', 2))
-    Admin.respond(source, ok, ok and ('Reply added to report #%s'):format(args[1]) or err)
+    Admin.respond(source, ok, ok and Kora.lang('success.report_reply_added', args[1]) or err)
 end, OPTS_USER)
 
 -- Staff get the Reports screen (or a tidy chat list with Config.reports.command.ui
@@ -70,7 +70,7 @@ if Config.reports.command.enabled then
         local staff = source == 0 or Admin.checkLevel(source, Config.reports.staffLevel)
         if not staff then
             filters.license = exports.kora_core:primary(source)
-            if not filters.license then return Admin.respond(source, false, 'you are not logged in') end
+            if not filters.license then return Admin.respond(source, false, Kora.lang('error.you_are_not_logged_in')) end
             local chat = Admin.reportChat()
             if chat and chat.playerUi ~= false and source ~= 0 and not Admin.commandContext(source) then
                 return TriggerClientEvent('kora_admin:client:openMyReports', source, tonumber(args[1]))
@@ -92,7 +92,7 @@ end
 
 Admin.addCommand('reportclaim', 'Claim a player report', { { name = 'id' } }, true, function(source, args)
     local ok, err = Admin.claimReport(source, args[1])
-    Admin.respond(source, ok, ok and ('Claimed report #%s'):format(args[1]) or err)
+    Admin.respond(source, ok, ok and Kora.lang('success.report_claimed', args[1]) or err)
 end, OPTS_STAFF)
 
 local function addStatusCommand(name, help, status)
@@ -102,7 +102,7 @@ local function addStatusCommand(name, help, status)
     -- resolving/dismissing to encourage useful closure context.
     Admin.addCommand(name, help, { { name = 'id' }, { name = 'note' } }, false, function(source, args)
         local ok, err = Admin.setReportStatus(source, args[1], status, table.concat(args, ' ', 2))
-        Admin.respond(source, ok, ok and ('Report #%s marked %s'):format(args[1], status) or err)
+        Admin.respond(source, ok, ok and Kora.lang('success.report_marked', args[1], status) or err)
     end, OPTS_STAFF)
 end
 

@@ -49,20 +49,20 @@ function Admin.reportChatBlock(report, viewerRole, sendAction)
     end
     local maxLength = math.floor(tonumber(chat.maxLength) or Config.reports.maxMessageLength)
     return {
-        id = 'report-chat-' .. tostring(report.id), type = 'chat', title = 'Conversation',
-        empty = 'No messages yet',
+        id = 'report-chat-' .. tostring(report.id), type = 'chat', title = Kora.lang('ui.report_conversation'),
+        empty = Kora.lang('ui.no_messages'),
         -- Fixed layout: the block fills the screen, only its messages scroll, newest always shown.
         scrollable = Admin.reportChatFixedLayout() or nil,
         follow = Admin.reportChatFixedLayout() or nil,
         messages = messages,
         composer = {
-            action = { id = sendAction, label = 'Send', icon = 'send' },
-            placeholder = viewerRole == 'staff' and ('Reply to %s'):format(tostring(report.reporter_name or 'the reporter'))
-                or 'Write a message to staff',
+            action = { id = sendAction, label = Kora.lang('ui.report_send'), icon = 'send' },
+            placeholder = viewerRole == 'staff' and Kora.lang('ui.reply_to', tostring(report.reporter_name or Kora.lang('ui.the_reporter')))
+                or Kora.lang('ui.reply_to_staff'),
             maxLength = math.max(1, math.min(maxLength, Config.reports.maxMessageLength)),
             disabled = closed,
-            note = closed and (viewerRole == 'staff' and 'This report is closed. Reopen it from Manage to reply.'
-                or 'This report is closed. Open a new report with /report if you still need help.') or nil,
+            note = closed and (viewerRole == 'staff' and Kora.lang('ui.report_closed_staff')
+                or Kora.lang('ui.report_closed_player')) or nil,
         },
     }
 end
@@ -72,9 +72,9 @@ end
 ---@param message any
 ---@return string|nil
 function Admin.sendReportChat(reportId, message)
-    if type(message) ~= 'string' or message == '' then return 'Write a message first.' end
+    if type(message) ~= 'string' or message == '' then return Kora.lang('error.report_message_required') end
     local ok, err = Kora.callback.trigger('kora_admin:reportChatSend', reportId, message)
-    if not ok then return err or 'Could not send the message.' end
+    if not ok then return err or Kora.lang('error.report_send_failed') end
 end
 
 -- ---------------------------------------------------------------------------
@@ -105,18 +105,18 @@ local function listView()
         }
     end
     return {
-        id = 'reports', label = 'My Reports', icon = 'flag', badge = unreadTotal > 0 and unreadTotal or nil,
+        id = 'reports', label = Kora.lang('ui.my_reports'), icon = 'flag', badge = unreadTotal > 0 and unreadTotal or nil,
         content = {
-            title = 'My Reports',
-            description = 'Pick a report to chat with staff. Open a new one with /report <type> <message>.',
+            title = Kora.lang('ui.my_reports'),
+            description = Kora.lang('ui.reports_description'),
             blocks = { {
-                id = 'my-report-list', type = 'table', title = 'Your reports', pageSize = 10,
+                id = 'my-report-list', type = 'table', title = Kora.lang('ui.your_reports'), pageSize = 10,
                 columns = {
-                    { key = 'id', label = '#', sortable = true }, { key = 'status', label = 'Status', sortable = true },
-                    { key = 'type', label = 'Category' }, { key = 'subject', label = 'Subject' },
-                    { key = 'unread', label = 'New' }, { key = 'age', label = 'Age' },
+                    { key = 'id', label = '#', sortable = true }, { key = 'status', label = Kora.lang('ui.status'), sortable = true },
+                    { key = 'type', label = Kora.lang('ui.category') }, { key = 'subject', label = Kora.lang('ui.subject') },
+                    { key = 'unread', label = Kora.lang('ui.new') }, { key = 'age', label = Kora.lang('ui.age') },
                 },
-                rows = tableRows, empty = 'You have no reports.', action = 'my:select', idKey = 'id',
+                rows = tableRows, empty = Kora.lang('ui.no_reports'), action = 'my:select', idKey = 'id',
             } },
         },
     }
@@ -125,16 +125,16 @@ end
 local function reportView(id, live)
     local report, err = Kora.callback.trigger('kora_admin:myReport', id, { live = live == true })
     if not report then return nil, err end
-    local title = ('Report #%s · %s'):format(report.id, report.category or report.type or '')
-    local description = report.claimed_by_name and ('Handled by %s · %s'):format(report.claimed_by_name, report.status)
-        or ('Status: %s · waiting for staff'):format(report.status)
-    local back = { id = 'my:back', label = 'Back to My Reports', icon = 'arrow-left', variant = 'ghost' }
+    local title = Kora.lang('ui.report_number_category', report.id, report.category or report.type or '')
+    local description = report.claimed_by_name and Kora.lang('ui.handled_by', report.claimed_by_name, report.status)
+        or Kora.lang('ui.report_waiting', report.status)
+    local back = { id = 'my:back', label = Kora.lang('ui.report_back'), icon = 'arrow-left', variant = 'ghost' }
     if Admin.reportChatFixedLayout() then
         -- One fixed screen: Back beside the title, the resolution in the header line, and the
         -- chat filling the rest (only its message list scrolls).
-        if report.resolution then description = ('%s · Resolution: %s'):format(description, tostring(report.resolution)) end
+        if report.resolution then description = Kora.lang('ui.resolution', description, tostring(report.resolution)) end
         return {
-            id = 'report', label = ('Report #%s'):format(report.id), icon = 'message-square',
+            id = 'report', label = Kora.lang('ui.report_number', report.id), icon = 'message-square',
             content = {
                 title = title, description = description, actions = { back }, scrollable = false,
                 blocks = { Admin.reportChatBlock(report, 'player', 'my:send') },
@@ -142,16 +142,16 @@ local function reportView(id, live)
         }, report
     end
     return {
-        id = 'report', label = ('Report #%s'):format(report.id), icon = 'message-square',
+        id = 'report', label = Kora.lang('ui.report_number', report.id), icon = 'message-square',
         content = {
-            title = ('Report #%s · %s'):format(report.id, report.category or report.type or ''),
-            description = report.claimed_by_name and ('Handled by %s · %s'):format(report.claimed_by_name, report.status)
-                or ('Status: %s · waiting for staff'):format(report.status),
+            title = Kora.lang('ui.report_number_category', report.id, report.category or report.type or ''),
+            description = report.claimed_by_name and Kora.lang('ui.handled_by', report.claimed_by_name, report.status)
+                or Kora.lang('ui.report_waiting', report.status),
             blocks = {
                 { id = 'my-report-back', type = 'actions',
-                    actions = { { id = 'my:back', label = 'Back to My Reports', icon = 'arrow-left', variant = 'ghost' } } },
+                    actions = { { id = 'my:back', label = Kora.lang('ui.report_back'), icon = 'arrow-left', variant = 'ghost' } } },
                 Admin.reportChatBlock(report, 'player', 'my:send'),
-                report.resolution and { id = 'my-report-resolution', type = 'text', title = 'Resolution', text = tostring(report.resolution) } or nil,
+                report.resolution and { id = 'my-report-resolution', type = 'text', title = Kora.lang('ui.resolution_title'), text = tostring(report.resolution) } or nil,
             },
         },
     }, report
@@ -175,7 +175,7 @@ local function showReport(id, live)
     local view, report = reportView(id, live)
     if not view then return nil, report end
     selectedId = tostring(report.id)
-    return { update = { navigation = navigationFor(list or { id = 'reports', label = 'My Reports', content = { blocks = {} } }, view) },
+    return { update = { navigation = navigationFor(list or { id = 'reports', label = Kora.lang('ui.my_reports'), content = { blocks = {} } }, view) },
         navigate = { viewId = 'report' } }
 end
 
@@ -203,8 +203,8 @@ RegisterNetEvent('kora_admin:client:myReportChanged', function(id, info)
     end
     if info.kind == 'reply' then
         Kora.notify.send({
-            title = ('Report #%s · new reply'):format(tostring(id)),
-            message = ('%s: %s\nType /reports to open the chat.'):format(tostring(info.author or 'Staff'), tostring(info.preview or '')),
+            title = Kora.lang('ui.new_reply_title', tostring(id)),
+            message = Kora.lang('ui.new_reply_message', tostring(info.author or Kora.lang('ui.staff')), tostring(info.preview or '')),
             type = 'info',
         })
     end
@@ -216,20 +216,20 @@ local function openMyReports(reportId)
     if reportId then first, err = showReport(reportId) end
     if not first then first, err = showList() end
     if not first then
-        Kora.notify.send({ type = 'error', message = err or 'Could not load your reports' })
+        Kora.notify.send({ type = 'error', message = err or Kora.lang('ui.reports_load_failed') })
         return
     end
     Kora.nui.registerApp({
         id = MY_APP,
-        title = 'My Reports',
-        description = 'Chat with server staff',
+        title = Kora.lang('ui.my_reports'),
+        description = Kora.lang('ui.report_chat_description'),
         icon = 'flag',
         layout = 'compact',
         width = 640,
         height = 720,
         defaultView = first.navigate.viewId,
         navigation = first.update.navigation,
-        footer = 'Staff see your messages live.',
+        footer = Kora.lang('ui.report_footer'),
         onAction = function(actionId, context)
             local result, actionErr
             if actionId == 'my:select' and context and context.itemId then

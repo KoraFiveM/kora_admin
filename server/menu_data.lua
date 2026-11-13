@@ -3,7 +3,7 @@
 
 local function allowed(src, level)
     if not Admin.checkLevel(src, level) then
-        return nil, 'permission denied'
+        return nil, Kora.lang('error.permission_denied_3')
     end
     return true
 end
@@ -269,7 +269,7 @@ Kora.callback.register('kora_admin:menuReport', function(src, id, opts)
     if not ok then return nil, err end
 
     local report = Admin.getReport(id)
-    if not report then return nil, 'report not found' end
+    if not report then return nil, Kora.lang('error.report_not_found_2') end
     if Admin.reportChat() then
         return Admin.reportConversation(src, report, 'staff', type(opts) == 'table' and opts.live == true)
     end
@@ -280,9 +280,9 @@ end)
 -- Player side of the report chat. Ownership is always the reporter licence on the
 -- stored row (never a client-supplied id or name); staff use the staff callbacks.
 local function playerLicense(src)
-    if not Admin.reportChat() or Admin.reportChat().playerUi == false then return nil, 'report chat is disabled' end
+    if not Admin.reportChat() or Admin.reportChat().playerUi == false then return nil, Kora.lang('error.report_chat_is_disabled') end
     local license = exports.kora_core:primary(src)
-    if not license then return nil, 'you are not logged in' end
+    if not license then return nil, Kora.lang('error.you_are_not_logged_in_2') end
     return license
 end
 
@@ -306,7 +306,7 @@ Kora.callback.register('kora_admin:myReport', function(src, id, opts)
     local license, err = playerLicense(src)
     if not license then return nil, err end
     local report = Admin.getReport(id)
-    if not report or report.reporter_license ~= license then return nil, 'report not found' end
+    if not report or report.reporter_license ~= license then return nil, Kora.lang('error.report_not_found_3') end
     return Admin.reportConversation(src, report, 'player', type(opts) == 'table' and opts.live == true)
 end, { rateLimit = { max = 30, window = 10000 } })
 
@@ -314,9 +314,9 @@ end, { rateLimit = { max = 30, window = 10000 } })
 -- sender owns the report or holds Config.reports.staffLevel, that it is still open,
 -- the message length and the per-sender rate limit, and writes the audit entry.
 Kora.callback.register('kora_admin:reportChatSend', function(src, id, message)
-    if not Admin.reportChat() then return nil, 'report chat is disabled' end
-    if type(message) ~= 'string' then return nil, 'message required' end
-    if #message > 8 * Config.reports.maxMessageLength then return nil, 'message too long' end
+    if not Admin.reportChat() then return nil, Kora.lang('error.report_chat_is_disabled_2') end
+    if type(message) ~= 'string' then return nil, Kora.lang('error.message_required_2') end
+    if #message > 8 * Config.reports.maxMessageLength then return nil, Kora.lang('error.message_too_long_2') end
     local ok, err = Admin.replyToReport(src, id, message, { chat = true })
     if not ok then return nil, err end
     return true

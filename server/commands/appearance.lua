@@ -9,18 +9,18 @@ local function addAppearanceCommand(name, label, service)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
         if not targetSrc then return Admin.respond(source, false, err) end
         if GetResourceState('kora_clothing') ~= 'started' then
-            return Admin.respond(source, false, 'kora_clothing is not running')
+            return Admin.respond(source, false, Kora.lang('error.kora_clothing_is_not_running'))
         end
 
         local callOk, opened, openErr = pcall(function()
             return exports.kora_clothing:OpenAdminSession(targetSrc, service)
         end)
         if not callOk or not opened then
-            return Admin.respond(source, false, openErr or (callOk and 'could not open appearance session' or tostring(opened)))
+            return Admin.respond(source, false, openErr or (callOk and Kora.lang('error.appearance_open_failed') or tostring(opened)))
         end
 
         Admin.log(source, name, data, { service = service })
-        Admin.respond(source, true, ('Opened %s for %s'):format(label:lower(), data.name))
+        Admin.respond(source, true, Kora.lang('success.success_opened_s_for_s', label:lower(), data.name))
     end, OPTS_ADMIN)
 end
 

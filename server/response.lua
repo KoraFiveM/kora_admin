@@ -11,12 +11,12 @@ function Admin.respond(src, ok, message, opts)
     local context = Admin.commandContext(src)
     if context then
         context.ok = context.ok and ok
-        context.messages[#context.messages + 1] = message or (ok and 'Done' or 'Something went wrong')
+        context.messages[#context.messages + 1] = message or (ok and Kora.lang('error.done') or Kora.lang('error.unknown'))
         return
     end
     Kora.notify.send(src, {
-        title = ok and (opts and opts.title or 'Admin') or 'Admin — Error',
-        message = message or (ok and 'Done' or 'Something went wrong'),
+        title = ok and (opts and opts.title or Kora.lang('title.admin')) or Kora.lang('title.error'),
+        message = message or (ok and Kora.lang('error.done') or Kora.lang('error.unknown')),
         type = ok and 'success' or 'error',
     })
 end

@@ -15,13 +15,13 @@ Admin.addCommand('setjob', "Set a player's job and grade", { { name = 'id' }, { 
         if not targetSrc then return Admin.respond(source, false, err) end
 
         local jobName = args[2]
-        if not jobName then return Admin.respond(source, false, 'job name required') end
+        if not jobName then return Admin.respond(source, false, Kora.lang('error.job_name_required')) end
 
         local ok, actionErr = exports.kora_core:setJob(targetSrc, jobName, args[3])
-        if not ok then return Admin.respond(source, false, actionErr or 'could not set job') end
+        if not ok then return Admin.respond(source, false, actionErr or Kora.lang('error.set_job_failed')) end
 
         Admin.log(source, 'setjob', data, { job = jobName, grade = args[3] })
-        Admin.respond(source, true, ("Set %s's job to %s"):format(data.name, jobName))
+        Admin.respond(source, true, Kora.lang('success.success_set_s_s_job_to_s', data.name, jobName))
     end, OPTS_ADMIN)
 
 -- argsRequired=false: grade defaults inside exports.kora_core:setGang itself; only id/gang are truly required.
@@ -31,13 +31,13 @@ Admin.addCommand('setgang', "Set a player's gang and grade", { { name = 'id' }, 
         if not targetSrc then return Admin.respond(source, false, err) end
 
         local gangName = args[2]
-        if not gangName then return Admin.respond(source, false, 'gang name required') end
+        if not gangName then return Admin.respond(source, false, Kora.lang('error.gang_name_required')) end
 
         local ok, actionErr = exports.kora_core:setGang(targetSrc, gangName, args[3])
-        if not ok then return Admin.respond(source, false, actionErr or 'could not set gang') end
+        if not ok then return Admin.respond(source, false, actionErr or Kora.lang('error.set_gang_failed')) end
 
         Admin.log(source, 'setgang', data, { gang = gangName, grade = args[3] })
-        Admin.respond(source, true, ("Set %s's gang to %s"):format(data.name, gangName))
+        Admin.respond(source, true, Kora.lang('success.success_set_s_s_gang_to_s', data.name, gangName))
     end, OPTS_ADMIN)
 
 Admin.addCommand('setduty', 'Toggle on/off duty', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
@@ -49,8 +49,8 @@ Admin.addCommand('setduty', 'Toggle on/off duty', { { name = 'id' }, { name = 's
     if state == nil then return Admin.respond(source, false, stateErr) end
 
     local ok, actionErr = exports.kora_core:setJobDuty(targetSrc, state)
-    if not ok then return Admin.respond(source, false, actionErr or 'could not set duty state') end
+    if not ok then return Admin.respond(source, false, actionErr or Kora.lang('error.set_duty_failed')) end
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'setduty', data, { state = state })
-    Admin.respond(source, true, ('%s is now %s duty'):format(data.name, state and 'on' or 'off'))
+    Admin.respond(source, true, Kora.lang('success.success_s_is_now_s_duty', data.name, state and 'on' or 'off'))
 end, OPTS_MOD)

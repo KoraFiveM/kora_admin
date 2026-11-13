@@ -25,17 +25,17 @@ local function moneyCommand(name, help, exportFn)
 
             local account = args[2]
             local amount = Admin.finiteNumber(args[3], 0)
-            if not account or not amount then return Admin.respond(source, false, 'account and amount are required') end
-            if amount <= 0 then return Admin.respond(source, false, 'amount must be positive') end
+            if not account or not amount then return Admin.respond(source, false, Kora.lang('error.account_and_amount_are_required')) end
+            if amount <= 0 then return Admin.respond(source, false, Kora.lang('error.amount_must_be_positive')) end
 
             local reason = table.concat(args, ' ', 4)
             if reason == '' then reason = ('admin:%s'):format(name) end
 
             local ok, actionErr = exportFn(targetSrc, account, amount, reason)
-            if not ok then return Admin.respond(source, false, actionErr or 'action failed') end
+            if not ok then return Admin.respond(source, false, actionErr or Kora.lang('error.action_failed')) end
 
             Admin.log(source, name, data, { account = account, amount = amount, reason = reason })
-            Admin.respond(source, true, ('%s %s %s (%s) for %s'):format(name, amount, account, reason, data.name))
+            Admin.respond(source, true, Kora.lang('success.success_s_s_s_s_for_s', name, amount, account, reason, data.name))
         end, OPTS_ADMIN)
 end
 
@@ -59,21 +59,21 @@ Admin.addCommand('giveitem', 'Give a player an item', { { name = 'id' }, { name 
 
         local item = args[2]
         local amount = args[3] == nil and 1 or Admin.finiteNumber(args[3], 1, nil, true)
-        if not item then return Admin.respond(source, false, 'item name required') end
-        if not amount then return Admin.respond(source, false, 'amount must be a positive whole number') end
+        if not item then return Admin.respond(source, false, Kora.lang('error.item_name_required')) end
+        if not amount then return Admin.respond(source, false, Kora.lang('error.amount_must_be_a_positive_whole')) end
         local info
         if args[4] then
             local ok, decoded = pcall(json.decode, args[4])
-            if not ok then return Admin.respond(source, false, ('invalid item metadata JSON: %s'):format(tostring(decoded))) end
+            if not ok then return Admin.respond(source, false, Kora.lang('error.error_invalid_item_metadata_json_s', tostring(decoded))) end
             info = decoded
-            if type(info) ~= 'table' then return Admin.respond(source, false, 'item metadata must decode to an object') end
+            if type(info) ~= 'table' then return Admin.respond(source, false, Kora.lang('error.item_metadata_must_decode_to_an')) end
         end
 
         local ok, actionErr = exports.kora_core:addItem(targetSrc, item, amount, nil, info, 'admin:giveitem')
-        if not ok then return Admin.respond(source, false, actionErr or 'could not give item') end
+        if not ok then return Admin.respond(source, false, actionErr or Kora.lang('error.give_item_failed')) end
 
         Admin.log(source, 'giveitem', data, { item = item, amount = amount })
-        Admin.respond(source, true, ('Gave %d x %s to %s'):format(amount, item, data.name))
+        Admin.respond(source, true, Kora.lang('success.success_gave_d_x_s_to_s', amount, item, data.name))
     end, OPTS_ADMIN)
 
 -- argsRequired=false: amount defaults below; only id/item are truly required.
@@ -84,14 +84,14 @@ Admin.addCommand('removeitem', 'Remove an item from a player', { { name = 'id' }
 
         local item = args[2]
         local amount = args[3] == nil and 1 or Admin.finiteNumber(args[3], 1, nil, true)
-        if not item then return Admin.respond(source, false, 'item name required') end
-        if not amount then return Admin.respond(source, false, 'amount must be a positive whole number') end
+        if not item then return Admin.respond(source, false, Kora.lang('error.item_name_required')) end
+        if not amount then return Admin.respond(source, false, Kora.lang('error.amount_must_be_a_positive_whole')) end
 
         local ok, actionErr = exports.kora_core:removeItem(targetSrc, item, amount, nil, 'admin:removeitem')
-        if not ok then return Admin.respond(source, false, actionErr or 'could not remove item') end
+        if not ok then return Admin.respond(source, false, actionErr or Kora.lang('error.remove_item_failed')) end
 
         Admin.log(source, 'removeitem', data, { item = item, amount = amount })
-        Admin.respond(source, true, ('Removed %d x %s from %s'):format(amount, item, data.name))
+        Admin.respond(source, true, Kora.lang('success.success_removed_d_x_s_from_s', amount, item, data.name))
     end, OPTS_ADMIN)
 
 Admin.addCommand('clearinventory', "Clear a player's inventory", { { name = 'id' } }, true, function(source, args)
@@ -100,5 +100,5 @@ Admin.addCommand('clearinventory', "Clear a player's inventory", { { name = 'id'
 
     exports.kora_core:clearInventory(targetSrc)
     Admin.log(source, 'clearinventory', data)
-    Admin.respond(source, true, ("Cleared %s's inventory"):format(data.name))
+    Admin.respond(source, true, Kora.lang('success.success_cleared_s_s_inventory', data.name))
 end, OPTS_ADMIN)

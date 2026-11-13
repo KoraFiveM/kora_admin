@@ -13,20 +13,20 @@ local state = {
 }
 
 local ENTITY_KINDS = {
-    [1] = { label = 'Ped', lookupKind = 'ped' },
-    [2] = { label = 'Vehicle', lookupKind = 'vehicle' },
-    [3] = { label = 'Object', lookupKind = 'object' },
+    [1] = { label = Kora.lang('ui.ped'), lookupKind = 'ped' },
+    [2] = { label = Kora.lang('ui.vehicle'), lookupKind = 'vehicle' },
+    [3] = { label = Kora.lang('ui.object'), lookupKind = 'object' },
 }
 
 -- StartShapeTestRay intersect mask: vehicles (2) + peds (8) + objects (16).
 local ENTITY_RAY_FLAGS = 26
 
 local function notify(kind, message)
-    Kora.notify.send({ title = 'Entity picker', type = kind, message = message })
+    Kora.notify.send({ title = Kora.lang('title.entity_picker'), type = kind, message = message })
 end
 
 local function entityKind(entity)
-    return ENTITY_KINDS[GetEntityType(entity)] or { label = 'Entity' }
+    return ENTITY_KINDS[GetEntityType(entity)] or { label = Kora.lang('ui.entity') }
 end
 
 local function actualArchetypeName(entity)
@@ -143,13 +143,13 @@ end
 local function openCopyDialog(modelName)
     if state.manualCopyOpen then return end
     if type(Kora.nui.openInputDialog) ~= 'function' then
-        return notify('error', ('Model name: %s'):format(modelName))
+        return notify('error', Kora.lang('ui.model_name', modelName))
     end
 
     state.manualCopyOpen = true
     CreateThread(function()
         pcall(Kora.nui.openInputDialog, {
-            { id = 'model', label = 'Model name', type = 'text', default = modelName, copyButton = { label = 'Copy Text' } },
+            { id = 'model', label = Kora.lang('ui.model_name_label'), type = 'text', default = modelName, copyButton = { label = Kora.lang('ui.copy_text') } },
         }, 'Entity picker', 'Select the name and press Ctrl+C, then close this dialog.')
         state.manualCopyOpen = false
     end)
@@ -159,10 +159,10 @@ local function copyModelName()
     local snapshot = state.snapshot
     if not state.active then return end
     if not snapshot then
-        return notify('error', 'Aim at an entity before opening the model name')
+        return notify('error', Kora.lang('error.aim_entity'))
     end
     if not snapshot.modelName then
-        return notify('error', ('No model name is available; use hash %s instead'):format(tostring(snapshot.model)))
+        return notify('error', Kora.lang('error.model_name_unavailable', tostring(snapshot.model)))
     end
 
     openCopyDialog(snapshot.modelName)
@@ -184,13 +184,13 @@ end
 
 local function startPicker()
     if state.active then
-        return notify('info', 'Entity picker is already active')
+        return notify('info', Kora.lang('error.entity_picker_active'))
     end
     if Kora.placement and Kora.placement.isActive and Kora.placement.isActive() then
-        return notify('error', 'Finish entity placement before opening the picker')
+        return notify('error', Kora.lang('error.finish_entity_placement'))
     end
     if Kora.zones and Kora.zones.isCreatorActive and Kora.zones.isCreatorActive() then
-        return notify('error', 'Finish zone creation before opening the picker')
+        return notify('error', Kora.lang('error.finish_zone_creation'))
     end
 
     state.active = true
@@ -201,7 +201,7 @@ local function startPicker()
     })
     state.text = hudText(nil)
     state.nextHudAt = 0
-    notify('info', 'Aim at an entity; model name and close bindings can be changed in FiveM settings')
+    notify('info', Kora.lang('ui.entity_picker_help'))
 
     CreateThread(function()
         while state.active do
@@ -241,7 +241,7 @@ end
 
 Kora.keybind.add({
     name = 'kora_admin_entitypicker_copy',
-    description = 'Entity Picker: Open Model Menu',
+    description = Kora.lang('ui.entity_picker_open'),
     defaultMapper = 'keyboard',
     defaultKey = Config.entityPicker.copyKey,
     onPressed = copyModelName,
@@ -249,7 +249,7 @@ Kora.keybind.add({
 
 Kora.keybind.add({
     name = 'kora_admin_entitypicker_close',
-    description = 'Entity Picker: Close',
+    description = Kora.lang('ui.entity_picker_close'),
     defaultMapper = 'keyboard',
     defaultKey = Config.entityPicker.closeKey,
     onPressed = function() stopPicker('Entity picker closed') end,

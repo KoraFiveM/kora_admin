@@ -36,7 +36,7 @@ Admin.addCommand('players', 'List online players', { { name = 'search', help = '
             end
         end
         if #lines == 0 then
-            Admin.respond(source, false, 'no players matched')
+            Admin.respond(source, false, Kora.lang('error.no_players_matched'))
             return
         end
         Admin.chat(source, table.concat(lines, '\n'))
@@ -51,14 +51,14 @@ local function addSetNeedCommand(commandName, metadataKey, label)
 
             local value = Admin.finiteNumber(args[2], 0, 100)
             if value == nil then
-                return Admin.respond(source, false, ('%s must be between 0 and 100'):format(label))
+                return Admin.respond(source, false, Kora.lang('error.error_s_must_be_between_0_and', label))
             end
 
             local ok, setErr = exports.kora_core:setMetaData(targetSrc, metadataKey, value)
-            if not ok then return Admin.respond(source, false, setErr or ('could not set %s'):format(label:lower())) end
+            if not ok then return Admin.respond(source, false, setErr or Kora.lang('error.error_could_not_set_s', label:lower())) end
 
             Admin.log(source, commandName, data, { value = value })
-            Admin.respond(source, true, ('Set %s\'s %s to %s'):format(data.name, label:lower(), value))
+            Admin.respond(source, true, Kora.lang('success.success_set_s_s_s_to_s', data.name, label:lower(), value))
         end, OPTS_ADMIN)
 end
 

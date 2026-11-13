@@ -44,7 +44,7 @@ end
 
 local function spawnFor(targetSrc, model)
     local ped = GetPlayerPed(targetSrc)
-    if not ped or ped == 0 then return nil, 'target player is unavailable' end
+    if not ped or ped == 0 then return nil, Kora.lang('error.target_player_is_unavailable') end
 
     local origin = GetEntityCoords(ped)
     local heading = GetEntityHeading(ped)
@@ -62,7 +62,7 @@ local function spawnFor(targetSrc, model)
         attempts = attempts + 1
     end
     if not vehicle or vehicle == 0 or not DoesEntityExist(vehicle) then
-        return nil, 'vehicle creation failed'
+        return nil, Kora.lang('error.vehicle_creation_failed')
     end
 
     SetEntityRoutingBucket(vehicle, GetPlayerRoutingBucket(targetSrc))
@@ -76,12 +76,12 @@ local function spawnFor(targetSrc, model)
     end
     if type(netId) ~= 'number' or netId <= 0 then
         DeleteEntity(vehicle)
-        return nil, 'vehicle network registration failed'
+        return nil, Kora.lang('error.vehicle_network_registration_failed')
     end
 
     if not giveVehicleKeys(targetSrc, vehicle) then
         DeleteEntity(vehicle)
-        return nil, 'could not grant vehicle keys'
+        return nil, Kora.lang('error.could_not_grant_vehicle_keys')
     end
 
     TriggerClientEvent('kora_admin:client:enterVehicle', targetSrc, netId, -1)
@@ -90,12 +90,12 @@ end
 
 Admin.addCommand('car', 'Spawn a vehicle and get in', { { name = 'model' } }, true, function(source, args)
     local model = validModel(args[1])
-    if not model then return Admin.respond(source, false, 'unknown vehicle model') end
+    if not model then return Admin.respond(source, false, Kora.lang('error.unknown_vehicle_model')) end
 
     local _, spawnErr = spawnFor(source, model)
     if spawnErr then return Admin.respond(source, false, spawnErr) end
     Admin.log(source, 'car', nil, { model = model })
-    Admin.respond(source, true, ('Spawned %s'):format(model))
+    Admin.respond(source, true, Kora.lang('success.success_spawned_s', model))
 end, OPTS_ADMIN)
 
 Admin.addCommand('veh', 'Spawn a vehicle for a player', { { name = 'id' }, { name = 'model' } }, true, function(source, args)
@@ -103,15 +103,15 @@ Admin.addCommand('veh', 'Spawn a vehicle for a player', { { name = 'id' }, { nam
     if not targetSrc then return Admin.respond(source, false, err) end
 
     local model = validModel(args[2])
-    if not model then return Admin.respond(source, false, 'unknown vehicle model') end
+    if not model then return Admin.respond(source, false, Kora.lang('error.unknown_vehicle_model')) end
 
     local _, spawnErr = spawnFor(targetSrc, model)
     if spawnErr then return Admin.respond(source, false, spawnErr) end
     if Config.vehicle.notifyTarget and targetSrc ~= source then
-        Kora.notify.send(targetSrc, { message = ('You received a %s and its keys'):format(model), type = 'success' })
+        Kora.notify.send(targetSrc, { message = Kora.lang('success.received_vehicle', model), type = 'success' })
     end
     Admin.log(source, 'veh', data, { model = model })
-    Admin.respond(source, true, ('Spawned %s for %s'):format(model, data.name))
+    Admin.respond(source, true, Kora.lang('success.success_spawned_s_for_s', model, data.name))
 end, OPTS_ADMIN)
 
 Admin.addCommand('givevehicle', 'Add a personal vehicle to a player garage', {
@@ -121,16 +121,16 @@ Admin.addCommand('givevehicle', 'Add a personal vehicle to a player garage', {
     if not data then return Admin.respond(source, false, err) end
 
     local model = validModel(args[2])
-    if not model then return Admin.respond(source, false, 'unknown vehicle model') end
+    if not model then return Admin.respond(source, false, Kora.lang('error.unknown_vehicle_model')) end
 
     local plate = validPlate(args[3])
-    if not plate then return Admin.respond(source, false, 'plate must be 1-15 letters or numbers') end
+    if not plate then return Admin.respond(source, false, Kora.lang('error.plate_must_be_1_15_letters')) end
 
     local created, createErr = exports.kora_core:createVehicle(data.citizenid, model, plate)
-    if not created then return Admin.respond(source, false, createErr or 'could not save vehicle') end
+        if not created then return Admin.respond(source, false, createErr or Kora.lang('error.vehicle_save_failed')) end
 
     Admin.log(source, 'givevehicle', data, { model = model, plate = plate })
-    Admin.respond(source, true, ('Added %s (%s) to %s\'s garage'):format(model, plate, data.name))
+    Admin.respond(source, true, Kora.lang('success.success_added_s_s_to_s_s', model, plate, data.name))
 end, OPTS_ADMIN)
 
 -- True when another player is sitting in the vehicle; /dv never deletes those
@@ -171,24 +171,24 @@ Admin.addCommand('dv', 'Delete the vehicle you are in, else the nearest one (or 
 
     -- nearestRadius = 0 keeps the original in-vehicle-only behaviour.
     if nearest <= 0 then
-        if not inVehicle then return Admin.respond(source, false, 'you are not in a vehicle') end
+        if not inVehicle then return Admin.respond(source, false, Kora.lang('error.you_are_not_in_a_vehicle')) end
         DeleteEntity(vehicle)
         Admin.log(source, 'dv')
-        return Admin.respond(source, true, 'Deleted your current vehicle')
+        return Admin.respond(source, true, Kora.lang('success.deleted_your_current_vehicle'))
     end
 
     local radius
     if args and args[1] ~= nil and args[1] ~= '' then
         radius = tonumber(args[1])
         if not radius or radius ~= radius or radius <= 0 or radius == math.huge then
-            return Admin.respond(source, false, 'radius must be a positive number')
+            return Admin.respond(source, false, Kora.lang('error.radius_must_be_a_positive_number'))
         end
         radius = math.min(radius, maxRadius > 0 and maxRadius or nearest)
     elseif inVehicle then
         local plate = GetVehicleNumberPlateText(vehicle)
         DeleteEntity(vehicle)
         Admin.log(source, 'dv', nil, { mode = 'current', plate = plate })
-        return Admin.respond(source, true, 'Deleted your current vehicle')
+        return Admin.respond(source, true, Kora.lang('success.deleted_your_current_vehicle'))
     end
 
     local candidates = {}
@@ -196,7 +196,7 @@ Admin.addCommand('dv', 'Delete the vehicle you are in, else the nearest one (or 
         if not occupiedByOther(found.entity, source) then candidates[#candidates + 1] = found.entity end
     end
     if #candidates == 0 then
-        return Admin.respond(source, false, ('no vehicle within %.1f m'):format(radius or nearest))
+        return Admin.respond(source, false, Kora.lang('error.error_no_vehicle_within_1f_m', radius or nearest))
     end
     if not radius then candidates = { candidates[1] } end
 
@@ -216,9 +216,9 @@ end, OPTS_ADMIN)
 
 Admin.addCommand('fix', 'Repair the vehicle you are in', nil, false, function(source)
     if GetVehiclePedIsIn(GetPlayerPed(source)) == 0 then
-        return Admin.respond(source, false, 'you are not in a vehicle')
+        return Admin.respond(source, false, Kora.lang('error.you_are_not_in_a_vehicle'))
     end
     TriggerClientEvent('kora_admin:client:fix', source)
     Admin.log(source, 'fix')
-    Admin.respond(source, true, 'Repaired your current vehicle')
+    Admin.respond(source, true, Kora.lang('success.repaired_your_current_vehicle'))
 end, OPTS_MOD)

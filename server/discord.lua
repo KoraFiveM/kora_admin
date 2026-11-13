@@ -27,7 +27,7 @@ end
 
 function Admin.parseDiscordArgs(text)
     if text == nil or text == '' then return {} end
-    if type(text) ~= 'string' or #text > 2000 or text:find('%c') then return nil, 'invalid arguments' end
+    if type(text) ~= 'string' or #text > 2000 or text:find('%c') then return nil, Kora.lang('error.invalid_arguments') end
     local args, current, quote = {}, '', nil
     local started, index = false, 1
     while index <= #text do
@@ -44,12 +44,12 @@ function Admin.parseDiscordArgs(text)
         else
             current, started = current .. char, true
         end
-        if #args > 32 then return nil, 'too many arguments' end
+        if #args > 32 then return nil, Kora.lang('error.too_many_arguments') end
         index = index + 1
     end
-    if quote then return nil, 'unclosed quote in arguments' end
+    if quote then return nil, Kora.lang('error.unclosed_quote_in_arguments') end
     if started then args[#args + 1] = current end
-    if #args > 32 then return nil, 'too many arguments' end
+    if #args > 32 then return nil, Kora.lang('error.too_many_arguments_2') end
     return args
 end
 
@@ -116,7 +116,7 @@ local function runCommand(context, name, args, confirmed)
         return Admin.respond(context.source, false, 'Set confirm to true to run this command')
     end
     if definition.argsRequired and definition.args and #args < #definition.args then
-        return Admin.respond(context.source, false, ('Missing arguments for /%s'):format(name))
+        return Admin.respond(context.source, false, Kora.lang('error.error_missing_arguments_for_s', name))
     end
     Admin.log(context.source, 'discord.command', nil, {
         command = name, args = args, discord_id = context.userId,
@@ -148,7 +148,7 @@ local function scheduleRestart(context, reason, confirmed)
         discord_id = context.userId, reason = reason, delay_seconds = delay,
     })
     restartPending = true
-    Kora.notify.sendToAll({ title = 'Server restart', message = ('Restart in %d seconds: %s'):format(delay, reason),
+    Kora.notify.sendToAll({ title = Kora.lang('title.server_restart'), message = Kora.lang('ui.restart_in', delay, reason),
         type = 'warning', duration = 10000 })
     SetTimeout(delay * 1000, function()
         CreateThread(function()
@@ -159,7 +159,7 @@ local function scheduleRestart(context, reason, confirmed)
                 or not contains(Config.discord.channels, context.channelId) then
                 restartPending = false
                 Admin.log(0, 'discord.restart.cancelled', nil, { discord_id = context.userId, reason = 'Access or configuration changed' })
-                Kora.notify.sendToAll({ title = 'Server restart cancelled', message = 'Restart authorization is no longer available.', type = 'info' })
+                Kora.notify.sendToAll({ title = Kora.lang('title.restart_cancelled'), message = Kora.lang('error.restart_auth_unavailable'), type = 'info' })
                 return
             end
             Admin.commandContexts[coroutine.running()] = context
@@ -172,12 +172,12 @@ local function scheduleRestart(context, reason, confirmed)
                 CreateThread(function()
                     print(('^1[kora_admin:discord]^7 txAdmin restart failed: %s'):format(tostring(message)))
                     Admin.log(0, 'discord.restart.failed', nil, { discord_id = context.userId, error = tostring(message) })
-                    Kora.notify.sendToAll({ title = 'Server restart unconfirmed', message = 'txAdmin did not confirm the restart. Staff should check its control panel.', type = 'error' })
+                    Kora.notify.sendToAll({ title = Kora.lang('title.restart_unconfirmed'), message = Kora.lang('error.restart_unconfirmed'), type = 'error' })
                 end)
             end)
         end)
     end)
-    Admin.respond(context.source, true, ('Server restart scheduled in %d seconds. Reason: %s'):format(delay, reason))
+    Admin.respond(context.source, true, Kora.lang('success.success_server_restart_scheduled_in_d_seconds', delay, reason))
 end
 
 local function optionValues(interaction)
@@ -195,10 +195,10 @@ function Admin.handleDiscordInteraction(interaction)
         or interaction.guild_id ~= guildId() or not contains(settings.channels, interaction.channel_id)
         or interaction.type ~= 2 or not interaction.data or interaction.data.name ~= 'kora_admin'
         or type(userId) ~= 'string' or not userId:match('^%d+$') then
-        return { ok = false, message = 'Discord administration is unavailable in this server or channel' }
+        return { ok = false, message = Kora.lang('error.discord_unavailable') }
     end
     local now = os.time()
-    if cooldowns[userId] and cooldowns[userId] > now then return { ok = false, message = 'Wait a few seconds before another command' } end
+    if cooldowns[userId] and cooldowns[userId] > now then return { ok = false, message = Kora.lang('error.discord_cooldown') } end
     cooldowns[userId] = now + settings.cooldownSeconds
     SetTimeout(settings.cooldownSeconds * 1000, function()
         if cooldowns[userId] and cooldowns[userId] <= os.time() then cooldowns[userId] = nil end
@@ -209,7 +209,7 @@ function Admin.handleDiscordInteraction(interaction)
     -- Re-check live policy after the yielding Discord request.
     if not Config.discord.enabled or interaction.application_id ~= Config.discord.applicationId
         or interaction.guild_id ~= guildId() or not contains(Config.discord.channels, interaction.channel_id) then
-        return { ok = false, message = 'Discord configuration changed; retry the command' }
+        return { ok = false, message = Kora.lang('error.discord_config_changed') }
     end
     local context = {
         source = playerSource(userId), userId = userId, level = level,
@@ -222,7 +222,7 @@ function Admin.handleDiscordInteraction(interaction)
     local worked, failure = xpcall(function()
         if not Admin.checkLevel(context.source, 'support') then
             Admin.log(context.source, 'discord.denied', nil, { discord_id = userId, interaction_id = interaction.id })
-            return Admin.respond(context.source, false, 'No staff role is linked to your Discord account')
+            return Admin.respond(context.source, false, Kora.lang('error.discord_role_unlinked'))
         end
         local action, values = optionValues(interaction)
         if action == 'run' then
@@ -245,7 +245,7 @@ function Admin.handleDiscordInteraction(interaction)
         elseif action == 'restart' then
             scheduleRestart(context, values.reason, values.confirm)
         else
-            Admin.respond(context.source, false, 'Unknown Discord action')
+            Admin.respond(context.source, false, Kora.lang('error.discord_unknown_action'))
         end
         Admin.log(context.source, 'discord.result', nil, {
             discord_id = userId, interaction_id = interaction.id, action = action, ok = context.ok,
@@ -254,7 +254,7 @@ function Admin.handleDiscordInteraction(interaction)
     Admin.commandContexts[thread] = nil
     if not worked then
         print(('^1[kora_admin:discord]^7 command failed: %s'):format(failure))
-        return { ok = false, message = 'Command failed. Staff should check the server log.' }
+        return { ok = false, message = Kora.lang('error.discord_command_failed') }
     end
     return { ok = context.ok, message = table.concat(context.messages, '\n') }
 end
@@ -270,7 +270,7 @@ exports('discordDispatch', function(encoded, callback)
     if GetInvokingResource() ~= GetCurrentResourceName() then return false end
     CreateThread(function()
         local ok, result = pcall(function() return Admin.handleDiscordInteraction(json.decode(encoded)) end)
-        callback(json.encode(ok and result or { ok = false, message = 'Discord administration failed' }))
+        callback(json.encode(ok and result or { ok = false, message = Kora.lang('error.discord_admin_failed') }))
     end)
     return true
 end)
@@ -321,20 +321,20 @@ Kora.config.onValidate(function(proposed)
     if settings.enabled then
         if not settings.applicationId:match('^%d+$') or not settings.publicKey:match('^%x+$') or #settings.publicKey ~= 64
             or not (settings.guildId ~= '' and settings.guildId or guildConvar()):match('^%d+$') then
-            return false, 'Set a valid Discord application ID, server ID and public key before enabling administration.'
+            return false, Kora.lang('error.set_a_valid_discord_application_id')
         end
-        if not Kora.discord.botEnabled() then return false, 'Set the server-only kora_lib_discord_bot_token first.' end
+        if not Kora.discord.botEnabled() then return false, Kora.lang('error.set_the_server_only_kora_lib') end
     end
-    if not proposed.permissions.roles[settings.restartRole] then return false, 'Restart tier must be a configured staff role.' end
+    if not proposed.permissions.roles[settings.restartRole] then return false, Kora.lang('error.restart_tier_must_be_a_configured') end
     for _, id in ipairs(settings.channels) do
-        if not id:match('^%d+$') then return false, 'Staff channels must be Discord channel IDs.' end
+        if not id:match('^%d+$') then return false, Kora.lang('error.staff_channels_must_be_discord_channel') end
     end
     if proposed.permissions.mode == 'discord' then
         if not Kora.discord.botEnabled() or not (settings.guildId ~= '' and settings.guildId or guildConvar()):match('^%d+$') then
-            return false, 'Configure the Discord bot and server before enabling Discord-only access.'
+            return false, Kora.lang('error.configure_the_discord_bot_and_server')
         end
         local owner = proposed.permissions.discordRoles[proposed.configEditor.level]
-        if not owner or #owner == 0 then return false, 'Map the configuration editor role before enabling Discord-only access.' end
+        if not owner or #owner == 0 then return false, Kora.lang('error.map_the_configuration_editor_role_before') end
     end
     return true
 end)

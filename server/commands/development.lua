@@ -14,7 +14,7 @@ local function developmentReady(source)
     if not Config.developer.requireDevMode then return true end
     if exports.kora_core:isDevMode(source) then return true end
 
-    Admin.respond(source, false, 'enable Kora Development Mode before using creator tools')
+    Admin.respond(source, false, Kora.lang('error.enable_kora_development_mode_before_using'))
     return false
 end
 
@@ -32,7 +32,7 @@ Admin.addCommand('devplacement', 'Open kora_lib entity placement for a model', {
 
     local model = args[1]
     if type(model) ~= 'string' or model == '' or not model:match('^[%w_%-]+$') then
-        return Admin.respond(source, false, 'model must be a model name or numeric hash')
+        return Admin.respond(source, false, Kora.lang('error.model_must_be_a_model_name'))
     end
 
     if model:match('^%-?%d+$') then model = tonumber(model) end
@@ -47,7 +47,7 @@ Admin.addCommand('devzone', 'Open kora_lib zone creator (box, sphere, or poly)',
 
     local zoneType = type(args[1]) == 'string' and args[1]:lower() or nil
     if not zoneType or not ZONE_TYPES[zoneType] then
-        return Admin.respond(source, false, 'zone type must be box, sphere, or poly')
+        return Admin.respond(source, false, Kora.lang('error.zone_type_must_be_box_sphere'))
     end
 
     TriggerClientEvent('kora_admin:client:startZoneCreator', source, zoneType)

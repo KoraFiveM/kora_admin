@@ -11,13 +11,13 @@ local OPTS_TEMPORARY_ACCESS = {
 
 Admin.addCommand('restartresource', 'Restart a resource', { { name = 'name' } }, true, function(source, args)
     local resourceName = args[1]
-    if not resourceName or resourceName == '' then return Admin.respond(source, false, 'resource name required') end
-    if not resourceName:match('^[%w_-]+$') then return Admin.respond(source, false, 'invalid resource name') end
-    if GetResourceState(resourceName) == 'missing' then return Admin.respond(source, false, 'no such resource') end
+    if not resourceName or resourceName == '' then return Admin.respond(source, false, Kora.lang('error.resource_name_required')) end
+    if not resourceName:match('^[%w_-]+$') then return Admin.respond(source, false, Kora.lang('error.invalid_resource_name')) end
+    if GetResourceState(resourceName) == 'missing' then return Admin.respond(source, false, Kora.lang('error.no_such_resource')) end
 
     Admin.log(source, 'restartresource', nil, { resource = resourceName })
     ExecuteCommand(('restart %s'):format(resourceName))
-    Admin.respond(source, true, ('Restarted %s'):format(resourceName))
+    Admin.respond(source, true, Kora.lang('success.success_restarted_s', resourceName))
 end, OPTS_GOD)
 
 Admin.addCommand('setpermission', 'Grant a player a permission level (runtime only)', { { name = 'id' }, { name = 'level' } }, true,
@@ -27,7 +27,7 @@ Admin.addCommand('setpermission', 'Grant a player a permission level (runtime on
 
         local level = Admin.resolveRole(args[2] or '')
         if not level or not Admin.isRole(level) or level == 'user' then
-            return Admin.respond(source, false, 'invalid permission level')
+            return Admin.respond(source, false, Kora.lang('error.invalid_permission_level'))
         end
 
         -- exports.kora_core:addPermission is a runtime add_principal grant only --
@@ -35,7 +35,7 @@ Admin.addCommand('setpermission', 'Grant a player a permission level (runtime on
         -- edited. That is kora_core's own documented behavior, not a bug here.
         exports.kora_core:addPermission(targetSrc, level)
         Admin.log(source, 'setpermission', data, { level = level })
-        Admin.respond(source, true, ('Granted %s to %s (runtime only -- edit server.cfg to persist)'):format(level, data.name))
+        Admin.respond(source, true, Kora.lang('success.success_granted_s_to_s_runtime_only', level, data.name))
     end, OPTS_GOD)
 
 Admin.addCommand('revokepermission', "Revoke a player's permission level (runtime only)", { { name = 'id' }, { name = 'level' } }, true,
@@ -45,7 +45,7 @@ Admin.addCommand('revokepermission', "Revoke a player's permission level (runtim
 
         local level = Admin.resolveRole(args[2] or '')
         if not level or not Admin.isRole(level) or level == 'user' then
-            return Admin.respond(source, false, 'invalid permission level')
+            return Admin.respond(source, false, Kora.lang('error.invalid_permission_level'))
         end
 
         -- No removePermission counterpart exists in kora_core/modules/permissions
@@ -54,12 +54,12 @@ Admin.addCommand('revokepermission', "Revoke a player's permission level (runtim
         -- see docs.md). Config.permissions.principalIdentifier must be kept in
         -- sync with kora_core's own Config.identity.primaryIdentifier.
         local license = exports.kora_core:primary(targetSrc)
-        if not license then return Admin.respond(source, false, 'could not resolve target identifier') end
+        if not license then return Admin.respond(source, false, Kora.lang('error.could_not_resolve_target_identifier')) end
 
         ExecuteCommand(('remove_principal identifier.%s:%s kora_core.%s'):format(
             Config.permissions.principalIdentifier, license:gsub('^%w+:', ''), level))
         Admin.log(source, 'revokepermission', data, { level = level })
-        Admin.respond(source, true, ('Revoked %s from %s (runtime only)'):format(level, data.name))
+        Admin.respond(source, true, Kora.lang('success.success_revoked_s_from_s_runtime_only', level, data.name))
     end, OPTS_GOD)
 
 -- Timed grants do not use add_principal. They live only in kora_admin memory,
@@ -73,13 +73,13 @@ Admin.addCommand('granttempaccess', 'Grant a player a temporary admin role',
 
         local role = Admin.resolveRole(args[2] or '')
         if not Admin.canManageTemporaryAccess(source, role) then
-            return Admin.respond(source, false, 'that temporary role cannot be granted')
+            return Admin.respond(source, false, Kora.lang('error.that_temporary_role_cannot_be_granted'))
         end
 
         local minutes = Admin.finiteNumber(args[3], Config.permissions.temporaryGrant.minMinutes,
             Config.permissions.temporaryGrant.maxMinutes, true)
         if not minutes then
-            return Admin.respond(source, false, ('duration must be %d-%d minutes'):format(
+            return Admin.respond(source, false, Kora.lang('error.error_duration_must_be_d_d_minutes')
                 Config.permissions.temporaryGrant.minMinutes, Config.permissions.temporaryGrant.maxMinutes))
         end
 
@@ -88,7 +88,7 @@ Admin.addCommand('granttempaccess', 'Grant a player a temporary admin role',
 
         Admin.syncLevel(targetSrc)
         Admin.log(source, 'granttempaccess', data, { role = role, minutes = minutes, expires_at = expiresAt })
-        Admin.respond(source, true, ('Granted %s access to %s for %d minute%s'):format(
+        Admin.respond(source, true, Kora.lang('success.success_granted_s_access_to_s_for')
             Admin.roleLabel(role), data.name, minutes, minutes == 1 and '' or 's'))
     end, OPTS_TEMPORARY_ACCESS)
 
@@ -100,14 +100,14 @@ Admin.addCommand('revoketempaccess', 'Revoke a player\'s temporary admin role',
 
         local role = Admin.resolveRole(args[2] or '')
         if not Admin.canManageTemporaryAccess(source, role) then
-            return Admin.respond(source, false, 'that temporary role cannot be revoked')
+            return Admin.respond(source, false, Kora.lang('error.that_temporary_role_cannot_be_revoked'))
         end
 
         if not Admin.revokeTemporaryAccess(targetSrc, role) then
-            return Admin.respond(source, false, ('%s has no temporary %s access'):format(data.name, Admin.roleLabel(role)))
+            return Admin.respond(source, false, Kora.lang('error.error_s_has_no_temporary_s_access', data.name, Admin.roleLabel(role)))
         end
 
         Admin.syncLevel(targetSrc)
         Admin.log(source, 'revoketempaccess', data, { role = role })
-        Admin.respond(source, true, ('Revoked temporary %s access from %s'):format(Admin.roleLabel(role), data.name))
+        Admin.respond(source, true, Kora.lang('success.success_revoked_temporary_s_access_from_s', Admin.roleLabel(role), data.name))
     end, OPTS_TEMPORARY_ACCESS)

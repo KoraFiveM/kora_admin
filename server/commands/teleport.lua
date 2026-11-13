@@ -45,23 +45,23 @@ end
 Admin.addCommand('goto', 'Teleport to a player', { { name = 'id' } }, true, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
-    if targetSrc == source then return Admin.respond(source, false, 'cannot goto yourself') end
+    if targetSrc == source then return Admin.respond(source, false, Kora.lang('error.cannot_goto_yourself')) end
 
     local coords = GetEntityCoords(GetPlayerPed(targetSrc))
     TriggerClientEvent('kora_admin:client:teleportTo', source, { x = coords.x, y = coords.y, z = coords.z })
     Admin.log(source, 'goto', data)
-    Admin.respond(source, true, ('Teleported to %s'):format(data.name))
+    Admin.respond(source, true, Kora.lang('success.success_teleported_to_s', data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('bring', 'Teleport a player to you', { { name = 'id' } }, true, function(source, args)
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
-    if targetSrc == source then return Admin.respond(source, false, 'cannot bring yourself') end
+    if targetSrc == source then return Admin.respond(source, false, Kora.lang('error.cannot_bring_yourself')) end
 
     local coords = GetEntityCoords(GetPlayerPed(source))
     TriggerClientEvent('kora_admin:client:teleportTo', targetSrc, { x = coords.x, y = coords.y, z = coords.z })
     Admin.log(source, 'bring', data)
-    Admin.respond(source, true, ('Brought %s to you'):format(data.name))
+    Admin.respond(source, true, Kora.lang('success.success_brought_s_to_you', data.name))
 end, OPTS_MOD)
 
 -- Every kora_admin teleport is recorded by the destination client's own bounded
@@ -73,7 +73,7 @@ Admin.addCommand('sendback', 'Return a player to their position before the last 
 
     TriggerClientEvent('kora_admin:client:tpback', targetSrc)
     Admin.log(source, 'sendback', data)
-    Admin.respond(source, true, ('Sent %s back'):format(data.name))
+    Admin.respond(source, true, Kora.lang('success.success_sent_s_back', data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('tpm', 'Teleport to your waypoint', nil, false, function(source)
@@ -84,7 +84,7 @@ Admin.addCommand('tpcoords', 'Teleport to coordinates or vec3/vector3/vec4/vecto
     function(source, args)
         local coords = parseCoordinates(args)
         if not coords then
-            return Admin.respond(source, false, 'use x y z, vec3(x, y, z), or vec4(x, y, z, heading)')
+            return Admin.respond(source, false, Kora.lang('error.use_x_y_z_vec3_x'))
         end
         TriggerClientEvent('kora_admin:client:teleportTo', source, coords)
     end, OPTS_MOD)
@@ -96,17 +96,17 @@ end, OPTS_MOD)
 Admin.addCommand('spectate', 'Spectate a player; omit id to stop', { { name = 'id' } }, false, function(source, args)
     if not args[1] or args[1] == '' then
         TriggerClientEvent('kora_admin:client:spectate', source, nil)
-        Admin.respond(source, true, 'Stopped spectating')
+        Admin.respond(source, true, Kora.lang('success.stopped_spectating'))
         return
     end
 
     local targetSrc, data, err = Admin.resolveTarget(source, args[1])
     if not targetSrc then return Admin.respond(source, false, err) end
-    if targetSrc == source then return Admin.respond(source, false, 'cannot spectate yourself') end
+    if targetSrc == source then return Admin.respond(source, false, Kora.lang('error.cannot_spectate_yourself')) end
 
     TriggerClientEvent('kora_admin:client:spectate', source, targetSrc)
     Admin.log(source, 'spectate', data)
-    Admin.respond(source, true, ('Spectating %s'):format(data.name))
+    Admin.respond(source, true, Kora.lang('success.success_spectating_s', data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('noclip', 'Toggle a free-fly camera', nil, false, function(source)

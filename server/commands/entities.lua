@@ -15,17 +15,17 @@ local function validEntityModel(model)
     if hash == 0 or hash == -1 then return nil end
     local record = Kora.lookup.model(hash)
     if not record then return nil end
-    if record.namespace == 'vehicle' then return nil, 'use /car or /veh for vehicle models' end
+    if record.namespace == 'vehicle' then return nil, Kora.lang('error.use_car_or_veh_for_vehicle') end
     return model
 end
 
 Admin.addCommand('entity', 'Spawn a static ped or prop in front of you', { { name = 'model' } }, true, function(source, args)
     local model, err = validEntityModel(args[1])
-    if not model then return Admin.respond(source, false, err or 'unknown ped or prop model') end
+    if not model then return Admin.respond(source, false, err or Kora.lang('error.unknown_ped_prop')) end
 
     TriggerClientEvent('kora_admin:client:spawnEntity', source, model)
     Admin.log(source, 'entity', nil, { model = model })
-    Admin.respond(source, true, ('Spawning %s'):format(model))
+    Admin.respond(source, true, Kora.lang('success.success_spawning_s', model))
 end, OPTS_ADMIN)
 
 Admin.addCommand('entityfor', 'Spawn a static ped or prop for a player', { { name = 'id' }, { name = 'model' } }, true, function(source, args)
@@ -33,15 +33,15 @@ Admin.addCommand('entityfor', 'Spawn a static ped or prop for a player', { { nam
     if not targetSrc then return Admin.respond(source, false, targetErr) end
 
     local model, err = validEntityModel(args[2])
-    if not model then return Admin.respond(source, false, err or 'unknown ped or prop model') end
+    if not model then return Admin.respond(source, false, err or Kora.lang('error.unknown_ped_prop')) end
 
     TriggerClientEvent('kora_admin:client:spawnEntity', targetSrc, model)
     Admin.log(source, 'entityfor', data, { model = model })
-    Admin.respond(source, true, ('Spawning %s for %s'):format(model, data.name))
+    Admin.respond(source, true, Kora.lang('success.success_spawning_s_for_s', model, data.name))
 end, OPTS_ADMIN)
 
 Admin.addCommand('deleteentity', 'Delete your last admin-spawned entity', nil, false, function(source)
     TriggerClientEvent('kora_admin:client:deleteLastEntity', source)
     Admin.log(source, 'deleteentity')
-    Admin.respond(source, true, 'Deleting your last admin-spawned entity')
+    Admin.respond(source, true, Kora.lang('success.deleting_your_last_admin_spawned_entity'))
 end, OPTS_ADMIN)

@@ -3,7 +3,7 @@
 
 local function notify(kind, message)
     Kora.notify.send({
-        title = 'Developer tools',
+        title = Kora.lang('title.developer_tools'),
         type = kind,
         message = message,
     })
@@ -15,9 +15,9 @@ local function runCreator(label, create)
         if not ok then
             notify('error', tostring(result))
         elseif result then
-            notify('success', ('%s data copied'):format(label))
+            notify('success', Kora.lang('success.developer_data_copied', label))
         else
-            notify('info', ('%s cancelled or unavailable'):format(label))
+            notify('info', Kora.lang('ui.developer_action_unavailable', label))
         end
     end)
 end

@@ -19,14 +19,14 @@ end
 
 Admin.addCommand('announce', 'Broadcast a message to every player', { { name = 'message' } }, true, function(source, args)
     local message = table.concat(args, ' ')
-    if message == '' then return Admin.respond(source, false, 'message required') end
+    if message == '' then return Admin.respond(source, false, Kora.lang('error.message_required')) end
 
-    Kora.notify.sendToAll({ title = 'Announcement', message = message, type = 'info', duration = 8000 })
+    Kora.notify.sendToAll({ title = Kora.lang('title.announcement'), message = message, type = 'info', duration = 8000 })
     if Config.announcement.sound.enabled then
         TriggerClientEvent('kora_admin:client:announceSound', -1)
     end
     Admin.log(source, 'announce', nil, { message = message })
-    Admin.respond(source, true, 'Announcement sent')
+    Admin.respond(source, true, Kora.lang('success.announcement_sent'))
 end, OPTS_ADMIN)
 
 -- Console/RCON only: lets the Discord bot put restart warnings on every player's screen.
@@ -37,7 +37,7 @@ RegisterCommand('kora_broadcast', function(source, _, raw)
     local message = raw:match('^%S+%s+(.+)$')
     if not message then return end
 
-    Kora.notify.sendToAll({ title = 'Server', message = message:sub(1, 200), type = 'warning', duration = 60000 })
+    Kora.notify.sendToAll({ title = Kora.lang('title.server'), message = message:sub(1, 200), type = 'warning', duration = 60000 })
 end, true)
 
 Admin.addCommand('weather', 'Set the server weather', { { name = 'type' } }, true, function(source, args)
@@ -51,14 +51,14 @@ Admin.addCommand('weather', 'Set the server weather', { { name = 'type' } }, tru
             if w == weatherType then valid = true; break end
         end
         if not valid then
-            return Admin.respond(source, false, ('unknown weather type (options: %s)'):format(table.concat(Config.world.weatherTypes, ', ')))
+            return Admin.respond(source, false, Kora.lang('error.error_unknown_weather_type_options_s', table.concat(Config.world.weatherTypes, ', ')))
         end
 
         currentWeather = weatherType
         TriggerClientEvent('kora_admin:client:setWeather', -1, weatherType)
     end
     Admin.log(source, 'weather', nil, { type = weatherType })
-    Admin.respond(source, true, ('Weather set to %s'):format(weatherType))
+    Admin.respond(source, true, Kora.lang('success.success_weather_set_to_s', weatherType))
 end, OPTS_ADMIN)
 
 ---A preset is a Config-owned word, not a number the menu supplies, so the NUI
@@ -106,7 +106,7 @@ Admin.addCommand('time', 'Set the server clock', { { name = 'hour|preset' }, { n
             return Admin.respond(source, false,
                 ('hour must be a whole number from 0-23, or one of: %s'):format(presetNames()))
         end
-        if minute == nil then return Admin.respond(source, false, 'minute must be a whole number from 0-59') end
+        if minute == nil then return Admin.respond(source, false, Kora.lang('error.minute_must_be_a_whole_number')) end
     end
 
     if GetResourceState('kora_weathersync') == 'started' then
@@ -135,7 +135,7 @@ end, OPTS_MOD)
 Admin.addCommand('adminlog', 'View the admin audit log', { { name = 'action' }, { name = 'target' }, { name = 'page' } }, false,
     function(source, args)
         local rows = Admin.queryLogs({ action = args[1], target = args[2], page = tonumber(args[3]) })
-        if #rows == 0 then return Admin.respond(source, false, 'no matching log entries') end
+        if #rows == 0 then return Admin.respond(source, false, Kora.lang('error.no_matching_log_entries')) end
 
         for _, row in ipairs(rows) do
             local epoch = tonumber(row.created_epoch)

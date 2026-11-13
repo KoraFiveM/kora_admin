@@ -7,7 +7,7 @@ local function allowed(source)
 end
 
 local function deny(source)
-    if not allowed(source) then return nil, 'permission denied' end
+    if not allowed(source) then return nil, Kora.lang('error.permission_denied_2') end
     return true
 end
 
@@ -68,10 +68,10 @@ end)
 Kora.callback.register('kora_admin:configRead', function(source, resource)
     local ok, err = deny(source)
     if not ok then return nil, err end
-    if type(resource) ~= 'string' then return nil, 'invalid resource' end
+    if type(resource) ~= 'string' then return nil, Kora.lang('error.invalid_resource_2') end
 
     local readOk, entry = pcall(Kora.config.read, resource)
-    if not readOk or type(entry) ~= 'table' then return nil, 'configuration is unavailable' end
+    if not readOk or type(entry) ~= 'table' then return nil, Kora.lang('error.configuration_is_unavailable') end
     entry.configured = sanitize(entry.schema, entry.configured)
     entry.values = sanitize(entry.schema, entry.values)
     entry.schema = sanitizeSchema(entry.schema)
@@ -99,7 +99,7 @@ end
 Kora.callback.register('kora_admin:configCommit', function(source, request)
     local ok, err = deny(source)
     if not ok then return nil, err end
-    if not validRequest(request) then return nil, 'invalid configuration request' end
+    if not validRequest(request) then return nil, Kora.lang('error.invalid_configuration_request') end
 
     local result = Kora.config.commit(request.resource, {
         path = request.path,
@@ -118,7 +118,7 @@ end)
 Kora.callback.register('kora_admin:configReset', function(source, request)
     local ok, err = deny(source)
     if not ok then return nil, err end
-    if not validRequest(request) then return nil, 'invalid configuration request' end
+    if not validRequest(request) then return nil, Kora.lang('error.invalid_configuration_request_2') end
 
     local result = Kora.config.reset(request.resource, {
         path = request.path,

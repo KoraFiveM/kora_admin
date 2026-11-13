@@ -116,10 +116,10 @@ end
 ---@return table|nil coords
 ---@return string|nil err
 local function getWaypointCoords()
-    if not IsWaypointActive() then return nil, 'no waypoint set' end
+    if not IsWaypointActive() then return nil, Kora.lang('error.no_waypoint') end
 
     local waypoint = GetFirstBlipInfoId(GetWaypointBlipEnumId())
-    if not DoesBlipExist(waypoint) then return nil, 'no waypoint set' end
+    if not DoesBlipExist(waypoint) then return nil, Kora.lang('error.no_waypoint') end
 
     local coords = GetBlipInfoIdCoord(waypoint)
     return { x = coords.x, y = coords.y, z = coords.z }
@@ -132,7 +132,7 @@ end)
 RegisterNetEvent('kora_admin:client:tpm', function()
     local coords, err = getWaypointCoords()
     if not coords then
-        Kora.notify.send({ title = 'Admin — Error', message = err, type = 'error' })
+        Kora.notify.send({ title = Kora.lang('title.error'), message = err, type = 'error' })
         return
     end
     Admin.teleportTo(coords, true)
@@ -140,7 +140,7 @@ end)
 
 RegisterNetEvent('kora_admin:client:tpback', function()
     if not lastPosition then
-        Kora.notify.send({ title = 'Admin — Error', message = 'no previous position recorded', type = 'error' })
+        Kora.notify.send({ title = Kora.lang('title.error'), message = Kora.lang('error.no_previous_position'), type = 'error' })
         return
     end
     Admin.teleportTo({ x = lastPosition.x, y = lastPosition.y, z = lastPosition.z })

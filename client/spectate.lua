@@ -18,7 +18,7 @@ end
 local function start(targetSrc)
     local targetPlayer = GetPlayerFromServerId(targetSrc)
     if targetPlayer == -1 then
-        Kora.notify.send({ title = 'Admin — Error', message = 'target is not visible to your client yet', type = 'error' })
+        Kora.notify.send({ title = Kora.lang('title.error'), message = Kora.lang('error.target_not_visible'), type = 'error' })
         return
     end
 
@@ -30,7 +30,7 @@ local function start(targetSrc)
         ped = GetPlayerPed(targetPlayer)
     end
     if not DoesEntityExist(ped) then
-        Kora.notify.send({ title = 'Admin — Error', message = 'could not find target ped', type = 'error' })
+        Kora.notify.send({ title = Kora.lang('title.error'), message = Kora.lang('error.target_ped_missing'), type = 'error' })
         return
     end
 
@@ -50,7 +50,7 @@ RegisterNetEvent('kora_admin:client:spectate', function(targetSrc)
     -- Selecting Spectate on the player already being spectated toggles it off.
     if spectating == targetSrc then
         stop()
-        Kora.notify.send({ title = 'Admin', message = 'Stopped spectating', type = 'info' })
+        Kora.notify.send({ title = Kora.lang('title.admin'), message = Kora.lang('success.spectating_stopped'), type = 'info' })
         return
     end
     start(targetSrc)
@@ -59,13 +59,13 @@ end)
 
 Kora.keybind.add({
     name = 'kora_admin_spectate_stop',
-    description = 'Admin: Stop Spectating',
+    description = Kora.lang('ui.stop_spectating'),
     defaultMapper = 'keyboard',
     defaultKey = Config.spectate.stopKey,
     onPressed = function()
         if not spectating then return end
         stop()
-        Kora.notify.send({ title = 'Admin', message = 'Stopped spectating', type = 'info' })
+        Kora.notify.send({ title = Kora.lang('title.admin'), message = Kora.lang('success.spectating_stopped'), type = 'info' })
     end,
 })
 

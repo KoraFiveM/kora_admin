@@ -14,7 +14,7 @@ end
 function Admin.addCommand(name, help, args, argsRequired, handler, options)
     local function run(source, parsedArgs, raw)
         if not Admin.accessCommandAllowed(name) then
-            return Admin.respond(source, false, 'Manage access through Discord roles while Discord-only mode is active')
+            return Admin.respond(source, false, Kora.lang('error.manage_access_through_discord_roles_while'))
         end
         return handler(source, parsedArgs, raw)
     end

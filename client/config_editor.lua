@@ -83,7 +83,7 @@ local function fieldFor(setting)
         return fields
     end
     local text = type(value) == 'string' and value or json.encode(value)
-    return { { id = 'value', label = schema.label, description = schema.description or 'Structured values are entered as JSON in the editor and saved as Lua.',
+    return { { id = 'value', label = schema.label, description = schema.description or Kora.lang('ui.structured_json'),
         type = (schema.kind == 'string' or schema.kind == 'color') and 'text' or 'textarea', default = text,
         minLength = schema.minLength, maxLength = schema.maxLength, pattern = schema.kind == 'color' and '^#%x%x%x%x%x%x$' or schema.pattern,
         required = schema.kind ~= 'optional' } }
@@ -100,7 +100,7 @@ local function inputValue(setting, values)
     if kind == 'string' or kind == 'color' or kind == 'boolean' or kind == 'number' or kind == 'integer' or kind == 'enum' then return values.value end
     if values.value == '' and kind == 'optional' then return nil end
     local ok, decoded = pcall(json.decode, values.value or '')
-    assert(ok and decoded ~= nil, 'Enter a valid JSON value.')
+    assert(ok and decoded ~= nil, Kora.lang('error.invalid_json'))
     return decoded
 end
 
@@ -115,21 +115,21 @@ end
 local function baseDefinition()
     return {
         id = 'kora_admin:config',
-        title = 'Configuration',
-        description = 'Saved edits preserve each resource’s authored config.lua.',
+        title = Kora.lang('title.configuration'),
+        description = Kora.lang('ui.config_description'),
         icon = 'settings',
-        footer = 'Applies now changes are live. Restart-required changes are saved for the next resource restart.',
+        footer = Kora.lang('ui.config_footer'),
         defaultView = 'resources',
         navigation = {
             {
-                id = 'resources', label = 'Resources', icon = 'boxes',
+                id = 'resources', label = Kora.lang('ui.resources'), icon = 'boxes',
                 content = {
-                    title = 'Registered Resources',
-                    description = 'Only kora_lib-registered, resource-owned settings appear here.',
+                    title = Kora.lang('ui.registered_resources'),
+                    description = Kora.lang('ui.registered_resources_description'),
                     blocks = {
                         { id = 'config-resources', type = 'table', searchable = true, pageSize = 18,
-                            columns = { { key = 'resource', label = 'Resource', sortable = true }, { key = 'fields', label = 'Configuration' } },
-                            rows = resourceRows(), empty = 'No resource has registered configuration yet.', action = 'config:resource', idKey = 'id' },
+                            columns = { { key = 'resource', label = Kora.lang('ui.resources'), sortable = true }, { key = 'fields', label = Kora.lang('ui.configuration') } },
+                            rows = resourceRows(), empty = Kora.lang('ui.no_registered_config'), action = 'config:resource', idKey = 'id' },
                     },
                 },
             },
@@ -146,7 +146,7 @@ local function addSettingsView(definition, entry)
         local pending = not setting.schema.live and not valuesEqual(setting.configured, setting.running)
         rows[#rows + 1] = {
             id = pathId(setting.schema.path), path = displayPath(setting.schema.path), value = displayValue(setting.configured),
-            status = { label = setting.schema.live and 'Applies now' or pending and 'Saved; restart needed' or 'Restart required', badge = true,
+            status = { label = setting.schema.live and Kora.lang('ui.applies_now') or pending and Kora.lang('ui.saved_restart_needed') or Kora.lang('ui.restart_required'), badge = true,
                 tone = setting.schema.live and 'success' or 'warning' },
             scope = setting.schema.scope,
         }
@@ -155,36 +155,36 @@ local function addSettingsView(definition, entry)
         id = 'settings', label = entry.resource, icon = 'sliders-horizontal',
         content = {
             title = entry.resource,
-            description = 'Select a setting to change it. Saved values are kept in config.local.lua.',
+            description = Kora.lang('ui.settings_description'),
             blocks = {
                 { id = 'config-settings', type = 'table', searchable = true, pageSize = 20,
-                    columns = { { key = 'path', label = 'Setting', sortable = true }, { key = 'value', label = 'Saved value' },
-                        { key = 'scope', label = 'Scope' }, { key = 'status', label = 'Effect' } },
-                    rows = rows, empty = 'This resource has no editable settings.', action = 'config:setting', idKey = 'id' },
+                    columns = { { key = 'path', label = Kora.lang('ui.setting'), sortable = true }, { key = 'value', label = Kora.lang('ui.saved_value') },
+                        { key = 'scope', label = Kora.lang('ui.scope') }, { key = 'status', label = Kora.lang('ui.effect') } },
+                    rows = rows, empty = Kora.lang('ui.no_editable_settings'), action = 'config:setting', idKey = 'id' },
             },
         },
     }
 end
 
 local function addSelectedView(definition, setting)
-    local status = setting.schema.live and 'This change applies now.' or 'This change is saved and requires a resource restart.'
+    local status = setting.schema.live and Kora.lang('ui.config_live_status') or Kora.lang('ui.config_restart_status')
     definition.navigation[#definition.navigation + 1] = {
-        id = 'edit', label = 'Edit', icon = 'pencil',
+        id = 'edit', label = Kora.lang('ui.edit'), icon = 'pencil',
         content = {
             title = setting.schema.label,
-            description = ('%s\n\nScope: %s · %s'):format(setting.schema.description or displayPath(setting.schema.path), setting.schema.scope, status),
+            description = Kora.lang('ui.scope_description', setting.schema.description or displayPath(setting.schema.path), setting.schema.scope, status),
             blocks = {
                 { id = 'config-edit-details', type = 'details', columns = 2, items = {
-                    { label = 'Saved value', value = displayValue(setting.configured) },
-                    { label = 'Running value', value = displayValue(setting.running) },
+                    { label = Kora.lang('ui.saved_value'), value = displayValue(setting.configured) },
+                    { label = Kora.lang('ui.running_value'), value = displayValue(setting.running) },
                 } },
             },
             actions = {
-                { id = 'config:save', label = 'Save setting', icon = 'save', variant = 'primary', fields = fieldFor(setting),
-                    confirm = setting.schema.live and nil or 'Save this change for the next resource restart?' },
-                { id = 'config:reset', label = 'Reset to authored default', icon = 'rotate-ccw', variant = 'outline',
-                    confirm = 'Remove this in-game override?' },
-                { id = 'config:back', label = 'Back to settings', icon = 'arrow-left', variant = 'ghost' },
+                { id = 'config:save', label = Kora.lang('ui.save_setting'), icon = 'save', variant = 'primary', fields = fieldFor(setting),
+                    confirm = setting.schema.live and nil or Kora.lang('ui.save_confirmation') },
+                { id = 'config:reset', label = Kora.lang('ui.reset_default'), icon = 'rotate-ccw', variant = 'outline',
+                    confirm = Kora.lang('ui.reset_confirmation') },
+                { id = 'config:back', label = Kora.lang('ui.back_settings'), icon = 'arrow-left', variant = 'ghost' },
             },
         },
     }
@@ -192,7 +192,7 @@ end
 
 local function openEditor()
     local result, err = Kora.callback.trigger('kora_admin:configCatalog')
-    if not result then return Kora.notify.send({ type = 'error', message = err or 'Could not load configuration catalog.' }) end
+    if not result then return Kora.notify.send({ type = 'error', message = err or Kora.lang('ui.config_load_failed') }) end
     catalog = result
     selected = nil
 
@@ -200,7 +200,7 @@ local function openEditor()
     definition.onAction = function(action, context)
         if action == 'config:resource' then
             local entry, readError = Kora.callback.trigger('kora_admin:configRead', context.itemId)
-            if not entry then error(readError or 'Could not read resource configuration.') end
+            if not entry then error(readError or Kora.lang('error.config_read_failed')) end
             selected = { entry = entry }
             local updated = baseDefinition()
             addSettingsView(updated, entry)
@@ -218,7 +218,7 @@ local function openEditor()
                     return { update = { navigation = updated.navigation }, navigate = { viewId = 'edit' } }
                 end
             end
-            error('That setting is no longer available.')
+            error(Kora.lang('error.setting_unavailable'))
         end
         if action == 'config:back' and selected and selected.entry then
             local updated = baseDefinition()
@@ -234,10 +234,10 @@ local function openEditor()
             else
                 response, requestError = Kora.callback.trigger('kora_admin:configReset', request)
             end
-            if not response or not response.ok then error((response and response.error) or requestError or 'Configuration change failed.') end
-            Kora.notify.send({ type = 'success', message = response.applied and 'Configuration updated live.' or 'Configuration saved; restart the resource to apply it.' })
+            if not response or not response.ok then error((response and response.error) or requestError or Kora.lang('error.config_change_failed')) end
+            Kora.notify.send({ type = 'success', message = response.applied and Kora.lang('ui.config_updated') or Kora.lang('ui.config_saved_restart') })
             local refreshed, refreshError = Kora.callback.trigger('kora_admin:configRead', selected.entry.resource)
-            if not refreshed then error(refreshError or 'The setting saved, but could not be refreshed.') end
+            if not refreshed then error(refreshError or Kora.lang('error.config_refresh_failed')) end
             selected.entry = refreshed
             local leaves = {}
             schemaLeaves(refreshed.schema, refreshed.configured, refreshed.values, leaves)
@@ -247,7 +247,7 @@ local function openEditor()
             addSelectedView(updated, selected.setting)
             return { update = { navigation = updated.navigation }, navigate = { viewId = 'edit' } }
         end
-        error('That configuration action is no longer available.')
+        error(Kora.lang('error.config_action_unavailable'))
     end
     Kora.nui.registerApp(definition)
     Kora.nui.openApp('kora_admin:config')

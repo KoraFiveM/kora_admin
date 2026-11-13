@@ -8,7 +8,7 @@ local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resou
 Admin.addCommand('aduty', 'Toggle admin on-duty status', nil, false, function(source)
     local state = not exports.kora_core:getMetaData(source, 'adminDuty')
     exports.kora_core:setMetaData(source, 'adminDuty', state)
-    Admin.respond(source, true, ('Admin duty %s'):format(state and 'enabled' or 'disabled'))
+    Admin.respond(source, true, Kora.lang('success.success_admin_duty_s', state and 'enabled' or 'disabled'))
 end, OPTS_MOD)
 
 Admin.addCommand('coords', 'Copy your current coordinates to the clipboard', nil, false, function(source)
@@ -48,7 +48,7 @@ Admin.addCommand('selfrevive', 'Revive yourself, clearing whichever ambulance jo
     exports.kora_core:setMetaData(source, 'inlaststand', false)
     TriggerClientEvent('kora_admin:client:revive', source)
     Admin.fullReviveAmbulance(source)
-    Admin.respond(source, true, 'Revived')
+    Admin.respond(source, true, Kora.lang('success.revived'))
 end, OPTS_MOD)
 
 Admin.addCommand('permission', "Show a player's permission level", { { name = 'id' } }, false, function(source, args)
@@ -58,5 +58,5 @@ Admin.addCommand('permission', "Show a player's permission level", { { name = 'i
         return Admin.respond(source, false, "admin level required to check another player's permission")
     end
 
-    Admin.respond(source, true, ('%s: %s'):format(data.name, Admin.getLevel(targetSrc)))
+    Admin.respond(source, true, Kora.lang('success.success_s_s', data.name, Admin.getLevel(targetSrc)))
 end, OPTS_MOD)

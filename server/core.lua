@@ -21,12 +21,12 @@ Admin.states = Admin.states or {
 ---@return string|nil err
 function Admin.resolveToggle(value, current)
     if value == nil or value == '' then return not current end
-    if type(value) ~= 'string' then return nil, 'state must be on or off' end
+    if type(value) ~= 'string' then return nil, Kora.lang('error.state_must_be_on_or_off') end
 
     local normalized = value:lower()
     if normalized == 'true' or normalized == 'on' or normalized == '1' then return true end
     if normalized == 'false' or normalized == 'off' or normalized == '0' then return false end
-    return nil, 'state must be on or off'
+    return nil, Kora.lang('error.state_must_be_on_or_off_2')
 end
 
 ---Requests a fresh selected-player profile after an authoritative state change.

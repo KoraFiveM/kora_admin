@@ -196,11 +196,11 @@ end
 ---@return table|nil report
 ---@return string|nil err
 function Admin.createReport(src, typeId, message)
-    if src == 0 then return nil, 'reports must be submitted by a player' end
+    if src == 0 then return nil, Kora.lang('error.reports_must_be_submitted_by_a') end
     local definition = typeDefinition(typeId)
-    if not definition then return nil, 'invalid report type' end
+    if not definition then return nil, Kora.lang('error.invalid_report_type') end
     message = cleanMessage(message)
-    if not message then return nil, 'report message required' end
+    if not message then return nil, Kora.lang('error.report_message_required_2') end
 
     local now = os.time()
     local retryAt = Admin.reportCooldowns[src]
@@ -209,7 +209,7 @@ function Admin.createReport(src, typeId, message)
     end
 
     local data = exports.kora_core:getPlayer(src)
-    if not data then return nil, 'you are not logged in' end
+    if not data then return nil, Kora.lang('error.you_are_not_logged_in_3') end
     local reporterName = data.name or GetPlayerName(src) or ('unknown(%d)'):format(src)
     local id, dbErr = Kora.sql.insert(
         'INSERT INTO `admin_reports` (`type`,`reporter_source`,`reporter_citizenid`,`reporter_license`,`reporter_name`,`message`) VALUES (?,?,?,?,?,?)',
@@ -485,13 +485,13 @@ end
 ---@return string|nil
 function Admin.replyToReport(src, id, message, opts)
     local row = Admin.getReport(id)
-    if not row then return false, 'report not found' end
+    if not row then return false, Kora.lang('error.report_not_found_4') end
     local allowed, role = canRead(src, row)
-    if not allowed then return false, 'you cannot reply to that report' end
-    if row.status == 'resolved' or row.status == 'dismissed' then return false, 'reopen the report before replying' end
+    if not allowed then return false, Kora.lang('error.you_cannot_reply_to_that_report') end
+    if row.status == 'resolved' or row.status == 'dismissed' then return false, Kora.lang('error.reopen_the_report_before_replying') end
     local chat = Admin.reportChat()
     message = chat and Admin.cleanChatMessage(message) or cleanMessage(message)
-    if not message then return false, 'reply required' end
+    if not message then return false, Kora.lang('error.reply_required') end
     if chat and opts and opts.chat then
         local max = math.min(math.floor(tonumber(chat.maxLength) or Config.reports.maxMessageLength), Config.reports.maxMessageLength)
         if (utf8.len(message) or #message) > max then return false, ('message too long (max %d characters)'):format(max) end
@@ -532,10 +532,10 @@ end
 ---@return boolean
 ---@return string|nil
 function Admin.claimReport(src, id)
-    if src ~= 0 and not Admin.checkLevel(src, Config.reports.staffLevel) then return false, 'permission denied' end
+    if src ~= 0 and not Admin.checkLevel(src, Config.reports.staffLevel) then return false, Kora.lang('error.permission_denied_4') end
     local row = Admin.getReport(id)
-    if not row then return false, 'report not found' end
-    if row.status == 'resolved' or row.status == 'dismissed' then return false, 'reopen the report before claiming it' end
+    if not row then return false, Kora.lang('error.report_not_found_5') end
+    if row.status == 'resolved' or row.status == 'dismissed' then return false, Kora.lang('error.reopen_the_report_before_claiming_it') end
     local license, name = actorIdentity(src)
     local updated, dbErr = Kora.sql.update(
         'UPDATE `admin_reports` SET `status` = \'claimed\',`claimed_by_license` = ?,`claimed_by_name` = ? WHERE `id` = ?',
@@ -556,10 +556,10 @@ end
 ---@return boolean
 ---@return string|nil
 function Admin.setReportStatus(src, id, status, note)
-    if src ~= 0 and not Admin.checkLevel(src, Config.reports.staffLevel) then return false, 'permission denied' end
-    if status ~= 'resolved' and status ~= 'dismissed' and status ~= 'open' then return false, 'invalid report status' end
+    if src ~= 0 and not Admin.checkLevel(src, Config.reports.staffLevel) then return false, Kora.lang('error.permission_denied_5') end
+    if status ~= 'resolved' and status ~= 'dismissed' and status ~= 'open' then return false, Kora.lang('error.invalid_report_status_2') end
     local row = Admin.getReport(id)
-    if not row then return false, 'report not found' end
+    if not row then return false, Kora.lang('error.report_not_found_6') end
     note = cleanMessage(note)
 
     local sql, params

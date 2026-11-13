@@ -34,7 +34,7 @@ end
 function Admin.invokeMedalEvent(event)
     local key = publicKey()
     if key == '' then
-        notify('error', 'Medal clipping is not configured. Set kora_admin_medal_public_key on the server.')
+        notify('error', Kora.lang('error.medal_not_configured'))
         return false
     end
 
@@ -44,7 +44,7 @@ function Admin.invokeMedalEvent(event)
     local captureDelayMs = type(event) == 'table' and tonumber(event.captureDelayMs or 0) or nil
     if not eventId:match('^%d+$') or eventName == '' or not duration or duration <= 0
         or not captureDelayMs or captureDelayMs < 0 then
-        notify('error', 'This Medal clip event is invalid. Check Config.medal.events.')
+        notify('error', Kora.lang('error.medal_event_invalid'))
         return false
     end
 
@@ -71,7 +71,7 @@ function Admin.invokeMedalEvent(event)
     SetTimeout((tonumber(Config.medal.requestTimeoutMs) or 5000) + 1000, function()
         if not pending[requestId] then return end
         pending[requestId] = nil
-        notify('error', 'Medal did not respond. Make sure the Medal recorder is running.')
+        notify('error', Kora.lang('error.medal_timeout'))
     end)
     return true
 end
@@ -86,12 +86,12 @@ RegisterNUICallback('kora_admin:medal:result', function(data, cb)
 
     local status = tonumber(data.status) or 0
     if data.ok == true and status == 200 then
-        notify('success', ('Medal accepted “%s”. The clip will appear after it finishes processing.'):format(eventName))
+        notify('success', Kora.lang('success.medal_accepted', eventName))
     elseif status == 401 then
-        notify('error', 'Medal rejected the public key. Check kora_admin_medal_public_key.')
+        notify('error', Kora.lang('error.medal_key_rejected'))
     elseif status == 400 then
-        notify('error', 'Medal rejected the clip event. Check its registered ID and clip options.')
+        notify('error', Kora.lang('error.medal_event_rejected'))
     else
-        notify('error', 'Could not reach Medal. Make sure the recorder is installed and running.')
+        notify('error', Kora.lang('error.medal_unreachable'))
     end
 end)

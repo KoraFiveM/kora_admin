@@ -3,7 +3,7 @@ game 'gta5'
 lua54 'yes'
 
 name 'kora_admin'
-author 'Jamie'
+author 'Kora'
 version '0.2.1'
 description 'Command-driven admin menu -- every action is a command, the NUI just calls ExecuteCommand'
 
@@ -18,6 +18,7 @@ dependency 'kora_vehiclekeys'
 -- Kora.sql.* directly for the bans table and admin_logs.
 shared_script '@kora_lib/init.lua'
 shared_script '@kora_core/init.lua'
+files { 'locales/*.lua' }
 
 shared_scripts {
     'config.lua'

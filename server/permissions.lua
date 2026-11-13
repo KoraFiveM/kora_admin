@@ -216,7 +216,7 @@ end
 function Admin.grantTemporaryAccess(src, role, minutes)
     local settings = Config.permissions.temporaryGrant
     if not Admin.isRole(role) or role == 'user' or roleDefinition(role).grantable == false then
-        return nil, 'invalid or non-grantable role'
+        return nil, Kora.lang('error.invalid_or_non_grantable_role')
     end
     if type(minutes) ~= 'number' or minutes ~= math.floor(minutes)
         or minutes < settings.minMinutes or minutes > settings.maxMinutes then
@@ -224,7 +224,7 @@ function Admin.grantTemporaryAccess(src, role, minutes)
     end
 
     local key = primaryKey(src)
-    if not key then return nil, 'could not resolve target identifier' end
+    if not key then return nil, Kora.lang('error.could_not_resolve_target_identifier_2') end
     local expiresAt = os.time() + minutes * 60
     local grants = Admin.temporaryGrants[key] or {}
     Admin.temporaryGrants[key] = grants
@@ -273,14 +273,14 @@ local PLAYGROUND_ROLES = { moderator = true, admin = true }
 ---@return string|nil err
 exports('grantPlaygroundTemporaryAccess', function(targetSrc, role, minutes)
     if GetInvokingResource() ~= PLAYGROUND_RESOURCE then
-        return nil, 'this temporary-access bridge is reserved for kora_lib-playground'
+        return nil, Kora.lang('error.this_temporary_access_bridge_is_reserved')
     end
     if not PLAYGROUND_ROLES[role] then
-        return nil, 'playground may grant only moderator or admin'
+        return nil, Kora.lang('error.playground_may_grant_only_moderator_or')
     end
     local maxRank = Admin.roleRank(Config.permissions.temporaryGrant.maxRole)
     if not maxRank or Admin.roleRank(role) > maxRank then
-        return nil, 'that role is disabled by kora_admin temporary-access policy'
+        return nil, Kora.lang('error.that_role_is_disabled_by_kora')
     end
 
     local expiresAt, err = Admin.grantTemporaryAccess(targetSrc, role, minutes)
@@ -294,13 +294,13 @@ end)
 ---@return string|nil err
 exports('revokePlaygroundTemporaryAccess', function(targetSrc, role)
     if GetInvokingResource() ~= PLAYGROUND_RESOURCE then
-        return false, 'this temporary-access bridge is reserved for kora_lib-playground'
+        return false, Kora.lang('error.this_temporary_access_bridge_is_reserved_2')
     end
     if not PLAYGROUND_ROLES[role] then
-        return false, 'playground may revoke only moderator or admin'
+        return false, Kora.lang('error.playground_may_revoke_only_moderator_or')
     end
     if not Admin.revokeTemporaryAccess(targetSrc, role) then
-        return false, 'the player has no matching temporary grant'
+        return false, Kora.lang('error.the_player_has_no_matching_temporary')
     end
 
     Admin.syncLevel(targetSrc)
