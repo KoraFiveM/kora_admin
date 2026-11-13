@@ -455,7 +455,7 @@ return {
         permission_denied_3 = 'permissão negada',
         report_not_found_2 = 'denúncia não encontrada',
         report_chat_is_disabled = 'o chat de denúncias está desativado',
-        you_are_not_logged_in_2 = 'não tens sessão iniciada'
+        you_are_not_logged_in_2 = 'não tens sessão iniciada',
         report_not_found_3 = 'denúncia não encontrada',
         report_chat_is_disabled_2 = 'o chat de denúncias está desativado',
         message_required_2 = 'mensagem obrigatória',
