@@ -94,5 +94,28 @@ test('/revive and /selfrevive never write hunger or thirst', function()
     end
 end)
 
+test('/revive restores needs when Config.revive.restoreNeeds is on', function()
+    reset(); Config.revive = { restoreNeeds = true }
+    commands.revive(7, { '12' })
+    Config.revive = nil
+    equal(table.concat(meta, ','):find('hunger=100,thirst=100', 1, true) ~= nil, true, 'needs restored')
+end)
+
+test('/revive falls back to the legacy Config.HealRestoreNeeds key', function()
+    reset(); Config.revive = nil; Config.HealRestoreNeeds = true
+    commands.revive(7, { '12' })
+    Config.HealRestoreNeeds = nil
+    equal(table.concat(meta, ','):find('hunger=100,thirst=100', 1, true) ~= nil, true, 'legacy key honoured')
+end)
+
+test('Config.revive.restoreNeeds wins over the legacy key', function()
+    reset(); Config.revive = { restoreNeeds = false }; Config.HealRestoreNeeds = true
+    commands.revive(7, { '12' })
+    Config.revive = nil; Config.HealRestoreNeeds = nil
+    for _, entry in ipairs(meta) do
+        if entry:find('hunger') or entry:find('thirst') then error('needs touched: ' .. entry) end
+    end
+end)
+
 print(('-- %d passed, %d failed --'):format(passed, failed))
 if failed > 0 then os.exit(1) end

@@ -65,7 +65,7 @@ See [Discord administration](./features/discord.md).
 | Key | Type | Default | Description |
 | --- | --- | --- | --- |
 | `Config.heal.restoreNeeds` | boolean | `true` | `/heal` also sets hunger and thirst to 100. |
-| `Config.HealRestoreNeeds` | boolean | `true` | `/revive` also sets hunger and thirst to 100. |
+| `Config.revive.restoreNeeds` | boolean | `true` | `/revive` also sets hunger and thirst to 100. Replaces the old `Config.HealRestoreNeeds`, which is still read when `Config.revive` is not set. |
 
 ## Announcements
 

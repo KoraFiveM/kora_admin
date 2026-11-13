@@ -45,12 +45,15 @@ Config.permissions = {
 
 Config.heal = {
     -- /heal (and the admin-menu Heal action) also fill hunger and thirst to 100.
-    -- /revive never changes needs. Set false for health-only heals.
+    -- Set false for health-only heals.
     restoreNeeds = true,
 }
 
--- /revive also sets hunger and thirst to 100. Set false to keep revive health-only.
-Config.HealRestoreNeeds = true
+Config.revive = {
+    -- /revive also sets hunger and thirst to 100. Set false to keep revive health-only.
+    -- Replaces the old flat Config.HealRestoreNeeds, which is still honoured when this is unset.
+    restoreNeeds = true,
+}
 
 Config.announcement = {
     -- /announce (and the admin-menu Send Announcement action) plays a short frontend
