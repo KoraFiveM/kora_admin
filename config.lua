@@ -94,6 +94,7 @@ Config.noclip = {
     slowMultiplier = 0.35, -- precision speed multiplier while Alt is held
     adMode = 'strafe',     -- what A and D do: 'strafe' slides sideways relative to the camera, 'turn' yaws the view
     turnSpeed = 2.0,       -- degrees/frame the view turns while A or D is held and adMode is 'turn'
+    lookSpeed = 8.0,       -- degrees the view turns per unit of horizontal mouse / right-stick input
 }
 
 Config.world = {
@@ -271,6 +272,8 @@ if Kora and Kora.config and Kora.config.adopt then
                     description = 'Strafe slides left/right relative to the camera heading; Turn rotates the view on the spot. The mouse always looks around.' }),
                 turnSpeed = Kora.config.number(2.0, { live = true, min = 0.1, max = 10.0, label = 'Noclip turn speed',
                     description = 'Degrees per frame the view turns while A or D is held and A / D behaviour is Turn.' }),
+                lookSpeed = Kora.config.number(8.0, { live = true, min = 1.0, max = 30.0, label = 'Noclip look speed',
+                    description = 'How fast horizontal mouse or right-stick movement turns the view while in noclip.' }),
             },
         })
     end
