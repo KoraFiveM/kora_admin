@@ -18,7 +18,7 @@ Admin.addCommand('report', 'Send a report to server staff', {
     local report, err = Admin.createReport(source, args[1], table.concat(args, ' ', 2))
     if not report then return Admin.respond(source, false, err) end
     local chat = Admin.reportChat()
-    local hint = chat and chat.playerUi ~= false and ' Use /reports to chat with staff.' or ''
+    local hint = chat and chat.playerUi ~= false and Kora.lang('success.report_chat_hint') or ''
     Admin.respond(source, true, Kora.lang('success.success_report_s_submitted_staff_have_been', report.id, hint), { title = Kora.lang('title.report_sent') })
 end, OPTS_USER)
 
@@ -31,8 +31,8 @@ Admin.addCommand('reportstatus', 'View one of your reports and its replies', { {
     end
 
     local lines = {
-        ('#%s · %s · %s'):format(report.id, report.type, report.status),
-        ('From %s: %s'):format(report.reporter_name, report.message),
+        ('#%s · %s · %s'):format(report.id, report.type, Admin.reportStatusLabel(report.status)),
+        Kora.lang('ui.report_from', report.reporter_name, report.message),
     }
     for _, reply in ipairs(Admin.getReportMessages(report.id)) do
         local created = tonumber(reply.created_epoch) or reply.created_at
@@ -45,7 +45,7 @@ Admin.addCommand('reportstatus', 'View one of your reports and its replies', { {
         end
         lines[#lines + 1] = ('[%s] %s: %s'):format(created, tostring(reply.author_name or '-'), tostring(reply.message or ''))
     end
-    if report.resolution then lines[#lines + 1] = 'Resolution: ' .. report.resolution end
+    if report.resolution then lines[#lines + 1] = Kora.lang('ui.resolution_line', report.resolution) end
     -- Report text is player/staff input and chat renders markup, so neutralise brackets.
     Admin.chat(source, Admin.chatSafe(table.concat(lines, '\n')))
 end, OPTS_USER)
@@ -84,9 +84,11 @@ if Config.reports.command.enabled then
         end
 
         local rows = Admin.queryReports(filters)
-        if #rows == 0 then return Admin.chat(source, staff and 'No matching reports.' or 'You have no matching reports.') end
+        if #rows == 0 then
+            return Admin.chat(source, staff and Kora.lang('ui.menu_no_matching_reports') or Kora.lang('ui.no_matching_own_reports'))
+        end
         local text = Admin.formatReportList(rows)
-        Admin.chat(source, staff and text or (text .. '\nUse /reportstatus <id> to read a report.'))
+        Admin.chat(source, staff and text or (text .. '\n' .. Kora.lang('ui.reportstatus_hint')))
     end, OPTS_USER)
 end
 
@@ -102,7 +104,7 @@ local function addStatusCommand(name, help, status)
     -- resolving/dismissing to encourage useful closure context.
     Admin.addCommand(name, help, { { name = 'id' }, { name = 'note' } }, false, function(source, args)
         local ok, err = Admin.setReportStatus(source, args[1], status, table.concat(args, ' ', 2))
-        Admin.respond(source, ok, ok and Kora.lang('success.report_marked', args[1], status) or err)
+        Admin.respond(source, ok, ok and Kora.lang('success.report_marked', args[1], Admin.reportStatusLabel(status)) or err)
     end, OPTS_STAFF)
 end
 

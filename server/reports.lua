@@ -14,6 +14,17 @@ function Admin.reportChat()
 end
 
 local VALID_STATUSES = { open = true, claimed = true, resolved = true, dismissed = true }
+local STATUS_LABELS = {
+    open = 'ui.status_open', claimed = 'ui.status_claimed', resolved = 'ui.status_resolved', dismissed = 'ui.status_dismissed',
+}
+
+---The localised word for a stored report status, for chat lines and notifications.
+---@param status any
+---@return string
+function Admin.reportStatusLabel(status)
+    local key = STATUS_LABELS[status]
+    return key and Kora.lang(key) or tostring(status or '-')
+end
 
 local function cleanMessage(value)
     if type(value) ~= 'string' then return nil end
@@ -99,7 +110,8 @@ function Admin.formatReportList(rows)
     local lines = {}
     for _, row in ipairs(rows) do
         lines[#lines + 1] = chatSafe(('#%s [%s] %s · %s%s — %s (%s)'):format(
-            row.id, row.status, row.category or categoryLabel(row.type), Admin.reportSubject(row.reporter_name, 24),
+            row.id, Admin.reportStatusLabel(row.status), row.category or categoryLabel(row.type),
+            Admin.reportSubject(row.reporter_name, 24),
             row.claimed_by_name and (' → ' .. Admin.reportSubject(row.claimed_by_name, 24)) or '',
             row.subject or Admin.reportSubject(row.message, 60), row.age or '-'))
     end
@@ -576,8 +588,9 @@ function Admin.setReportStatus(src, id, status, note)
     local _, actorName = actorIdentity(src)
     Admin.log(src, 'report_' .. status, reportTarget(row), { reportId = row.id, note = note })
     notifyReporter(row, {
-        title = ('Report #%s %s'):format(row.id, status),
-        message = note or (status == 'open' and ('Reopened by %s'):format(actorName) or ('Updated by %s'):format(actorName)),
+        title = Kora.lang('ui.report_status_title', row.id, Admin.reportStatusLabel(status)),
+        message = note or (status == 'open' and Kora.lang('ui.report_reopened_by', actorName)
+            or Kora.lang('ui.report_updated_by', actorName)),
         type = status == 'dismissed' and 'error' or 'info',
     })
     pushReporter(row, { kind = 'status' })

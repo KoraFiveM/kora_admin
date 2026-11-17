@@ -10,12 +10,23 @@ end
 local function truthy(value, message) if not value then error(message, 2) end end
 
 dofile('config.lua')
+-- Kora.lang stand-in: the English text from locales/en.lua, formatted the way kora_lib does.
+local enLocale = dofile('locales/en.lua')
+local function lang(key, ...)
+    local value = enLocale
+    for part in key:gmatch('[^.]+') do value = type(value) == 'table' and value[part] or nil end
+    if type(value) ~= 'string' then return key end
+    if select('#', ...) == 0 then return value end
+    local ok, text = pcall(string.format, value, ...)
+    return ok and text or value
+end
 local callbacks, commands = {}, {}
 local adminViewer = false
 Kora = {
     callback = { register = function(name, handler) callbacks[name] = handler end },
     commands = { add = function(name, _, _, _, handler, options) commands[name] = { handler = handler, options = options } end },
     notify = { send = function() end },
+    lang = lang,
 }
 Admin = {
     states = { frozen = {}, god = {}, invisible = {} },

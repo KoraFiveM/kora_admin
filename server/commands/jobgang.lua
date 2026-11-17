@@ -52,5 +52,6 @@ Admin.addCommand('setduty', 'Toggle on/off duty', { { name = 'id' }, { name = 's
     if not ok then return Admin.respond(source, false, actionErr or Kora.lang('error.set_duty_failed')) end
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'setduty', data, { state = state })
-    Admin.respond(source, true, Kora.lang('success.success_s_is_now_s_duty', data.name, state and 'on' or 'off'))
+    Admin.respond(source, true, Kora.lang('success.success_s_is_now_s_duty', data.name,
+        state and Kora.lang('ui.duty_on') or Kora.lang('ui.duty_off')))
 end, OPTS_MOD)

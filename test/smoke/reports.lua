@@ -23,6 +23,17 @@ end
 
 dofile('config.lua')
 
+-- Kora.lang stand-in: the English text from locales/en.lua, formatted the way kora_lib does.
+local enLocale = dofile('locales/en.lua')
+local function lang(key, ...)
+    local value = enLocale
+    for part in key:gmatch('[^.]+') do value = type(value) == 'table' and value[part] or nil end
+    if type(value) ~= 'string' then return key end
+    if select('#', ...) == 0 then return value end
+    local ok, text = pcall(string.format, value, ...)
+    return ok and text or value
+end
+
 local commands, responses, events, logs = {}, {}, {}, {}
 local created, reply
 local isStaff, chats, queries = true, {}, {}
@@ -30,6 +41,7 @@ Kora = {
     commands = { add = function(name, _, _, _, handler, options)
         commands[name] = { handler = handler, options = options }
     end },
+    lang = lang,
 }
 Admin = {
     checkLevel = function() return isStaff end,

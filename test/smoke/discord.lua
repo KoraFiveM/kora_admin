@@ -9,6 +9,16 @@ local function equal(actual, expected)
 end
 
 dofile('config.lua')
+-- Kora.lang stand-in: the English text from locales/en.lua, formatted the way kora_lib does.
+local enLocale = dofile('locales/en.lua')
+local function lang(key, ...)
+    local value = enLocale
+    for part in key:gmatch('[^.]+') do value = type(value) == 'table' and value[part] or nil end
+    if type(value) ~= 'string' then return key end
+    if select('#', ...) == 0 then return value end
+    local ok, text = pcall(string.format, value, ...)
+    return ok and text or value
+end
 local timers, registered, api, sql, events = {}, {}, {}, {}, {}
 local savedTime, clock = os.time, 1800000000
 os.time = function() return clock end
@@ -17,6 +27,7 @@ local linkedUser, queuedRoles, restarted = nil, nil, 0
 local validate, apply
 Kora = {
     commands = { add = function(name, _, _, _, handler) registered[name] = handler end },
+    lang = lang,
     permissions = { getLevel = function(_, _, options)
         if options.discordRoles.moderator and options.discordRoles.moderator[1] == 'new' then return 'moderator' end
         return aceLevel

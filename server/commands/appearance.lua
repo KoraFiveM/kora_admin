@@ -4,7 +4,7 @@
 
 local OPTS_ADMIN = { permission = 'admin', checkPermission = Admin.checkLevel, resource = 'kora_admin' }
 
-local function addAppearanceCommand(name, label, service)
+local function addAppearanceCommand(name, label, service, labelKey)
     Admin.addCommand(name, ('Open the %s for a player'):format(label:lower()), { { name = 'id' } }, true, function(source, args)
         local targetSrc, data, err = Admin.resolveTarget(source, args[1])
         if not targetSrc then return Admin.respond(source, false, err) end
@@ -20,10 +20,10 @@ local function addAppearanceCommand(name, label, service)
         end
 
         Admin.log(source, name, data, { service = service })
-        Admin.respond(source, true, Kora.lang('success.success_opened_s_for_s', label:lower(), data.name))
+        Admin.respond(source, true, Kora.lang('success.success_opened_s_for_s', Kora.lang(labelKey), data.name))
     end, OPTS_ADMIN)
 end
 
-addAppearanceCommand('clothingmenu', 'Clothing Menu', 'clothing')
-addAppearanceCommand('barbermenu', 'Barber / Hairdresser', 'barber')
-addAppearanceCommand('tattoomenu', 'Tattoo Menu', 'tattoo')
+addAppearanceCommand('clothingmenu', 'Clothing Menu', 'clothing', 'ui.clothing_menu')
+addAppearanceCommand('barbermenu', 'Barber / Hairdresser', 'barber', 'ui.barber_hairdresser')
+addAppearanceCommand('tattoomenu', 'Tattoo Menu', 'tattoo', 'ui.tattoo_menu')

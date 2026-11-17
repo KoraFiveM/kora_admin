@@ -22,14 +22,17 @@ local function runCreator(label, create)
     end)
 end
 
+-- Zone types the server accepts for /devzone (server/commands/development.lua).
+local ZONE_LABELS = { box = 'ui.box_zone', sphere = 'ui.sphere_zone', poly = 'ui.poly_zone' }
+
 RegisterNetEvent('kora_admin:client:startPlacement', function(model)
-    runCreator('Entity placement', function()
+    runCreator(Kora.lang('ui.entity_placement'), function()
         return Kora.placement.start(model)
     end)
 end)
 
 RegisterNetEvent('kora_admin:client:startZoneCreator', function(zoneType)
-    runCreator(('%s zone'):format(zoneType), function()
+    runCreator(ZONE_LABELS[zoneType] and Kora.lang(ZONE_LABELS[zoneType]) or tostring(zoneType), function()
         return Kora.zones.startCreator(zoneType)
     end)
 end)

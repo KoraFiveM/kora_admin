@@ -558,10 +558,10 @@ local SECTIONS = {
             },
             { id = 'coords', label = Kora.lang('ui.menu_copy_coordinates'), level = 'mod', icon = 'copy', run = withFields('coords') },
             { id = 'health', label = Kora.lang('ui.menu_set_health'), level = 'mod', icon = 'heart',
-                run = withFields('health', { { id = 'value', label = Kora.lang('ui.menu_health_0_100_blank_full'), type = 'number', min = 0, max = 100 } }, 'Set Health') },
+                run = withFields('health', { { id = 'value', label = Kora.lang('ui.menu_health_0_100_blank_full'), type = 'number', min = 0, max = 100 } }, Kora.lang('ui.menu_set_health')) },
             { id = 'selfrevive', label = Kora.lang('ui.menu_revive_me'), level = 'mod', icon = 'activity', run = withFields('selfrevive') },
             { id = 'armor', label = Kora.lang('ui.menu_set_armor'), level = 'mod', icon = 'shield',
-                run = withFields('armor', { { id = 'value', label = Kora.lang('ui.menu_armor_blank_full'), type = 'number', min = 0, max = 100 } }, 'Set Armor') },
+                run = withFields('armor', { { id = 'value', label = Kora.lang('ui.menu_armor_blank_full'), type = 'number', min = 0, max = 100 } }, Kora.lang('ui.menu_set_armor')) },
         },
     },
     {
@@ -573,7 +573,7 @@ local SECTIONS = {
             { id = 'tpcoords', label = Kora.lang('ui.menu_teleport_to_coordinates'), level = 'mod', icon = 'map',
                 run = withFields('tpcoords', {
                     { id = 'coordinates', label = Kora.lang('ui.menu_coordinates'), type = 'text', placeholder = Kora.lang('ui.menu_vec4_123_4_456_7'), required = true },
-                }, 'Teleport to Coordinates', true) },
+                }, Kora.lang('ui.menu_teleport_to_coordinates'), true) },
             { id = 'tpback', label = Kora.lang('ui.menu_teleport_back'), level = 'mod', icon = 'arrow-left', run = withFields('tpback', nil, nil, true) },
             {
                 id = 'spectateStop', label = Kora.lang('ui.menu_stop_spectating'), level = 'mod', icon = 'crosshair',
@@ -594,9 +594,9 @@ local SECTIONS = {
         items = {
             { id = 'car', label = Kora.lang('ui.menu_spawn_from_code'), level = 'admin', icon = 'car', variant = 'primary',
                 description = Kora.lang('ui.menu_spawn_any_valid_gta_or'),
-                run = withFields('car', function() return { vehicleModelField() } end, 'Spawn vehicle from code') },
+                run = withFields('car', function() return { vehicleModelField() } end, Kora.lang('ui.menu_spawn_from_code')) },
             { id = 'car_catalogue', label = Kora.lang('ui.menu_browse_vehicle_catalogue'), level = 'admin', icon = 'search',
-                run = withFields('car', function() return { vehicleCatalogueField() } end, 'Spawn vehicle from catalogue') },
+                run = withFields('car', function() return { vehicleCatalogueField() } end, Kora.lang('ui.menu_spawn_vehicle_from_catalogue')) },
             { id = 'fix', label = Kora.lang('ui.menu_repair_current_vehicle'), level = 'mod', icon = 'wrench', run = withFields('fix') },
             { id = 'dv', label = Kora.lang('ui.menu_delete_vehicle'), level = 'admin', icon = 'trash-2', variant = 'destructive',
                 description = Kora.lang('ui.menu_delete_the_vehicle_you_are'),
@@ -622,15 +622,15 @@ local SECTIONS = {
         description = Kora.lang('ui.menu_control_announcements_global_weather_and'),
         items = {
             { id = 'announce', label = Kora.lang('ui.menu_send_announcement'), level = 'admin', icon = 'bell',
-                run = withFields('announce', { { id = 'message', label = Kora.lang('ui.menu_message'), type = 'textarea', required = true } }, 'Announce') },
+                run = withFields('announce', { { id = 'message', label = Kora.lang('ui.menu_message'), type = 'textarea', required = true } }, Kora.lang('ui.menu_send_announcement')) },
             { id = 'weather', label = Kora.lang('ui.menu_set_weather'), level = 'admin', icon = 'activity',
-                run = withFields('weather', function() return { { id = 'type', label = Kora.lang('ui.menu_weather'), type = 'select', options = weatherOptions(), required = true } } end, 'Set Weather') },
+                run = withFields('weather', function() return { { id = 'type', label = Kora.lang('ui.menu_weather'), type = 'select', options = weatherOptions(), required = true } } end, Kora.lang('ui.menu_set_weather')) },
             { id = 'dynamicweather', label = Kora.lang('ui.menu_dynamic_weather'), level = 'admin', icon = 'settings',
                 description = Kora.lang('ui.menu_choose_whether_weather_changes_automatically'),
                 run = withFields('freezeweather', function()
                     return { { id = 'enabled', label = Kora.lang('ui.menu_automatic_changes'), type = 'select', required = true,
                         options = { { value = 'true', label = Kora.lang('ui.menu_enabled') }, { value = 'false', label = Kora.lang('ui.menu_disabled') } } } }
-                end, 'Dynamic Weather') },
+                end, Kora.lang('ui.menu_dynamic_weather')) },
             { id = 'time', label = Kora.lang('ui.menu_set_time'), level = 'admin', icon = 'clock', run = setTime },
         },
     },
@@ -641,7 +641,7 @@ local SECTIONS = {
         items = {
             { id = 'serverinfo', label = Kora.lang('ui.menu_server_information'), level = 'mod', icon = 'info', run = withFields('serverinfo') },
             { id = 'restartresource', label = Kora.lang('ui.menu_restart_resource'), level = 'god', icon = 'activity', variant = 'destructive',
-                run = withConfirm(Kora.lang('ui.menu_restart_this_resource'), withFields('restartresource', { { id = 'name', label = Kora.lang('ui.menu_resource_name'), type = 'text', required = true } }, 'Restart Resource')) },
+                run = withConfirm(Kora.lang('ui.menu_restart_this_resource'), withFields('restartresource', { { id = 'name', label = Kora.lang('ui.menu_resource_name'), type = 'text', required = true } }, Kora.lang('ui.menu_restart_resource'))) },
         },
     },
     {
@@ -656,9 +656,9 @@ local SECTIONS = {
                     { id = 'target', label = Kora.lang('ui.menu_citizen_id_or_character_name'), type = 'text', required = true },
                     { id = 'duration', label = Kora.lang('ui.menu_duration_30m_2h_7d_or'), type = 'text', default = 'perm', required = true },
                     { id = 'reason', label = Kora.lang('ui.menu_reason'), type = 'text', required = true },
-                }, 'Ban Player')) },
+                }, Kora.lang('ui.menu_ban_offline_player'))) },
             { id = 'unban', label = Kora.lang('ui.menu_unban'), level = 'admin', icon = 'unlock',
-                run = withFields('unban', { { id = 'target', label = Kora.lang('ui.menu_license_or_ban_id'), type = 'text', required = true } }, 'Unban') },
+                run = withFields('unban', { { id = 'target', label = Kora.lang('ui.menu_license_or_ban_id'), type = 'text', required = true } }, Kora.lang('ui.menu_unban')) },
         },
     },
     {
@@ -711,14 +711,14 @@ local SECTIONS = {
                 description = Kora.lang('ui.menu_position_any_valid_ped_vehicle'),
                 level = Config.developer.menuLevel,
                 disabled = devGateActive,
-                run = withFields('devplacement', function() return { placementModelField() } end, 'Entity Placement Creator', true),
+                run = withFields('devplacement', function() return { placementModelField() } end, Kora.lang('ui.menu_place_entity_model'), true),
             },
             {
                 id = 'devzone', label = function() return gatedLabel(Kora.lang('ui.menu_create_zone')) end, icon = 'map',
                 description = Kora.lang('ui.menu_open_kora_lib_s_box'),
                 level = Config.developer.menuLevel,
                 disabled = devGateActive,
-                run = withFields('devzone', function() return { zoneTypeField() } end, 'Zone Creator', true),
+                run = withFields('devzone', function() return { zoneTypeField() } end, Kora.lang('ui.menu_create_zone'), true),
             },
             { id = 'deleteLastEntity', actionGroup = 'self', label = Kora.lang('ui.menu_delete_last_spawned_entity'), icon = 'trash-2', variant = 'destructive', level = 'admin',
                 run = withConfirm(Kora.lang('ui.menu_delete_your_last_admin_spawned'), withFields('deleteentity')) },
@@ -1031,7 +1031,7 @@ local function openRoot(options)
         for _, row in ipairs(rows) do
             local unread = tonumber(row.unread) or 0
             tableRows[#tableRows + 1] = {
-                id = tostring(row.id), status = { label = row.status, badge = true,
+                id = tostring(row.id), status = { label = Admin.reportStatusLabel(row.status), badge = true,
                     tone = row.status == 'open' and 'warning' or row.status == 'resolved' and 'success' or 'neutral' },
                 type = row.category or row.type, reporter = row.reporter_name, assigned = row.claimed_by_name or '-',
                 subject = row.subject or row.message, age = row.age or '-',
@@ -1085,23 +1085,24 @@ local function openRoot(options)
 
         local management = {}
         if report.status == 'open' or report.status == 'claimed' then
-            management[#management + 1] = add('claim', report.status == 'claimed' and 'Take Over Report' or 'Claim Report', action('reportclaim'))
+            management[#management + 1] = add('claim', report.status == 'claimed' and Kora.lang('ui.menu_take_over_report')
+                or Kora.lang('ui.menu_claim_report'), action('reportclaim'))
             -- With the live chat the composer under the conversation replaces this form.
             if not chatOn then
-                management[#management + 1] = add('reply', 'Reply to Reporter', action('reportreply', {
+                management[#management + 1] = add('reply', Kora.lang('ui.menu_reply_to_reporter'), action('reportreply', {
                     { id = 'message', label = Kora.lang('ui.menu_reply'), type = 'textarea', required = true },
                 }))
             end
-            management[#management + 1] = add('resolve', 'Resolve Report', action('reportresolve', {
+            management[#management + 1] = add('resolve', Kora.lang('ui.menu_resolve_report'), action('reportresolve', {
                 { id = 'note', label = Kora.lang('ui.menu_resolution'), type = 'textarea', required = true },
-            }, 'Resolve this report?'))
-            management[#management + 1] = add('dismiss', 'Dismiss Report', action('reportdismiss', {
+            }, Kora.lang('ui.confirm_resolve_report')))
+            management[#management + 1] = add('dismiss', Kora.lang('ui.menu_dismiss_report'), action('reportdismiss', {
                 { id = 'note', label = Kora.lang('ui.menu_reason'), type = 'textarea', required = true },
-            }, 'Dismiss this report?'), true)
+            }, Kora.lang('ui.confirm_dismiss_report')), true)
         else
-            management[#management + 1] = add('reopen', 'Reopen Report', action('reportreopen', {
+            management[#management + 1] = add('reopen', Kora.lang('ui.menu_reopen_report'), action('reportreopen', {
                 { id = 'note', label = Kora.lang('ui.menu_reason_for_reopening_optional'), type = 'textarea' },
-            }, 'Reopen this report?'))
+            }, Kora.lang('ui.confirm_reopen_report')))
         end
 
         local reporterActions = {}
@@ -1124,14 +1125,15 @@ local function openRoot(options)
         local conversation = {
             { id = 'report', title = report.reporter_name, description = report.message,
                 timestamp = formatTimestamp(report.created_text or report.created_at), icon = 'message-square', tone = 'primary',
-                metadata = { { label = Kora.lang('ui.menu_role'), value = 'player' } } },
+                metadata = { { label = Kora.lang('ui.menu_role'), value = Kora.lang('ui.player') } } },
         }
         for index, reply in ipairs(report.messages or {}) do
             conversation[#conversation + 1] = {
                 id = 'reply-' .. (reply.id or index), title = reply.author_name, description = reply.message,
                 timestamp = formatTimestamp(reply.created_text or reply.created_at), icon = 'message-square',
                 tone = reply.author_role == 'staff' and 'success' or 'neutral',
-                metadata = { { label = Kora.lang('ui.menu_role'), value = reply.author_role or 'unknown' } },
+                metadata = { { label = Kora.lang('ui.menu_role'), value = reply.author_role == 'staff' and Kora.lang('ui.staff')
+                    or reply.author_role == 'player' and Kora.lang('ui.player') or reply.author_role or Kora.lang('ui.unknown') } },
             }
         end
 
@@ -1140,12 +1142,13 @@ local function openRoot(options)
             -- Config.reports.chat.fixedLayout: one screen that never scrolls. The summary moves
             -- into the header line and Back beside the title, so the chat gets the remaining
             -- height and only its message list scrolls.
-            local summary = ('%s · %s · Reporter: %s · Assigned to: %s'):format(tostring(report.status),
-                tostring(report.category or report.type), tostring(report.reporter_name), tostring(report.claimed_by_name or 'Unassigned'))
-            if report.resolution then summary = ('%s · Resolution: %s'):format(summary, tostring(report.resolution)) end
+            local summary = Kora.lang('ui.report_summary_line', Admin.reportStatusLabel(report.status),
+                tostring(report.category or report.type), tostring(report.reporter_name),
+                tostring(report.claimed_by_name or Kora.lang('ui.unassigned')))
+            if report.resolution then summary = Kora.lang('ui.resolution', summary, tostring(report.resolution)) end
             overview = {
-                title = ('Report #%s · %s'):format(report.id, report.type),
-                description = summary .. '. Claim, resolve or dismiss from Manage.',
+                title = Kora.lang('ui.report_number_category', report.id, report.type),
+                description = Kora.lang('ui.report_manage_hint', summary),
                 actions = { { id = 'reports:back', label = Kora.lang('ui.menu_back_to_report_queue'), icon = 'arrow-left', variant = 'ghost' } },
                 scrollable = false,
                 blocks = { Admin.reportChatBlock(report, 'staff', 'reports:chat:send') },
@@ -1156,9 +1159,9 @@ local function openRoot(options)
             {
                 id = 'overview', label = Kora.lang('ui.menu_overview'),
                 content = overview or {
-                    title = ('Report #%s · %s'):format(report.id, report.type),
-                    description = chatOn and 'Chat with the reporter live. Claim, resolve or dismiss from Manage.'
-                        or 'Review the report conversation and current assignment before taking action.',
+                    title = Kora.lang('ui.report_number_category', report.id, report.type),
+                    description = chatOn and Kora.lang('ui.report_live_chat_description')
+                        or Kora.lang('ui.report_review_description'),
                     blocks = {
                         {
                             id = 'selected-report-back', type = 'actions',
@@ -1167,11 +1170,11 @@ local function openRoot(options)
                         {
                             id = 'selected-report-summary', type = 'details', title = Kora.lang('ui.menu_report_summary'), columns = 2,
                             items = {
-                                { label = Kora.lang('ui.menu_status'), value = report.status, tone = report.status == 'open' and 'warning' or 'neutral' },
+                                { label = Kora.lang('ui.menu_status'), value = Admin.reportStatusLabel(report.status), tone = report.status == 'open' and 'warning' or 'neutral' },
                                 { label = Kora.lang('ui.menu_category'), value = report.category or report.type },
                                 { label = Kora.lang('ui.menu_reporter'), value = report.reporter_name },
-                                { label = Kora.lang('ui.menu_assigned_to'), value = report.claimed_by_name or 'Unassigned' },
-                                { label = Kora.lang('ui.menu_resolution'), value = report.resolution or 'Open' },
+                                { label = Kora.lang('ui.menu_assigned_to'), value = report.claimed_by_name or Kora.lang('ui.unassigned') },
+                                { label = Kora.lang('ui.menu_resolution'), value = report.resolution or Kora.lang('ui.resolution_open') },
                             },
                         },
                         chatOn and Admin.reportChatBlock(report, 'staff', 'reports:chat:send') or {

@@ -18,6 +18,18 @@ function Admin.reportChatFixedLayout()
     return chat ~= nil and chat.fixedLayout ~= false
 end
 
+local STATUS_LABELS = {
+    open = 'ui.status_open', claimed = 'ui.status_claimed', resolved = 'ui.status_resolved', dismissed = 'ui.status_dismissed',
+}
+
+---The localised word for a report status, shared by the staff Reports screen and My Reports.
+---@param status any
+---@return string
+function Admin.reportStatusLabel(status)
+    local key = STATUS_LABELS[status]
+    return key and Kora.lang(key) or tostring(status or '-')
+end
+
 ---@param report table conversation from kora_admin:menuReport / kora_admin:myReport
 ---@param viewerRole 'staff'|'player'
 ---@param sendAction string action id of the composer
@@ -27,8 +39,8 @@ function Admin.reportChatBlock(report, viewerRole, sendAction)
     local closed = report.status == 'resolved' or report.status == 'dismissed'
     local messages = {
         {
-            id = 'report', author = tostring(report.reporter_name or 'Reporter'), text = tostring(report.message or ''),
-            timestamp = report.created_text, badge = 'Report', tone = 'primary', mine = viewerRole == 'player',
+            id = 'report', author = tostring(report.reporter_name or Kora.lang('ui.menu_reporter')), text = tostring(report.message or ''),
+            timestamp = report.created_text, badge = Kora.lang('ui.report_badge'), tone = 'primary', mine = viewerRole == 'player',
             status = viewerRole == 'player' and report.initial_status or nil,
         },
     }
@@ -36,10 +48,10 @@ function Admin.reportChatBlock(report, viewerRole, sendAction)
         local staff = message.author_role == 'staff'
         messages[#messages + 1] = {
             id = 'm' .. tostring(message.id or index),
-            author = tostring(message.author_name or (staff and 'Staff' or 'Player')),
+            author = tostring(message.author_name or (staff and Kora.lang('ui.staff') or Kora.lang('ui.player'))),
             text = tostring(message.message or ''),
             timestamp = type(message.created_text) == 'string' and message.created_text or nil,
-            badge = staff and 'Staff' or 'Player',
+            badge = staff and Kora.lang('ui.staff') or Kora.lang('ui.player'),
             tone = staff and 'success' or 'neutral',
             mine = (viewerRole == 'staff') == staff,
             unread = message.unread == true or nil,
@@ -97,7 +109,7 @@ local function listView()
         unreadTotal = unreadTotal + unread
         tableRows[#tableRows + 1] = {
             id = tostring(row.id),
-            status = { label = row.status, badge = true, tone = statusTone(row.status) },
+            status = { label = Admin.reportStatusLabel(row.status), badge = true, tone = statusTone(row.status) },
             type = row.category or row.type,
             subject = row.subject,
             unread = unread > 0 and { label = tostring(unread), badge = true, tone = 'primary' } or '',
@@ -126,8 +138,9 @@ local function reportView(id, live)
     local report, err = Kora.callback.trigger('kora_admin:myReport', id, { live = live == true })
     if not report then return nil, err end
     local title = Kora.lang('ui.report_number_category', report.id, report.category or report.type or '')
-    local description = report.claimed_by_name and Kora.lang('ui.handled_by', report.claimed_by_name, report.status)
-        or Kora.lang('ui.report_waiting', report.status)
+    local status = Admin.reportStatusLabel(report.status)
+    local description = report.claimed_by_name and Kora.lang('ui.handled_by', report.claimed_by_name, status)
+        or Kora.lang('ui.report_waiting', status)
     local back = { id = 'my:back', label = Kora.lang('ui.report_back'), icon = 'arrow-left', variant = 'ghost' }
     if Admin.reportChatFixedLayout() then
         -- One fixed screen: Back beside the title, the resolution in the header line, and the
@@ -145,8 +158,8 @@ local function reportView(id, live)
         id = 'report', label = Kora.lang('ui.report_number', report.id), icon = 'message-square',
         content = {
             title = Kora.lang('ui.report_number_category', report.id, report.category or report.type or ''),
-            description = report.claimed_by_name and Kora.lang('ui.handled_by', report.claimed_by_name, report.status)
-                or Kora.lang('ui.report_waiting', report.status),
+            description = report.claimed_by_name and Kora.lang('ui.handled_by', report.claimed_by_name, status)
+                or Kora.lang('ui.report_waiting', status),
             blocks = {
                 { id = 'my-report-back', type = 'actions',
                     actions = { { id = 'my:back', label = Kora.lang('ui.report_back'), icon = 'arrow-left', variant = 'ghost' } } },

@@ -8,7 +8,8 @@ local OPTS_MOD = { permission = 'mod', checkPermission = Admin.checkLevel, resou
 Admin.addCommand('aduty', 'Toggle admin on-duty status', nil, false, function(source)
     local state = not exports.kora_core:getMetaData(source, 'adminDuty')
     exports.kora_core:setMetaData(source, 'adminDuty', state)
-    Admin.respond(source, true, Kora.lang('success.success_admin_duty_s', state and 'enabled' or 'disabled'))
+    Admin.respond(source, true, Kora.lang('success.success_admin_duty_s',
+        state and Kora.lang('ui.state_enabled') or Kora.lang('ui.state_disabled')))
 end, OPTS_MOD)
 
 Admin.addCommand('coords', 'Copy your current coordinates to the clipboard', nil, false, function(source)

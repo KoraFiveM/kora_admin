@@ -114,9 +114,9 @@ Admin.addCommand('ban', 'Ban a player, online or offline', { { name = 'target' }
             end
         end
 
-        local altsMsg = #possibleAlts > 0 and (' Possible alts: ' .. table.concat(possibleAlts, ', ')) or ''
+        local altsMsg = #possibleAlts > 0 and Kora.lang('success.possible_alts', table.concat(possibleAlts, ', ')) or ''
         Admin.respond(source, true, Kora.lang('success.success_banned_s_s_s',
-            name or citizenid, expire and os.date('%Y-%m-%d %H:%M', expire) or 'permanent', altsMsg))
+            name or citizenid, expire and os.date('%Y-%m-%d %H:%M', expire) or Kora.lang('ui.ban_permanent'), altsMsg))
     end, OPTS_ADMIN)
 
 Admin.addCommand('unban', 'Lift a ban by license or ban id (preserves history)', { { name = 'licenseOrId' } }, true,
@@ -151,7 +151,7 @@ Admin.addCommand('freeze', 'Freeze/unfreeze a player', { { name = 'id' }, { name
     TriggerClientEvent('kora_admin:client:freeze', targetSrc, state)
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'freeze', data, { state = state })
-    Admin.respond(source, true, Kora.lang('success.success_s_s_2', state and 'Froze' or 'Unfroze', data.name))
+    Admin.respond(source, true, Kora.lang(state and 'success.player_frozen' or 'success.player_unfrozen', data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('kill', 'Kill a player', { { name = 'id' } }, false, function(source, args)
@@ -215,7 +215,8 @@ Admin.addCommand('god', 'Toggle god mode (invincibility)', { { name = 'id' }, { 
     TriggerClientEvent('kora_admin:client:god', targetSrc, state)
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'god', data, { state = state })
-    Admin.respond(source, true, Kora.lang('success.success_god_mode_s_for_s', state and 'enabled' or 'disabled', data.name))
+    Admin.respond(source, true, Kora.lang('success.success_god_mode_s_for_s',
+        state and Kora.lang('ui.state_enabled') or Kora.lang('ui.state_disabled'), data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('devmode', 'Toggle core development mode', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
@@ -233,7 +234,8 @@ Admin.addCommand('devmode', 'Toggle core development mode', { { name = 'id' }, {
 
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'devmode', data, { state = state })
-    Admin.respond(source, true, Kora.lang('success.success_development_mode_s_for_s', state and 'enabled' or 'disabled', data.name))
+    Admin.respond(source, true, Kora.lang('success.success_development_mode_s_for_s',
+        state and Kora.lang('ui.state_enabled') or Kora.lang('ui.state_disabled'), data.name))
 end, OPTS_MOD)
 
 Admin.addCommand('invisible', 'Toggle invisibility', { { name = 'id' }, { name = 'state' } }, false, function(source, args)
@@ -249,5 +251,6 @@ Admin.addCommand('invisible', 'Toggle invisibility', { { name = 'id' }, { name =
     TriggerClientEvent('kora_admin:client:invisible', targetSrc, state)
     Admin.refreshMenuPlayerState(source, targetSrc)
     Admin.log(source, 'invisible', data, { state = state })
-    Admin.respond(source, true, Kora.lang('success.success_invisibility_s_for_s', state and 'enabled' or 'disabled', data.name))
+    Admin.respond(source, true, Kora.lang('success.success_invisibility_s_for_s',
+        state and Kora.lang('ui.state_enabled') or Kora.lang('ui.state_disabled'), data.name))
 end, OPTS_MOD)

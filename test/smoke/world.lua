@@ -23,6 +23,17 @@ end
 
 dofile('config.lua')
 
+-- Kora.lang stand-in: the English text from locales/en.lua, formatted the way kora_lib does.
+local enLocale = dofile('locales/en.lua')
+local function lang(key, ...)
+    local value = enLocale
+    for part in key:gmatch('[^.]+') do value = type(value) == 'table' and value[part] or nil end
+    if type(value) ~= 'string' then return key end
+    if select('#', ...) == 0 then return value end
+    local ok, text = pcall(string.format, value, ...)
+    return ok and text or value
+end
+
 -- The /time clock, with the real Admin.finiteNumber from server/core.lua
 -- rather than a stub: the point of these tests is that the SERVER refuses a
 -- bad hour/minute or an unknown preset word, so the validator under test has
@@ -42,6 +53,7 @@ Kora = {
             commands[name] = { handler = handler, options = options }
         end,
     },
+    lang = lang,
 }
 function AddEventHandler(name, handler) serverEvents[name] = handler end
 function RegisterNetEvent() end
@@ -243,6 +255,8 @@ local adminDutyChanged
 
 Kora = {
     notify = { send = function() end },
+    lang = lang,
+    logging = { error = function() end },
     cache = {
         serverId = function() return 7 end,
         vehicle = function() return false end,

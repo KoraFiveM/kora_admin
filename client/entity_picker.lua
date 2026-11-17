@@ -150,7 +150,7 @@ local function openCopyDialog(modelName)
     CreateThread(function()
         pcall(Kora.nui.openInputDialog, {
             { id = 'model', label = Kora.lang('ui.model_name_label'), type = 'text', default = modelName, copyButton = { label = Kora.lang('ui.copy_text') } },
-        }, 'Entity picker', 'Select the name and press Ctrl+C, then close this dialog.')
+        }, Kora.lang('title.entity_picker'), Kora.lang('ui.entity_picker_copy_hint'))
         state.manualCopyOpen = false
     end)
 end
@@ -252,7 +252,7 @@ Kora.keybind.add({
     description = Kora.lang('ui.entity_picker_close'),
     defaultMapper = 'keyboard',
     defaultKey = Config.entityPicker.closeKey,
-    onPressed = function() stopPicker('Entity picker closed') end,
+    onPressed = function() stopPicker(Kora.lang('ui.entity_picker_closed')) end,
 })
 
 RegisterNetEvent('kora_admin:client:startEntityPicker', startPicker)

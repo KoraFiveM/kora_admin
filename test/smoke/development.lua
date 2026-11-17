@@ -23,6 +23,17 @@ end
 
 dofile('config.lua')
 
+-- Kora.lang stand-in: the English text from locales/en.lua, formatted the way kora_lib does.
+local enLocale = dofile('locales/en.lua')
+local function lang(key, ...)
+    local value = enLocale
+    for part in key:gmatch('[^.]+') do value = type(value) == 'table' and value[part] or nil end
+    if type(value) ~= 'string' then return key end
+    if select('#', ...) == 0 then return value end
+    local ok, text = pcall(string.format, value, ...)
+    return ok and text or value
+end
+
 -- Server command registration and authorization.
 local commands = {}
 local responses = {}
@@ -36,6 +47,7 @@ Kora = {
             commands[name] = { handler = handler, options = options }
         end,
     },
+    lang = lang,
 }
 Admin = {
     checkLevel = function() return true end,
@@ -129,6 +141,7 @@ local dialogFields
 
 Kora = {
     notify = { send = function(payload) notifications[#notifications + 1] = payload end },
+    lang = lang,
     placement = { start = function() return placementResult end },
     zones = { startCreator = function() return zoneResult end },
     cache = {

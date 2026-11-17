@@ -107,7 +107,7 @@ end
 local function resourceRows()
     local rows = {}
     for _, entry in ipairs(catalog) do
-        rows[#rows + 1] = { id = entry.resource, resource = entry.resource, fields = 'Open editor' }
+        rows[#rows + 1] = { id = entry.resource, resource = entry.resource, fields = Kora.lang('ui.open_editor') }
     end
     return rows
 end

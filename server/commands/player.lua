@@ -42,7 +42,8 @@ Admin.addCommand('players', 'List online players', { { name = 'search', help = '
         Admin.chat(source, table.concat(lines, '\n'))
     end, { permission = 'support', checkPermission = Admin.checkLevel, resource = 'kora_admin' })
 
-local function addSetNeedCommand(commandName, metadataKey, label)
+-- labelKey: the capitalised need name ('Hunger'); inlineKey: the same word inside a sentence ('hunger').
+local function addSetNeedCommand(commandName, metadataKey, label, labelKey, inlineKey)
     Admin.addCommand(commandName, ('Set a player\'s %s'):format(label:lower()),
         { { name = 'id' }, { name = 'value', help = '0-100' } }, true,
         function(source, args)
@@ -51,16 +52,18 @@ local function addSetNeedCommand(commandName, metadataKey, label)
 
             local value = Admin.finiteNumber(args[2], 0, 100)
             if value == nil then
-                return Admin.respond(source, false, Kora.lang('error.error_s_must_be_between_0_and', label))
+                return Admin.respond(source, false, Kora.lang('error.error_s_must_be_between_0_and', Kora.lang(labelKey)))
             end
 
             local ok, setErr = exports.kora_core:setMetaData(targetSrc, metadataKey, value)
-            if not ok then return Admin.respond(source, false, setErr or Kora.lang('error.error_could_not_set_s', label:lower())) end
+            if not ok then
+                return Admin.respond(source, false, setErr or Kora.lang('error.error_could_not_set_s', Kora.lang(inlineKey)))
+            end
 
             Admin.log(source, commandName, data, { value = value })
-            Admin.respond(source, true, Kora.lang('success.success_set_s_s_s_to_s', data.name, label:lower(), value))
+            Admin.respond(source, true, Kora.lang('success.success_set_s_s_s_to_s', data.name, Kora.lang(inlineKey), value))
         end, OPTS_ADMIN)
 end
 
-addSetNeedCommand('sethunger', 'hunger', 'Hunger')
-addSetNeedCommand('setthirst', 'thirst', 'Thirst')
+addSetNeedCommand('sethunger', 'hunger', 'Hunger', 'ui.menu_hunger', 'ui.hunger')
+addSetNeedCommand('setthirst', 'thirst', 'Thirst', 'ui.menu_thirst', 'ui.thirst')

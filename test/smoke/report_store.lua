@@ -11,6 +11,16 @@ local function truthy(value, message) if not value then error(message, 2) end en
 
 dofile('config.lua')
 Config.reports.cooldownSeconds = 30
+-- Kora.lang stand-in: the English text from locales/en.lua, formatted the way kora_lib does.
+local enLocale = dofile('locales/en.lua')
+local function lang(key, ...)
+    local value = enLocale
+    for part in key:gmatch('[^.]+') do value = type(value) == 'table' and value[part] or nil end
+    if type(value) ~= 'string' then return key end
+    if select('#', ...) == 0 then return value end
+    local ok, text = pcall(string.format, value, ...)
+    return ok and text or value
+end
 
 local reports, messages, nextReport, nextMessage = {}, {}, 1, 1
 local notices, logs, reads, delivered = {}, {}, {}, {}
@@ -117,6 +127,7 @@ Kora = {
         end,
     },
     notify = { send = function(target, payload) notices[#notices + 1] = { target = target, payload = payload } end },
+    lang = lang,
 }
 exports = { kora_core = {
     getPlayers = function() return { 7, 9, 10 } end,
