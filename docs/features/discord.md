@@ -61,7 +61,7 @@ Replies are ephemeral and suppress mentions. Only commands in kora_admin's own r
 - Your tier must satisfy the command's permission. Player-level commands (`/report` etc.) need `support` from Discord.
 - Commands in `discord.confirmCommands` need `confirm:true` (default list: `ban`, `unban`, `kick`, `clearinventory`, `restartresource`, `setpermission`, `revokepermission`, `granttempaccess`, `revoketempaccess`).
 - `/restartresource` refuses `kora_admin`, `kora_lib` and `monitor`; restart those from txAdmin.
-- Commands that need your ped, vehicle, camera, clipboard or UI (`admin`, `config`, `aduty`, `coords`, `vec4`, `health`, `armor`, `selfrevive`, `car`, `dv`, `fix`, `goto`, `bring`, `tpm`, `tpcoords`, `tpback`, `spectate`, `noclip`, `entity`, `deleteentity`, `entitypicker`, `devplacement`, `devzone`, `report`) require the same Discord account to be connected to the game. Otherwise the command runs as an offline actor, and targeted commands need an explicit target.
+- Commands that need your ped, vehicle, camera, clipboard or UI (`admin`, `config`, `aduty`, `coords`, `vec4`, `health`, `armor`, `selfrevive`, `car`, `dv`, `fix`, `ownveh`, `goto`, `bring`, `tpm`, `tpcoords`, `tpback`, `spectate`, `noclip`, `entity`, `deleteentity`, `entitypicker`, `devplacement`, `devzone`, `report`) require the same Discord account to be connected to the game. Otherwise the command runs as an offline actor, and targeted commands need an explicit target.
 - If a client-side action gives no completion result, the reply says the command was dispatched.
 - Each Discord user may send one command every `discord.cooldownSeconds` (3) seconds.
 

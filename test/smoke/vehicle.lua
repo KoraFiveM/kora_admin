@@ -25,12 +25,24 @@ local networkChecks = 0
 local waits = 0
 local grantedKeys = {}
 local createdVehicles = {}
+local registeredPlates = {}
+local currentVehicle = 201
+
+local locale = dofile('locales/en.lua')
 
 Kora = {
+    -- Resolves 'group.key' against the real English locale so the tests also
+    -- prove that every key the commands use exists.
+    lang = function(key, ...)
+        local group, name = key:match('^(%w+)%.(.+)$')
+        local text = group and locale[group] and locale[group][name]
+        assert(text, ('missing locale key %s'):format(key))
+        return select('#', ...) > 0 and text:format(...) or text
+    end,
     lookup = {
         vehicle = function(hash) return hash == 123 and {} or nil end,
         model = function(hash)
-            if hash == 123 then return { namespace = 'vehicle' } end
+            if hash == 123 then return { namespace = 'vehicle', name = 'adder' } end
             if hash == 456 then return { namespace = 'ped' } end
         end,
     },
@@ -57,6 +69,7 @@ exports = {
             }
             return true
         end,
+        getByPlate = function(_, plate) return registeredPlates[plate] end,
     },
     kora_vehiclekeys = {
         giveKeys = function(_, target, plate, override)
@@ -102,7 +115,8 @@ function NetworkGetNetworkIdFromEntity()
     return networkChecks >= 3 and 301 or 0
 end
 function GetVehicleNumberPlateText() return 'ADMIN 1' end
-function GetVehiclePedIsIn() return 201 end
+function GetVehiclePedIsIn() return currentVehicle end
+function GetEntityModel() return 123 end
 function GetPedInVehicleSeat() return 101 end
 function DeleteEntity() error('the eventually ready vehicle must not be deleted') end
 function TriggerClientEvent(name, target, ...)
@@ -151,6 +165,34 @@ test('givevehicle rejects invalid plates before persistence', function()
 
     equal(#createdVehicles, createdBefore, 'invalid plate must not reach persistence')
     equal(responses[#responses].ok, false, 'invalid plate must report failure')
+end)
+
+test('ownveh saves the vehicle you are in to your own garage', function()
+    equal(commands.ownveh.options.permission, 'admin', '/ownveh permission')
+    local createdBefore, keysBefore = #createdVehicles, #grantedKeys
+    commands.ownveh.handler(7, {})
+
+    equal(#createdVehicles, createdBefore + 1, 'the vehicle must be persisted once')
+    equal(createdVehicles[#createdVehicles].citizenid, 'CID123', 'the caller owns the vehicle')
+    equal(createdVehicles[#createdVehicles].model, 'adder', 'model comes from the live entity')
+    equal(createdVehicles[#createdVehicles].plate, 'ADMIN 1', 'plate comes from the live entity')
+    equal(#grantedKeys, keysBefore + 1, 'the owner receives keys')
+    equal(responses[#responses].ok, true, 'ownership must report success')
+end)
+
+test('ownveh refuses when not in a vehicle or when the plate is registered', function()
+    local createdBefore = #createdVehicles
+    registeredPlates['ADMIN 1'] = { citizenid = 'CID123' }
+    commands.ownveh.handler(7, {})
+    equal(#createdVehicles, createdBefore, 'a registered plate must not be persisted again')
+    equal(responses[#responses].ok, false, 'a registered plate must report failure')
+
+    registeredPlates['ADMIN 1'] = nil
+    currentVehicle = 0
+    commands.ownveh.handler(7, {})
+    currentVehicle = 201
+    equal(#createdVehicles, createdBefore, 'no vehicle means nothing to persist')
+    equal(responses[#responses].ok, false, 'on foot must report failure')
 end)
 
 test('model lookup supports addon vehicles and rejects unknown models', function()

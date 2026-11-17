@@ -1,4 +1,4 @@
--- /car, /veh, /givevehicle, /dv, /fix
+-- /car, /veh, /givevehicle, /ownveh, /dv, /fix
 --
 -- /givekeys belongs to kora_vehiclekeys (a player hands over keys they hold);
 -- this resource must not register a command with that name.
@@ -222,3 +222,42 @@ Admin.addCommand('fix', 'Repair the vehicle you are in', nil, false, function(so
     Admin.log(source, 'fix')
     Admin.respond(source, true, Kora.lang('success.repaired_your_current_vehicle'))
 end, OPTS_MOD)
+
+-- Adds the vehicle the admin is sitting in to their own personal garage. The
+-- entity stays where it is; only the persistent kora_core record is created, the
+-- same way /givevehicle does it, so the plate and model come from the live
+-- vehicle instead of being typed in.
+Admin.addCommand('ownveh', 'Add the vehicle you are in to your personal garage', nil, false, function(source)
+    local _, data, targetErr = Admin.resolveTarget(source)
+    if not data then return Admin.respond(source, false, targetErr) end
+
+    local vehicle = GetVehiclePedIsIn(GetPlayerPed(source))
+    if vehicle == 0 or not DoesEntityExist(vehicle) then
+        return Admin.respond(source, false, Kora.lang('error.you_are_not_in_a_vehicle'))
+    end
+
+    local record = Kora.lookup.model(GetEntityModel(vehicle), 'vehicle')
+    local model = record and validModel(record.name)
+    if not model then return Admin.respond(source, false, Kora.lang('error.unknown_vehicle_model')) end
+
+    -- GTA pads plates with spaces, so trim before storing and comparing.
+    local plate = GetVehicleNumberPlateText(vehicle)
+    plate = type(plate) == 'string' and plate:upper():match('^%s*(.-)%s*$') or ''
+    if plate == '' or #plate > 15 or not plate:match('^[A-Z0-9 ]+$') then
+        return Admin.respond(source, false, Kora.lang('error.plate_must_be_1_15_letters'))
+    end
+
+    if exports.kora_core:getByPlate(plate) then
+        return Admin.respond(source, false, Kora.lang('error.vehicle_plate_already_registered'))
+    end
+
+    local created, createErr = exports.kora_core:createVehicle(data.citizenid, model, plate)
+    if not created then return Admin.respond(source, false, createErr or Kora.lang('error.vehicle_save_failed')) end
+
+    -- Keys are a convenience here: the vehicle is already saved, so a failed
+    -- grant must not turn a successful ownership change into an error.
+    giveVehicleKeys(source, vehicle)
+
+    Admin.log(source, 'ownveh', data, { model = model, plate = plate })
+    Admin.respond(source, true, Kora.lang('success.success_added_s_s_to_s_s', model, plate, data.name))
+end, OPTS_ADMIN)

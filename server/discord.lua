@@ -5,7 +5,7 @@ local registrationGeneration = 0
 
 local PLAYER_COMMANDS = {
     admin = true, config = true, aduty = true, coords = true, vec4 = true,
-    health = true, armor = true, selfrevive = true, car = true, dv = true, fix = true,
+    health = true, armor = true, selfrevive = true, car = true, dv = true, fix = true, ownveh = true,
     ['goto'] = true, bring = true, tpm = true, tpcoords = true, tpback = true,
     spectate = true, noclip = true, entity = true, deleteentity = true,
     entitypicker = true, devplacement = true, devzone = true, report = true,

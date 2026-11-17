@@ -32,7 +32,7 @@ Actions written by kora_admin:
 - Economy: `givemoney`, `removemoney`, `setmoney`, `giveitem`, `removeitem`, `clearinventory`
 - Roles: `setjob`, `setgang`, `setduty`
 - Appearance: `clothingmenu`, `barbermenu`, `tattoomenu`
-- Vehicles and entities: `car`, `veh`, `givevehicle`, `dv`, `fix`, `entity`, `entityfor`, `deleteentity`
+- Vehicles and entities: `car`, `veh`, `givevehicle`, `ownveh`, `dv`, `fix`, `entity`, `entityfor`, `deleteentity`
 - Developer: `entitypicker`, `devplacement`, `devzone`
 - World: `announce`, `weather`, `time`, `restartresource`
 - Access: `setpermission`, `revokepermission`, `granttempaccess`, `revoketempaccess`

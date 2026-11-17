@@ -48,7 +48,7 @@ See [Player reports](./features/reports.md). `/reports` opens the same queue as 
 | --- | --- |
 | General | Admin Duty toggle, Copy Coordinates, Set Health (0-100%, blank = full), Revive Me, Set Armor. |
 | Movement | Teleport to Waypoint, Teleport to Coordinates, Teleport Back, Stop Spectating, Noclip toggle (admin). |
-| Vehicles | Spawn from Code (`/car` with any valid GTA or streamed addon spawn code), Browse Vehicle Catalogue (searchable quick-pick of kora_core's shared vehicles; not an allow-list), Repair Current Vehicle, Delete Vehicle (admin). |
+| Vehicles | Spawn from Code (`/car` with any valid GTA or streamed addon spawn code), Browse Vehicle Catalogue (searchable quick-pick of kora_core's shared vehicles; not an allow-list), Repair Current Vehicle, Own Current Vehicle (admin, only shown while you are in a vehicle; asks for confirmation), Delete Vehicle (admin). |
 | Appearance | Open Wardrobe, Nearby Clothing / Barber / Tattoo Shop, Full Administrative Styling (admin). These fire kora_clothing client events and require kora_clothing to be running. |
 
 ### Server

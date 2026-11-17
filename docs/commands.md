@@ -752,6 +752,26 @@ Repairs the vehicle you are currently in.
 
 Fails with "you are not in a vehicle" outside one.
 
+### `/ownveh`
+
+Adds the vehicle you are currently in to your own personal garage. The model and plate are read from the live vehicle, then saved through exports.kora_core:createVehicle exactly as /givevehicle does. The vehicle stays where it is and you are given its keys.
+
+| Field | Details |
+| --- | --- |
+| Context | In-game · server command (also the Own Current Vehicle button in the Vehicles section of My Tools) |
+| Arguments | No arguments. The owner is always the player who runs it. |
+| Access | admin gate. |
+
+**Example**
+
+```text
+/ownveh
+```
+
+**Result**
+
+Fails with "you are not in a vehicle" outside one, with "unknown vehicle model" when the model cannot be identified, and with "A vehicle with this plate is already registered" when kora_core already has a vehicle with that plate (including one you already own). The plate is trimmed and upper-cased; it may contain letters, digits and spaces. On success the action is audited with the model and plate.
+
 ### `/entity <model>`
 
 Spawns a static, non-networked ped or prop in front of you via kora_lib’s entities module. Vehicle models are refused (use /car or /veh).
@@ -1629,6 +1649,7 @@ These fail with "kora_clothing is not running" when kora_clothing is not started
 | `/car` | `<model>` | admin | Spawns the vehicle server-side `Config.vehicle.spawnOffset` metres in front of you, in your routing bucket, grants you keys and warps you in. | `car` |
 | `/veh` | `<id> <model>` | admin | Same for another player; notifies them when `Config.vehicle.notifyTarget` is on. | `veh` |
 | `/givevehicle` | `<id> <model> <plate>` | admin | Adds a persistent personal vehicle to the online player's garage through kora_core `createVehicle`. Plates are 1-15 letters or digits (upper-cased). | `givevehicle` |
+| `/ownveh` | - | admin | Saves the vehicle you are in as a persistent personal vehicle of your own character through kora_core `createVehicle`, using its live model and plate, and grants you its keys. Refused when the plate already exists. | `ownveh` |
 | `/dv` | `[radius]` | admin | Deletes the vehicle you are in; on foot, the nearest vehicle within `Config.dv.nearestRadius`; with a radius, every vehicle in range (capped at `Config.dv.maxRadius`). Vehicles with another player inside are skipped. With `nearestRadius = 0` only your current vehicle is deleted. | `dv` |
 | `/fix` | - | mod | Repairs the vehicle you are in (body, engine, deformation). | `fix` |
 
