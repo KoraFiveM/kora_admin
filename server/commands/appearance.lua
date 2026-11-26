@@ -13,7 +13,7 @@ local function addAppearanceCommand(name, label, service, labelKey)
         end
 
         local callOk, opened, openErr = pcall(function()
-            return exports.kora_clothing:OpenAdminSession(targetSrc, service)
+            return Kora.bridge.openAdminSession(targetSrc, service)
         end)
         if not callOk or not opened then
             return Admin.respond(source, false, openErr or (callOk and Kora.lang('error.appearance_open_failed') or tostring(opened)))
