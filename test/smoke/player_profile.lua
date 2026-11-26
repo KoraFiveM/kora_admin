@@ -26,6 +26,7 @@ Kora = {
     callback = { register = function(name, handler) callbacks[name] = handler end },
     commands = { add = function(name, _, _, _, handler, options) commands[name] = { handler = handler, options = options } end },
     notify = { send = function() end },
+    bridge = {},
     lang = lang,
 }
 Admin = {
