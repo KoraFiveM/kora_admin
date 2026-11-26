@@ -2,7 +2,7 @@
 -- commands authenticate every request before either event can be sent.
 
 local function notify(kind, message)
-    Kora.notify.send({
+    Kora.bridge.sendNotify({
         title = Kora.lang('title.developer_tools'),
         type = kind,
         message = message,

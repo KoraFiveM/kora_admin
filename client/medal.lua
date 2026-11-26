@@ -6,7 +6,7 @@ local pending = {}
 local nextRequestId = 0
 
 local function notify(notificationType, message)
-    Kora.notify.send({ type = notificationType, message = message })
+    Kora.bridge.sendNotify({ type = notificationType, message = message })
 end
 
 local function trim(value)

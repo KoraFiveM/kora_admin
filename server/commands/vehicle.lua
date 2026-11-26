@@ -39,7 +39,7 @@ local function giveVehicleKeys(targetSrc, vehicle)
     -- Administrative grants must work on servers that have disabled ordinary
     -- temporary keys. kora_vehiclekeys still owns plate normalisation and access
     -- state; this flag marks the grant as an intentional privileged override.
-    return exports.kora_vehiclekeys:giveKeys(targetSrc, plate, true) == true
+    return Kora.bridge.giveKeys(targetSrc, plate, true) == true
 end
 
 local function spawnFor(targetSrc, model)
@@ -108,7 +108,7 @@ Admin.addCommand('veh', 'Spawn a vehicle for a player', { { name = 'id' }, { nam
     local _, spawnErr = spawnFor(targetSrc, model)
     if spawnErr then return Admin.respond(source, false, spawnErr) end
     if Config.vehicle.notifyTarget and targetSrc ~= source then
-        Kora.notify.send(targetSrc, { message = Kora.lang('success.received_vehicle', model), type = 'success' })
+        Kora.bridge.sendNotify(targetSrc, { message = Kora.lang('success.received_vehicle', model), type = 'success' })
     end
     Admin.log(source, 'veh', data, { model = model })
     Admin.respond(source, true, Kora.lang('success.success_spawned_s_for_s', model, data.name))

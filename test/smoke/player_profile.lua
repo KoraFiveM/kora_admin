@@ -101,7 +101,7 @@ end)
 
 test('a denied admin-menu open explains the permission requirement and roles', function()
     local message, kind
-    Kora.notify.send = function(_, payload) message, kind = payload.message, payload.type end
+    Kora.bridge.sendNotify = function(_, payload) message, kind = payload.message, payload.type end
 
     commands.admin.options.notify(7)
 

@@ -772,8 +772,8 @@ test('the open Reports screen reloads live without losing the selected report', 
         end
         return {}
     end
-    local previousNotify, previousUpdate = Kora.notify.send, Kora.nui.updateApp
-    Kora.notify.send = function() toasts = toasts + 1 end
+    local previousNotify, previousUpdate = Kora.bridge.sendNotify, Kora.nui.updateApp
+    Kora.bridge.sendNotify = function() toasts = toasts + 1 end
     local updates = {}
     Kora.nui.updateApp = function(id, update) updates[#updates + 1] = { id = id, update = update } end
     Kora.nui.isAppOpen = function() return true end
@@ -830,7 +830,7 @@ test('the open Reports screen reloads live without losing the selected report', 
     netEvents['kora_admin:client:reportChanged'](42)
     equal(#updates, 2, 'nothing is pushed once the Reports screen is closed')
 
-    Kora.nui.isAppOpen, Kora.nui.updateApp, Kora.notify.send = nil, previousUpdate, previousNotify
+    Kora.nui.isAppOpen, Kora.nui.updateApp, Kora.bridge.sendNotify = nil, previousUpdate, previousNotify
     Config.reports.chat.enabled = chatWas
 end)
 
@@ -913,7 +913,7 @@ test('My Reports: players chat in their own window and get a toast only while it
             { id = 3, author_name = 'Support', author_role = 'staff', message = 'Like this', created_text = '2026-11-06 09:01 UTC', unread = true },
         } }
     local sent = {}
-    local previousTrigger, previousUpdate, previousNotify = Kora.callback.trigger, Kora.nui.updateApp, Kora.notify.send
+    local previousTrigger, previousUpdate, previousNotify = Kora.callback.trigger, Kora.nui.updateApp, Kora.bridge.sendNotify
     Kora.callback.trigger = function(name, a, b)
         if name == 'kora_admin:myReports' then return { { id = 7, status = 'claimed', category = 'Question / Help', subject = 'How?', age = '1m', unread = 1 } } end
         if name == 'kora_admin:myReport' then return tonumber(a) == 7 and report or nil, 'report not found' end
@@ -922,7 +922,7 @@ test('My Reports: players chat in their own window and get a toast only while it
     end
     local updates, toasts = {}, {}
     Kora.nui.updateApp = function(id, update) updates[#updates + 1] = { id = id, update = update } end
-    Kora.notify.send = function(payload) toasts[#toasts + 1] = payload end
+    Kora.bridge.sendNotify = function(payload) toasts[#toasts + 1] = payload end
     menuPayload = nil
 
     netEvents['kora_admin:client:openMyReports'](7)
@@ -962,7 +962,7 @@ test('My Reports: players chat in their own window and get a toast only while it
     netEvents['kora_admin:client:myReportChanged'](7, { kind = 'status' })
     equal(#toasts, 1, 'status pushes do not add a second toast (the server already sends one)')
 
-    Kora.nui.isAppOpen, Kora.callback.trigger, Kora.nui.updateApp, Kora.notify.send = nil, previousTrigger, previousUpdate, previousNotify
+    Kora.nui.isAppOpen, Kora.callback.trigger, Kora.nui.updateApp, Kora.bridge.sendNotify = nil, previousTrigger, previousUpdate, previousNotify
 end)
 
 test('kora_broadcast notifies every player, but only from the console', function()

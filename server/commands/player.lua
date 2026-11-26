@@ -15,7 +15,7 @@ end, {
     -- denies access. Give the player the exact requirement and their resolved
     -- role tiers instead of its generic permission error.
     notify = function(source)
-        Kora.notify.send(source, { message = Admin.menuAccessDeniedMessage(source, 'support'), type = 'error' })
+        Kora.bridge.sendNotify(source, { message = Admin.menuAccessDeniedMessage(source, 'support'), type = 'error' })
     end,
     keybind = {
         description = Config.keybind.label,

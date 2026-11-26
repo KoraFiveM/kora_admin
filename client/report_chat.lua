@@ -215,7 +215,7 @@ RegisterNetEvent('kora_admin:client:myReportChanged', function(id, info)
         return
     end
     if info.kind == 'reply' then
-        Kora.notify.send({
+        Kora.bridge.sendNotify({
             title = Kora.lang('ui.new_reply_title', tostring(id)),
             message = Kora.lang('ui.new_reply_message', tostring(info.author or Kora.lang('ui.staff')), tostring(info.preview or '')),
             type = 'info',
@@ -229,7 +229,7 @@ local function openMyReports(reportId)
     if reportId then first, err = showReport(reportId) end
     if not first then first, err = showList() end
     if not first then
-        Kora.notify.send({ type = 'error', message = err or Kora.lang('ui.reports_load_failed') })
+        Kora.bridge.sendNotify({ type = 'error', message = err or Kora.lang('ui.reports_load_failed') })
         return
     end
     Kora.nui.registerApp({

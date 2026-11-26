@@ -22,7 +22,7 @@ local ENTITY_KINDS = {
 local ENTITY_RAY_FLAGS = 26
 
 local function notify(kind, message)
-    Kora.notify.send({ title = Kora.lang('title.entity_picker'), type = kind, message = message })
+    Kora.bridge.sendNotify({ title = Kora.lang('title.entity_picker'), type = kind, message = message })
 end
 
 local function entityKind(entity)

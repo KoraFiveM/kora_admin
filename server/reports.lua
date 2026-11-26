@@ -152,7 +152,7 @@ end
 
 local function notifyStaff(payload, onlySrc)
     eachStaff(function(playerSrc)
-        if not onlySrc or playerSrc == onlySrc then Kora.notify.send(playerSrc, payload) end
+        if not onlySrc or playerSrc == onlySrc then Kora.bridge.sendNotify(playerSrc, payload) end
     end)
 end
 
@@ -183,7 +183,7 @@ end
 
 local function notifyReporter(row, payload)
     local src = Admin.reporterSource(row)
-    if src then Kora.notify.send(src, payload) end
+    if src then Kora.bridge.sendNotify(src, payload) end
 end
 
 ---With the chat on, tell the reporter's own client that their report changed so an

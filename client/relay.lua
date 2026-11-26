@@ -92,17 +92,17 @@ RegisterNetEvent('kora_admin:client:spawnEntity', function(model)
     }, { preset = 'static' })
 
     if not entity then
-        Kora.notify.send({ type = 'error', message = Kora.lang('error.spawn_entity_failed', model, err or Kora.lang('error.unknown')) })
+        Kora.bridge.sendNotify({ type = 'error', message = Kora.lang('error.spawn_entity_failed', model, err or Kora.lang('error.unknown')) })
         return
     end
 
     lastAdminEntity = entity
-    Kora.notify.send({ type = 'success', message = Kora.lang('success.entity_spawned', model) })
+    Kora.bridge.sendNotify({ type = 'success', message = Kora.lang('success.entity_spawned', model) })
 end)
 
 RegisterNetEvent('kora_admin:client:deleteLastEntity', function()
     if not lastAdminEntity then
-        Kora.notify.send({ type = 'error', message = Kora.lang('error.no_spawned_entity') })
+        Kora.bridge.sendNotify({ type = 'error', message = Kora.lang('error.no_spawned_entity') })
         return
     end
 
@@ -110,11 +110,11 @@ RegisterNetEvent('kora_admin:client:deleteLastEntity', function()
     lastAdminEntity = nil
     local removed, err = Kora.entities.remove(entity)
     if not removed then
-        Kora.notify.send({ type = 'error', message = err or Kora.lang('error.delete_entity_failed') })
+        Kora.bridge.sendNotify({ type = 'error', message = err or Kora.lang('error.delete_entity_failed') })
         return
     end
 
-    Kora.notify.send({ type = 'success', message = Kora.lang('success.entity_deleted') })
+    Kora.bridge.sendNotify({ type = 'success', message = Kora.lang('success.entity_deleted') })
 end)
 
 RegisterNetEvent('kora_admin:client:enterVehicle', function(netId, seat)
@@ -155,7 +155,7 @@ local function copyCoords(text)
         ok, result = pcall(Citizen.Await, result)
     end
     local copied = ok and result == true
-    Kora.notify.send({
+    Kora.bridge.sendNotify({
         type = copied and 'success' or 'error',
         message = copied and Kora.lang('success.copied') or Kora.lang('error.copy_failed'),
     })

@@ -21,7 +21,7 @@ Admin.addCommand('announce', 'Broadcast a message to every player', { { name = '
     local message = table.concat(args, ' ')
     if message == '' then return Admin.respond(source, false, Kora.lang('error.message_required')) end
 
-    Kora.notify.sendToAll({ title = Kora.lang('title.announcement'), message = message, type = 'info', duration = 8000 })
+    Kora.bridge.sendNotifyToAll({ title = Kora.lang('title.announcement'), message = message, type = 'info', duration = 8000 })
     if Config.announcement.sound.enabled then
         TriggerClientEvent('kora_admin:client:announceSound', -1)
     end
@@ -37,7 +37,7 @@ RegisterCommand('kora_broadcast', function(source, _, raw)
     local message = raw:match('^%S+%s+(.+)$')
     if not message then return end
 
-    Kora.notify.sendToAll({ title = Kora.lang('title.server'), message = message:sub(1, 200), type = 'warning', duration = 60000 })
+    Kora.bridge.sendNotifyToAll({ title = Kora.lang('title.server'), message = message:sub(1, 200), type = 'warning', duration = 60000 })
 end, true)
 
 Admin.addCommand('weather', 'Set the server weather', { { name = 'type' } }, true, function(source, args)
