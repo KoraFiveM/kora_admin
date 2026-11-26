@@ -11,14 +11,14 @@ local function stop()
     NetworkSetInSpectatorMode(false, PlayerPedId())
     spectating = nil
     Admin.spectating = false
-    if hint then Kora.textui.hide(hint); hint = nil end
+    if hint then Kora.bridge.hideText(hint); hint = nil end
     if Admin.refreshAppActionStates then Admin.refreshAppActionStates() end
 end
 
 local function start(targetSrc)
     local targetPlayer = GetPlayerFromServerId(targetSrc)
     if targetPlayer == -1 then
-        Kora.notify.send({ title = Kora.lang('title.error'), message = Kora.lang('error.target_not_visible'), type = 'error' })
+        Kora.bridge.sendNotify({ title = Kora.lang('title.error'), message = Kora.lang('error.target_not_visible'), type = 'error' })
         return
     end
 
@@ -30,7 +30,7 @@ local function start(targetSrc)
         ped = GetPlayerPed(targetPlayer)
     end
     if not DoesEntityExist(ped) then
-        Kora.notify.send({ title = Kora.lang('title.error'), message = Kora.lang('error.target_ped_missing'), type = 'error' })
+        Kora.bridge.sendNotify({ title = Kora.lang('title.error'), message = Kora.lang('error.target_ped_missing'), type = 'error' })
         return
     end
 
@@ -38,7 +38,7 @@ local function start(targetSrc)
     spectating = targetSrc
     Admin.spectating = true
     if Config.spectate.showHint and not hint then
-        hint = Kora.textui.show('Stop spectating', { key = Config.spectate.stopKey ~= '' and Config.spectate.stopKey or nil, icon = 'eye-off' })
+        hint = Kora.bridge.drawText('Stop spectating', { key = Config.spectate.stopKey ~= '' and Config.spectate.stopKey or nil, icon = 'eye-off' })
     end
 end
 
@@ -50,7 +50,7 @@ RegisterNetEvent('kora_admin:client:spectate', function(targetSrc)
     -- Selecting Spectate on the player already being spectated toggles it off.
     if spectating == targetSrc then
         stop()
-        Kora.notify.send({ title = Kora.lang('title.admin'), message = Kora.lang('success.spectating_stopped'), type = 'info' })
+        Kora.bridge.sendNotify({ title = Kora.lang('title.admin'), message = Kora.lang('success.spectating_stopped'), type = 'info' })
         return
     end
     start(targetSrc)
@@ -65,7 +65,7 @@ Kora.keybind.add({
     onPressed = function()
         if not spectating then return end
         stop()
-        Kora.notify.send({ title = Kora.lang('title.admin'), message = Kora.lang('success.spectating_stopped'), type = 'info' })
+        Kora.bridge.sendNotify({ title = Kora.lang('title.admin'), message = Kora.lang('success.spectating_stopped'), type = 'info' })
     end,
 })
 

@@ -148,8 +148,8 @@ local function scheduleRestart(context, reason, confirmed)
         discord_id = context.userId, reason = reason, delay_seconds = delay,
     })
     restartPending = true
-    Kora.notify.sendToAll({ title = Kora.lang('title.server_restart'), message = Kora.lang('ui.restart_in', delay, reason),
-        type = 'warning', duration = 10000 })
+    Kora.bridge.sendNotify(-1, { title = Kora.lang('title.server_restart'), message = Kora.lang('ui.restart_in', delay, reason),
+        type = 'warning', time = 10000 })
     SetTimeout(delay * 1000, function()
         CreateThread(function()
             local level = freshLevel(context.userId)
@@ -159,7 +159,7 @@ local function scheduleRestart(context, reason, confirmed)
                 or not contains(Config.discord.channels, context.channelId) then
                 restartPending = false
                 Admin.log(0, 'discord.restart.cancelled', nil, { discord_id = context.userId, reason = 'Access or configuration changed' })
-                Kora.notify.sendToAll({ title = Kora.lang('title.restart_cancelled'), message = Kora.lang('error.restart_auth_unavailable'), type = 'info' })
+                Kora.bridge.sendNotify(-1, { title = Kora.lang('title.restart_cancelled'), message = Kora.lang('error.restart_auth_unavailable'), type = 'info' })
                 return
             end
             Admin.commandContexts[coroutine.running()] = context
@@ -172,7 +172,7 @@ local function scheduleRestart(context, reason, confirmed)
                 CreateThread(function()
                     Kora.logging.error('discord.restart_failed', 'txAdmin restart failed', { error = tostring(message) })
                     Admin.log(0, 'discord.restart.failed', nil, { discord_id = context.userId, error = tostring(message) })
-                    Kora.notify.sendToAll({ title = Kora.lang('title.restart_unconfirmed'), message = Kora.lang('error.restart_unconfirmed'), type = 'error' })
+                    Kora.bridge.sendNotify(-1, { title = Kora.lang('title.restart_unconfirmed'), message = Kora.lang('error.restart_unconfirmed'), type = 'error' })
                 end)
             end)
         end)

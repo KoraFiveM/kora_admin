@@ -107,7 +107,7 @@ end)
 
 local function openClothing(mode, service)
     if GetResourceState('kora_clothing') ~= 'started' then
-        Kora.notify.send({ type = 'error', message = Kora.lang('error.clothing_unavailable') })
+        Kora.bridge.sendNotify({ type = 'error', message = Kora.lang('error.clothing_unavailable') })
         return
     end
     if mode == 'shop' then
@@ -883,7 +883,7 @@ local function openRoot(options)
     local function showAuditInShell(filters)
         local rows, err = Kora.callback.trigger('kora_admin:menuAuditLog', filters)
         if not rows then
-            Kora.notify.send({ type = 'error', message = err or Kora.lang('error.audit_log_load_failed') })
+            Kora.bridge.sendNotify({ type = 'error', message = err or Kora.lang('error.audit_log_load_failed') })
             return {}
         end
         local tab = findTab(findView('server'), 'audit')
@@ -919,7 +919,7 @@ local function openRoot(options)
         supportsHeaderControls = capabilityOk and supportsHeaderControls == true
         local resources, err = Kora.callback.trigger('kora_admin:menuResources')
         if not resources then
-            Kora.notify.send({ type = 'error', message = err or Kora.lang('error.resources_load_failed') })
+            Kora.bridge.sendNotify({ type = 'error', message = err or Kora.lang('error.resources_load_failed') })
             return {}
         end
         local tab = findTab(findView('development'), 'resource_versions')
@@ -984,7 +984,7 @@ local function openRoot(options)
         if not view then return {} end
         local players, err = Kora.callback.trigger('kora_admin:menuPlayers')
         if not players then
-            Kora.notify.send({ type = 'error', message = err or Kora.lang('error.players_load_failed') })
+            Kora.bridge.sendNotify({ type = 'error', message = err or Kora.lang('error.players_load_failed') })
             return {}
         end
 
@@ -1020,7 +1020,7 @@ local function openRoot(options)
         local rows, err = Kora.callback.trigger('kora_admin:menuReports', currentReportFilters)
         if quiet and selectedReportId then return {} end
         if not rows then
-            if not quiet then Kora.notify.send({ type = 'error', message = err or Kora.lang('error.reports_load_failed') }) end
+            if not quiet then Kora.bridge.sendNotify({ type = 'error', message = err or Kora.lang('error.reports_load_failed') }) end
             return {}
         end
         selectedReportId = nil
@@ -1066,7 +1066,7 @@ local function openRoot(options)
         if quiet and selectedReportId ~= tostring(id) then return {} end
         local chatOn = Config.reports.chat and Config.reports.chat.enabled == true
         if not report then
-            if not quiet then Kora.notify.send({ type = 'error', message = err or Kora.lang('error.report_load_failed') }) end
+            if not quiet then Kora.bridge.sendNotify({ type = 'error', message = err or Kora.lang('error.report_load_failed') }) end
             return {}
         end
         local view = findView('reports')
@@ -1255,7 +1255,7 @@ local function openRoot(options)
         local profile, profileErr = Kora.callback.trigger('kora_admin:menuPlayerProfile', player.id)
         if quiet and selectedPlayerId ~= tostring(player.id) then return {} end
         if not profile then
-            Kora.notify.send({ type = 'error', message = profileErr or Kora.lang('ui.player_offline') })
+            Kora.bridge.sendNotify({ type = 'error', message = profileErr or Kora.lang('ui.player_offline') })
             return {}
         end
 
@@ -1304,7 +1304,7 @@ local function openRoot(options)
 
         add('profile', 'copyinfo', Kora.lang('ui.menu_copy_player_info'), 'support', appAction(function()
             Kora.nui.copyToClipboard(playerProfileClipboard(profile))
-            Kora.notify.send({ type = 'success', message = Kora.lang('ui.player_info_copied') })
+            Kora.bridge.sendNotify({ type = 'success', message = Kora.lang('ui.player_info_copied') })
         end))
         add('history', 'warnings', Kora.lang('ui.menu_warning_history'), 'mod', selected('warnings'))
 
@@ -1565,7 +1565,7 @@ local function openRoot(options)
                     end
                 end
                 if selected then return showSelectedPlayer(selected) end
-                Kora.notify.send({ type = 'error', message = Kora.lang('ui.player_offline') })
+                Kora.bridge.sendNotify({ type = 'error', message = Kora.lang('ui.player_offline') })
                 return {}
             end
             if categoryId == 'player' and itemId == 'back' then

@@ -192,7 +192,7 @@ end
 
 local function openEditor()
     local result, err = Kora.callback.trigger('kora_admin:configCatalog')
-    if not result then return Kora.notify.send({ type = 'error', message = err or Kora.lang('ui.config_load_failed') }) end
+    if not result then return Kora.bridge.sendNotify({ type = 'error', message = err or Kora.lang('ui.config_load_failed') }) end
     catalog = result
     selected = nil
 
@@ -235,7 +235,7 @@ local function openEditor()
                 response, requestError = Kora.callback.trigger('kora_admin:configReset', request)
             end
             if not response or not response.ok then error((response and response.error) or requestError or Kora.lang('error.config_change_failed')) end
-            Kora.notify.send({ type = 'success', message = response.applied and Kora.lang('ui.config_updated') or Kora.lang('ui.config_saved_restart') })
+            Kora.bridge.sendNotify({ type = 'success', message = response.applied and Kora.lang('ui.config_updated') or Kora.lang('ui.config_saved_restart') })
             local refreshed, refreshError = Kora.callback.trigger('kora_admin:configRead', selected.entry.resource)
             if not refreshed then error(refreshError or Kora.lang('error.config_refresh_failed')) end
             selected.entry = refreshed

@@ -132,7 +132,7 @@ end)
 RegisterNetEvent('kora_admin:client:tpm', function()
     local coords, err = getWaypointCoords()
     if not coords then
-        Kora.notify.send({ title = Kora.lang('title.error'), message = err, type = 'error' })
+        Kora.bridge.sendNotify({ title = Kora.lang('title.error'), message = err, type = 'error' })
         return
     end
     Admin.teleportTo(coords, true)
@@ -140,7 +140,7 @@ end)
 
 RegisterNetEvent('kora_admin:client:tpback', function()
     if not lastPosition then
-        Kora.notify.send({ title = Kora.lang('title.error'), message = Kora.lang('error.no_previous_position'), type = 'error' })
+        Kora.bridge.sendNotify({ title = Kora.lang('title.error'), message = Kora.lang('error.no_previous_position'), type = 'error' })
         return
     end
     Admin.teleportTo({ x = lastPosition.x, y = lastPosition.y, z = lastPosition.z })
