@@ -11,7 +11,7 @@ local function stop()
     NetworkSetInSpectatorMode(false, PlayerPedId())
     spectating = nil
     Admin.spectating = false
-    if hint then Kora.textui.hide(hint); hint = nil end
+    if hint then Kora.bridge.hideText(hint); hint = nil end
     if Admin.refreshAppActionStates then Admin.refreshAppActionStates() end
 end
 
@@ -38,7 +38,7 @@ local function start(targetSrc)
     spectating = targetSrc
     Admin.spectating = true
     if Config.spectate.showHint and not hint then
-        hint = Kora.textui.show('Stop spectating', { key = Config.spectate.stopKey ~= '' and Config.spectate.stopKey or nil, icon = 'eye-off' })
+        hint = Kora.bridge.drawText('Stop spectating', { key = Config.spectate.stopKey ~= '' and Config.spectate.stopKey or nil, icon = 'eye-off' })
     end
 end
 

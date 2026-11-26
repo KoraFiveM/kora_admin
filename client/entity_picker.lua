@@ -119,7 +119,7 @@ local function updateHud(snapshot)
     state.text = text
     state.nextHudAt = GetGameTimer() + 100
     if state.hud then
-        Kora.textui.update(state.hud, text, { key = Config.entityPicker.copyKey, icon = 'copy', position = 'right-center' })
+        Kora.bridge.updateText(state.hud, text, { key = Config.entityPicker.copyKey, icon = 'copy', position = 'right-center' })
     end
 end
 
@@ -131,7 +131,7 @@ local function stopPicker(message)
     state.text = nil
     state.nextHudAt = 0
     state.menuOpen = false
-    if state.hud then Kora.textui.hide(state.hud) end
+    if state.hud then Kora.bridge.hideText(state.hud) end
     state.hud = nil
     if message then notify('info', message) end
 end
@@ -194,7 +194,7 @@ local function startPicker()
     end
 
     state.active = true
-    state.hud = Kora.textui.show(hudText(nil), {
+    state.hud = Kora.bridge.drawText(hudText(nil), {
         key = Config.entityPicker.copyKey,
         icon = 'copy',
         position = 'right-center',
