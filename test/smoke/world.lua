@@ -48,6 +48,7 @@ local weatherResourceState = 'missing'
 function GetResourceState() return weatherResourceState end
 
 Kora = {
+    bridge = {},
     commands = {
         add = function(name, _, _, _, handler, options)
             commands[name] = { handler = handler, options = options }
@@ -966,7 +967,7 @@ test('My Reports: players chat in their own window and get a toast only while it
 end)
 
 test('kora_broadcast notifies every player, but only from the console', function()
-    Kora.notify = { sendToAll = function(payload) broadcasts[#broadcasts + 1] = payload end }
+    Kora.bridge.sendNotify = function(target, payload) broadcasts[#broadcasts + 1] = payload; broadcasts[#broadcasts].target = target end
     local command = consoleCommands.kora_broadcast
     truthy(command and command.restricted, 'kora_broadcast should be a restricted command')
 
@@ -977,13 +978,14 @@ test('kora_broadcast notifies every player, but only from the console', function
     equal(#broadcasts, 0, 'an empty message is ignored')
 
     command.handler(0, {}, 'kora_broadcast The server will restart in 5 minutes.')
-    equal(#broadcasts, 1, 'the console broadcast reaches sendToAll')
+    equal(#broadcasts, 1, 'the console broadcast reaches the bridge')
+    equal(broadcasts[1].target, -1, 'the broadcast targets every player')
     equal(broadcasts[1].message, 'The server will restart in 5 minutes.', 'broadcast message')
-    equal(broadcasts[1].duration, 60000, 'restart warnings stay up long enough to notice')
+    equal(broadcasts[1].time, 60000, 'restart warnings stay up long enough to notice')
 end)
 
 test('announce plays the alert for everyone, and only when enabled', function()
-    Kora.notify = { sendToAll = function() end }
+    Kora.bridge.sendNotify = function() end
     Admin.accessCommandAllowed = function() return true end
     Admin.log = function() end
     Admin.respond = function() end
